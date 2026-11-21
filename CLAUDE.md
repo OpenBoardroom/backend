@@ -18,6 +18,7 @@ The OpenBoardroom data pipeline and database. It fetches SEC EDGAR proxy filings
 - `uv run ruff check` and `uv run ruff format --check`: lint and format.
 - `uv run pyright`: strict type check.
 - `dbmate`: apply or roll back migrations in `db/`.
+- `scripts/dump-schema.sh`: regenerate `db/schema.sql` after changing a migration (needs Docker; it runs `dbmate up`, which dumps, against a throwaway `postgres:17.12`, using that container's `pg_dump` because the host's must match the server's major version). CI fails if the committed file differs.
 
 ## Style
 
@@ -28,6 +29,7 @@ The OpenBoardroom data pipeline and database. It fetches SEC EDGAR proxy filings
 
 - The ballot-item schema contract is ADR-0003: the public views and `db/schema.sql`. Change them only through a spec or ADR, producer first.
 - `db/schema.sql` is the pinned schema the frontend checks its types against.
+- `tests/contract/views.json` lists the view columns `frontend` may use; `tests/contract/test_contract.py` fails if one is removed or renamed.
 
 ## Pitfalls
 

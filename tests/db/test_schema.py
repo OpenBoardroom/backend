@@ -3,12 +3,15 @@
 import subprocess
 import uuid
 from collections.abc import Callable
+from pathlib import Path
 
 import psycopg
 import pytest
 from psycopg import sql
 
 Dbmate = Callable[..., subprocess.CompletedProcess[str]]
+
+MIGRATIONS_DIR = Path(__file__).resolve().parents[2] / "db" / "migrations"
 
 
 def _company(conn: psycopg.Connection, cik: str = "0000320193") -> int:
@@ -108,9 +111,11 @@ def test_migrations_round_trip(
         before = _tables(url)
         assert "ballot_items" in before
         assert "vote_results" in before
+        assert "published_ballot_items" in before
 
-        dbmate(url, "down")
-        dbmate(url, "down")
+        # One `down` per migration rolls the database back to empty.
+        for _ in MIGRATIONS_DIR.glob("*.sql"):
+            dbmate(url, "down")
         assert _tables(url) == []
 
         dbmate(url, "up")

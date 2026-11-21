@@ -11,6 +11,20 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      # Keep the tag in step with scripts/dump-schema.sh: the dump records the
+      # exact server and pg_dump version.
+      postgres:
+        image: postgres:17.12
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -28,6 +42,21 @@ jobs:
           echo "4c6059e4e52558605d39e8c8075f3b15f96cac293043c0c71bb464d8950f235c  dbmate" | sha256sum -c -
           sudo install -m 0755 dbmate /usr/local/bin/dbmate
           dbmate --version
+      - name: Check db/schema.sql matches the migrations
+        env:
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable
+          PG_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          # The migrations grant to these roles; `infrastructure` creates them in production.
+          docker exec "$PG_CONTAINER" psql -q -U postgres -c "create role pipeline_rw; create role web_ro;"
+          # pg_dump must match the server's version, so run the service container's own.
+          mkdir -p "$RUNNER_TEMP/shim"
+          printf '#!/bin/sh\nexec docker exec -i %s pg_dump "$@"\n' "$PG_CONTAINER" > "$RUNNER_TEMP/shim/pg_dump"
+          chmod +x "$RUNNER_TEMP/shim/pg_dump"
+          export PATH="$RUNNER_TEMP/shim:$PATH"
+          dbmate up
+          dbmate dump
+          git diff --exit-code db/schema.sql
       - run: uv run pytest --cov=openboardroom
       - name: Scan history with gitleaks
         run: |
