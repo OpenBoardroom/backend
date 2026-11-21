@@ -69,5 +69,6 @@ class Settings:
             database_url=_required(env, "OBR_DATABASE_URL"),
             edgar_user_agent=_required(env, "OBR_EDGAR_USER_AGENT"),
             edgar_max_rps=_parse_rps(env.get("OBR_EDGAR_MAX_RPS", DEFAULT_RPS)),
-            cache_dir=Path(env.get("OBR_CACHE_DIR", DEFAULT_CACHE_DIR)),
+            # A blank value would become Path("."), caching filings at the repo root.
+            cache_dir=Path(env.get("OBR_CACHE_DIR", "").strip() or DEFAULT_CACHE_DIR),
         )

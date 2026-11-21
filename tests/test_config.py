@@ -28,12 +28,18 @@ def test_missing_database_url_raises() -> None:
         Settings.from_env({"OBR_EDGAR_USER_AGENT": VALID["OBR_EDGAR_USER_AGENT"]})
 
 
+@pytest.mark.parametrize("value", ["", "   "])
+def test_blank_database_url_counts_as_missing(value: str) -> None:
+    with pytest.raises(ConfigError, match="OBR_DATABASE_URL"):
+        Settings.from_env({**VALID, "OBR_DATABASE_URL": value})
+
+
 def test_rps_above_ten_raises() -> None:
     with pytest.raises(ConfigError, match="OBR_EDGAR_MAX_RPS"):
         Settings.from_env({**VALID, "OBR_EDGAR_MAX_RPS": "10.5"})
 
 
-@pytest.mark.parametrize("value", ["fast", "0", "-1", "nan"])
+@pytest.mark.parametrize("value", ["fast", "0", "-1", "nan", "inf"])
 def test_rps_not_positive_number_raises(value: str) -> None:
     with pytest.raises(ConfigError, match="OBR_EDGAR_MAX_RPS"):
         Settings.from_env({**VALID, "OBR_EDGAR_MAX_RPS": value})
@@ -54,6 +60,12 @@ def test_defaults() -> None:
 def test_cache_dir_override() -> None:
     settings = Settings.from_env({**VALID, "OBR_CACHE_DIR": "/tmp/obr"})
     assert settings.cache_dir == Path("/tmp/obr")
+
+
+@pytest.mark.parametrize("value", ["", "   "])
+def test_blank_cache_dir_uses_default(value: str) -> None:
+    settings = Settings.from_env({**VALID, "OBR_CACHE_DIR": value})
+    assert settings.cache_dir == Path("cache")
 
 
 def test_from_env_reads_process_environment(monkeypatch: pytest.MonkeyPatch) -> None:
