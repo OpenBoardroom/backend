@@ -45,6 +45,12 @@ def _item(
         "insert into companies (cik, ticker, name) values (%s, 'AAPL', 'Apple Inc.') returning id",
         (cik,),
     )
+    # A filing's CIK must be one of its company's CIKs.
+    for company_cik in dict.fromkeys([cik, filer_cik or cik]):
+        conn.execute(
+            "insert into company_ciks (company_id, cik, valid_from) values (%s, %s, '1900-01-01')",
+            (company_id, company_cik),
+        )
     filing_id = _one(
         conn,
         """
@@ -309,6 +315,11 @@ def _hidden_rows(conn: psycopg.Connection) -> set[str]:
         conn,
         "insert into companies (cik, ticker, name) values ('0000000001', 'SECRET', 'SECRET co') "
         "returning id",
+    )
+    conn.execute(
+        "insert into company_ciks (company_id, cik, valid_from) "
+        "values (%s, '0000000001', '1900-01-01')",
+        (company_id,),
     )
     filing_id = _one(
         conn,

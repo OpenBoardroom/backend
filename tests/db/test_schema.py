@@ -20,6 +20,10 @@ def _company(conn: psycopg.Connection, cik: str = "0000320193") -> int:
         (cik,),
     ).fetchone()
     assert row is not None
+    conn.execute(
+        "insert into company_ciks (company_id, cik, valid_from) values (%s, %s, '1900-01-01')",
+        (row[0], cik),
+    )
     return row[0]
 
 

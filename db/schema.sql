@@ -724,6 +724,14 @@ ALTER TABLE ONLY public.company_ciks
 
 
 --
+-- Name: company_ciks company_ciks_company_id_cik_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.company_ciks
+    ADD CONSTRAINT company_ciks_company_id_cik_key UNIQUE (company_id, cik);
+
+
+--
 -- Name: company_ciks company_ciks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -993,6 +1001,14 @@ ALTER TABLE ONLY public.extraction_runs
 
 
 --
+-- Name: filings filings_company_id_cik_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.filings
+    ADD CONSTRAINT filings_company_id_cik_fkey FOREIGN KEY (company_id, cik) REFERENCES public.company_ciks(company_id, cik) ON DELETE RESTRICT;
+
+
+--
 -- Name: filings filings_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1120,4 +1136,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261121000002'),
     ('20261121000003'),
     ('20261121000004'),
-    ('20261121000005');
+    ('20261121000005'),
+    ('20261121000006');

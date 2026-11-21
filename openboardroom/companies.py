@@ -92,6 +92,14 @@ class CikRange:
 
 
 @dataclass(frozen=True)
+class MembershipRange:
+    """One index membership, with its dates (inclusive)."""
+
+    start: date
+    end: date | None
+
+
+@dataclass(frozen=True)
 class CoveredCompany:
     """A company whose index membership overlaps a date window.
 
@@ -102,6 +110,8 @@ class CoveredCompany:
         membership_start: Earliest start of the memberships overlapping the window.
         membership_end: Latest end of those memberships, or None if one is open.
         ciks: The company's CIK ranges that overlap the window, oldest first.
+        memberships: The memberships overlapping the window, oldest first. Unlike
+            the merged span, these keep any gap between memberships.
     """
 
     company_id: int
@@ -110,6 +120,7 @@ class CoveredCompany:
     membership_start: date
     membership_end: date | None
     ciks: list[CikRange]
+    memberships: list[MembershipRange]
 
 
 def _pad_cik(raw: str) -> str:
@@ -357,8 +368,9 @@ def covered_companies(
         end: Last day of the window.
 
     Returns:
-        One entry per company, ordered by ticker, with the span of its
-        overlapping memberships and the CIK ranges in use during the window.
+        One entry per company, ordered by ticker, with its overlapping
+        memberships (each, and their merged span) and the CIK ranges in use
+        during the window.
     """
     companies = conn.execute(
         """
@@ -385,8 +397,29 @@ def covered_companies(
         ([c[0] for c in companies], end, start),
     ).fetchall():
         ranges.setdefault(company_id, []).append(CikRange(cik, valid_from, valid_to))
+    memberships: dict[int, list[MembershipRange]] = {}
+    for company_id, start_date, end_date in conn.execute(
+        """
+        select company_id, start_date, end_date from index_memberships
+        where company_id = any(%s)
+          and index_name = %s
+          and start_date <= %s
+          and (end_date is null or end_date >= %s)
+        order by start_date
+        """,
+        ([c[0] for c in companies], index, end, start),
+    ).fetchall():
+        memberships.setdefault(company_id, []).append(MembershipRange(start_date, end_date))
     return [
-        CoveredCompany(company_id, cik, ticker, first, last, ranges.get(company_id, []))
+        CoveredCompany(
+            company_id,
+            cik,
+            ticker,
+            first,
+            last,
+            ranges.get(company_id, []),
+            memberships.get(company_id, []),
+        )
         for company_id, cik, ticker, first, last in companies
     ]
 

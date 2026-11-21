@@ -3,6 +3,7 @@
 import argparse
 
 from openboardroom import __version__, companies
+from openboardroom.pipeline import discover
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -18,6 +19,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"obr {__version__}")
     subparsers = parser.add_subparsers(dest="command", metavar="COMMAND")
     companies.register(subparsers)
+    discover.register(subparsers)
     return parser
 
 

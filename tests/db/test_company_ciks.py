@@ -83,3 +83,27 @@ def test_filing_records_its_own_cik(conn: psycopg.Connection) -> None:
             """,
             company_id,
         )
+
+
+def test_filing_cik_must_belong_to_company(conn: psycopg.Connection) -> None:
+    """A filing's CIK must be one of its own company's CIKs, not another company's."""
+    ids = [
+        row[0]
+        for row in conn.execute(
+            "insert into companies (cik, ticker, name) values "
+            "('0000000001', 'A', 'A Co'), ('0000000002', 'B', 'B Co') returning id"
+        ).fetchall()
+    ]
+    conn.execute(
+        "insert into company_ciks (company_id, cik, valid_from) values "
+        "(%s, '0000000001', '1900-01-01'), (%s, '0000000002', '1900-01-01')",
+        (ids[0], ids[1]),
+    )
+    with pytest.raises(psycopg.errors.ForeignKeyViolation):
+        conn.execute(
+            """
+            insert into filings (accession, company_id, cik, form, filed_at, source_url)
+            values ('0000000001-26-000001', %s, '0000000002', 'DEF 14A', '2026-01-08', 'u')
+            """,
+            (ids[0],),
+        )

@@ -12,6 +12,7 @@ from openboardroom.cli import main
 from openboardroom.companies import (
     CikRange,
     CoveredCompany,
+    MembershipRange,
     SyncResult,
     covered_companies,
     read_companies_csv,
@@ -71,6 +72,7 @@ def test_partial_membership_overlap(conn: psycopg.Connection) -> None:
         membership_start=date(2026, 3, 1),
         membership_end=date(2026, 6, 30),
         ciks=[CikRange(cik="0001652044", valid_from=date(1900, 1, 1), valid_to=None)],
+        memberships=[MembershipRange(start=date(2026, 3, 1), end=date(2026, 6, 30))],
     )
     second_half = covered_companies(conn, "sp100", date(2026, 7, 1), date(2026, 12, 31))
     assert [c.ticker for c in second_half] == ["AAPL", "MSFT"]
@@ -183,6 +185,11 @@ def test_covered_companies_one_entry_per_company(conn: psycopg.Connection, tmp_p
 
     assert [(c.ticker, c.membership_start, c.membership_end) for c in covered] == [
         ("AAPL", date(2026, 1, 1), None)
+    ]
+    # The gap between them stays visible, so discovery can skip filings dated in it.
+    assert covered[0].memberships == [
+        MembershipRange(start=date(2026, 1, 1), end=date(2026, 3, 31)),
+        MembershipRange(start=date(2026, 6, 1), end=None),
     ]
 
 
