@@ -2,7 +2,8 @@
 
 The submissions fixtures are trimmed copies of real EDGAR JSON (downloaded
 2026-11-21). ``submissions_page.json`` is synthetic: same shape as a real
-``filings.files`` page, with made-up accessions.
+``filings.files`` page, with made-up accessions. ``company_tickers.json`` is
+synthetic, in the real shape of https://www.sec.gov/files/company_tickers.json.
 """
 
 import json
@@ -19,7 +20,12 @@ from openboardroom.cli import main
 from openboardroom.companies import sync_companies
 from openboardroom.config import Settings
 from openboardroom.edgar import EdgarClient, EdgarError, RateLimiter
-from openboardroom.pipeline.discover import DiscoverResult, SuccessorNotice, discover
+from openboardroom.pipeline.discover import (
+    CikDriftNotice,
+    DiscoverResult,
+    SuccessorNotice,
+    discover,
+)
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
 EDGAR = FIXTURES / "edgar"
@@ -38,9 +44,12 @@ def load(name: str) -> dict[str, Any]:
 class FakeEdgar:
     """Serves submissions JSON by file name and records every requested name."""
 
-    def __init__(self, files: dict[str, dict[str, Any]]) -> None:
-        """Map EDGAR file names (``CIK0000320193.json``) to the JSON to return."""
-        self.files = files
+    def __init__(self, files: dict[str, Any]) -> None:
+        """Map EDGAR file names (``CIK0000320193.json``) to the JSON to return.
+
+        ``company_tickers.json`` is served from the fixture unless ``files`` replaces it.
+        """
+        self.files: dict[str, Any] = {"company_tickers.json": load("company_tickers.json"), **files}
         self.requested: list[str] = []
 
     def handler(self, request: httpx.Request) -> httpx.Response:
@@ -269,6 +278,7 @@ def test_8k12b_reported_not_stored(conn: psycopg.Connection) -> None:
     assert result.successor_notices == [
         SuccessorNotice(
             company_id=company[0],
+            ticker="XOM",
             cik="0002115436",
             accession="0001193125-26-291990",
             filed=date(2026, 7, 1),
@@ -316,6 +326,86 @@ def test_malformed_submissions_raise_naming_cik(
         run(conn, edgar, *SEASON)
 
 
+def test_reads_page_when_start_equals_oldest_recent_date(
+    conn: psycopg.Connection, tmp_path: Path
+) -> None:
+    """EDGAR splits recent by count, so one day's filings can straddle recent and a page."""
+    sync_companies(conn, apple_only(tmp_path, "2026-01-01,"))
+    body = synthetic_submissions(("DEFA14A", "2026-03-10", "0009999999-26-000002", ""))
+    body["filings"]["files"] = [
+        {"name": "page-001.json", "filingFrom": "2026-01-01", "filingTo": "2026-03-10"}
+    ]
+    page = synthetic_submissions(("DEF 14A", "2026-03-10", "0009999999-26-000001", ""))
+    edgar = FakeEdgar({"CIK0000320193.json": body, "page-001.json": page["filings"]["recent"]})
+
+    result = run(conn, edgar, date(2026, 3, 10), date(2026, 3, 31))
+
+    assert result.new == 2
+    assert "0009999999-26-000001" in {r[2] for r in stored(conn)}
+
+
+def xom_linked_only_to_old_cik(tmp_path: Path) -> Path:
+    path = tmp_path / "companies.csv"
+    path.write_text(HEADER + "0000034088,XOM,Exxon Mobil Corp,sp100,2026-01-01,,true\n")
+    return path
+
+
+def test_cik_drift_reported(conn: psycopg.Connection, tmp_path: Path) -> None:
+    """EDGAR maps XOM to a CIK the company doesn't have yet: a new filer to link."""
+    sync_companies(conn, xom_linked_only_to_old_cik(tmp_path))
+    company = conn.execute("select id from companies where ticker = 'XOM'").fetchone()
+    assert company is not None
+
+    result = run(conn, xom_edgar(), *SEASON)
+
+    assert result.cik_drift == [
+        CikDriftNotice(company_id=company[0], ticker="XOM", edgar_cik="0002115436")
+    ]
+
+
+def test_no_drift_when_cik_linked(conn: psycopg.Connection, tmp_path: Path) -> None:
+    """Linked CIKs give no notice, matching BRK.B to EDGAR's BRK-B."""
+    path = tmp_path / "companies.csv"
+    path.write_text(
+        HEADER
+        + "0000320193,aapl,Apple Inc.,sp100,2026-01-01,,false\n"
+        + "0001067983,BRK.B,Berkshire Hathaway Inc.,sp100,2026-01-01,,false\n"
+    )
+    sync_companies(conn, path)
+    edgar = apple_edgar()
+    edgar.files["CIK0001067983.json"] = synthetic_submissions()
+
+    result = run(conn, edgar, *SEASON)
+
+    assert result.cik_drift == []
+    assert edgar.requested.count("company_tickers.json") == 1
+
+
+def test_missing_ticker_reported(conn: psycopg.Connection, tmp_path: Path) -> None:
+    sync_companies(conn, apple_only(tmp_path, "2026-01-01,"))
+    company = conn.execute("select id from companies where ticker = 'AAPL'").fetchone()
+    assert company is not None
+    edgar = apple_edgar()
+    edgar.files["company_tickers.json"] = {
+        "0": {"cik_str": 789019, "ticker": "MSFT", "title": "MICROSOFT CORP"}
+    }
+
+    result = run(conn, edgar, *SEASON)
+
+    assert result.cik_drift == [
+        CikDriftNotice(company_id=company[0], ticker="AAPL", edgar_cik=None)
+    ]
+
+
+def test_malformed_ticker_entry_raises(conn: psycopg.Connection, tmp_path: Path) -> None:
+    sync_companies(conn, apple_only(tmp_path, "2026-01-01,"))
+    edgar = apple_edgar()
+    edgar.files["company_tickers.json"] = {"0": {"ticker": "AAPL"}}
+
+    with pytest.raises(EdgarError, match="malformed entry"):
+        run(conn, edgar, *SEASON)
+
+
 CliEnv = Callable[..., None]
 
 
@@ -336,8 +426,12 @@ def test_cli_prints_counts_and_notices(cli_env: CliEnv, capsys: pytest.CaptureFi
 
     def fake(conn: psycopg.Connection, client: EdgarClient, start: date, end: date) -> Any:
         seen.append((start, end))
-        notice = SuccessorNotice(7, "0002115436", "0001193125-26-291990", date(2026, 7, 1))
-        return DiscoverResult(new=14, existing=2, successor_notices=[notice])
+        notice = SuccessorNotice(7, "XOM", "0002115436", "0001193125-26-291990", date(2026, 7, 1))
+        drift = CikDriftNotice(7, "XOM", "0002115436")
+        missing = CikDriftNotice(8, "GONE", None)
+        return DiscoverResult(
+            new=14, existing=2, successor_notices=[notice], cik_drift=[drift, missing]
+        )
 
     cli_env(fake)
 
@@ -347,8 +441,15 @@ def test_cli_prints_counts_and_notices(cli_env: CliEnv, capsys: pytest.CaptureFi
     assert code == 0
     assert seen == [SEASON]
     assert "14 new, 2 existing" in out
-    assert "0001193125-26-291990" in out
-    assert "0002115436" in out
+    assert (
+        "covered company XOM (CIK 0002115436) filed an 8-K12B on 2026-07-01 "
+        "(0001193125-26-291990); check whether its filer CIK changed"
+    ) in out
+    assert (
+        "XOM: EDGAR now maps this ticker to CIK 0002115436, which isn't linked; "
+        "add it to data/company_ciks.csv after checking the 8-K12B"
+    ) in out
+    assert "GONE" in out
 
 
 def test_cli_exits_nonzero_on_edgar_error(

@@ -3,7 +3,7 @@
 import time
 from collections.abc import Callable
 from types import TracebackType
-from typing import Any, Self
+from typing import Any, Self, cast
 
 import httpx
 
@@ -12,6 +12,7 @@ from openboardroom.edgar.ratelimit import RateLimiter
 
 SUBMISSIONS_BASE = "https://data.sec.gov/submissions"
 ARCHIVES_BASE = "https://www.sec.gov/Archives/edgar/data"
+COMPANY_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 TIMEOUT_SECONDS = 30.0
 # Seconds to wait before each retry of a 429, 5xx, or network error.
 BACKOFF_SECONDS = (1.0, 2.0, 4.0)
@@ -110,6 +111,24 @@ class EdgarClient:
             EdgarError: On a non-retryable error or once retries run out.
         """
         return self._get(f"{SUBMISSIONS_BASE}/{name}").json()
+
+    def company_tickers(self) -> dict[str, Any]:
+        """Fetch EDGAR's current ticker-to-CIK map.
+
+        Returns:
+            The decoded JSON object: ``{"0": {"cik_str": 320193, "ticker": "AAPL",
+            "title": "Apple Inc."}, ...}``.
+
+        Raises:
+            EdgarError: On an HTTP error once retries run out, or if the body isn't
+                a JSON object.
+        """
+        body = self._get(COMPANY_TICKERS_URL).json()
+        if not isinstance(body, dict):
+            raise EdgarError(
+                f"EDGAR company tickers file is not a JSON object: {COMPANY_TICKERS_URL}"
+            )
+        return cast(dict[str, Any], body)
 
     def document(self, cik: str, accession: str, primary_document: str) -> bytes:
         """Fetch a filing document's raw bytes, undecoded.

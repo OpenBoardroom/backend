@@ -29,15 +29,36 @@ class SuccessorNotice:
 
     Attributes:
         company_id: The covered company.
+        ticker: The company's ticker.
         cik: The CIK it was filed under.
         accession: Accession number.
         filed: EDGAR filing date.
     """
 
     company_id: int
+    ticker: str
     cik: str
     accession: str
     filed: date
+
+
+@dataclass(frozen=True)
+class CikDriftNotice:
+    """A covered company whose ticker EDGAR maps to a CIK the company doesn't have.
+
+    A successor issuer files under a new CIK that discovery never polls until it
+    is linked, so ticker drift is how a new filer is noticed (spec §4).
+
+    Attributes:
+        company_id: The covered company.
+        ticker: The company's ticker.
+        edgar_cik: The 10-digit CIK EDGAR maps the ticker to, or None when the
+            ticker is missing from EDGAR's ticker file.
+    """
+
+    company_id: int
+    ticker: str
+    edgar_cik: str | None
 
 
 @dataclass(frozen=True)
@@ -48,11 +69,14 @@ class DiscoverResult:
         new: Filings inserted.
         existing: Filings found that were already stored.
         successor_notices: 8-K12B filings seen, which are reported, not stored.
+        cik_drift: Covered companies whose ticker EDGAR maps to an unlinked CIK,
+            or doesn't list.
     """
 
     new: int
     existing: int
     successor_notices: list[SuccessorNotice] = field(default_factory=lambda: [])
+    cik_drift: list[CikDriftNotice] = field(default_factory=lambda: [])
 
 
 @dataclass(frozen=True)
@@ -111,7 +135,9 @@ def _submissions(client: EdgarClient, cik: str, start: date) -> list[_Row]:
     filings = _object(client.submissions(cik).get("filings"), cik, "filings")
     rows = _rows(_object(filings.get("recent"), cik, "filings.recent"), cik, "filings.recent")
     oldest = min((row.filed for row in rows), default=None)
-    if oldest is not None and start >= oldest:
+    # Strictly after: EDGAR splits recent by count, so filings dated `oldest`
+    # may continue on the first page.
+    if oldest is not None and start > oldest:
         return rows
     for page in filings.get("files", []):
         info = _object(page, cik, "filings.files[]")
@@ -119,6 +145,24 @@ def _submissions(client: EdgarClient, cik: str, start: date) -> list[_Row]:
         if _parse_date(info["filingTo"], cik, name) >= start:
             rows += _rows(client.submissions_page(name), cik, name)
     return rows
+
+
+def _ticker_key(ticker: str) -> str:
+    # EDGAR writes class shares with a dash (BRK-B); other lists use a dot (BRK.B).
+    return ticker.strip().upper().replace(".", "-")
+
+
+def _edgar_ciks_by_ticker(client: EdgarClient) -> dict[str, str]:
+    """Map normalized tickers to 10-digit CIKs from EDGAR's company tickers file."""
+    ciks: dict[str, str] = {}
+    for entry in client.company_tickers().values():
+        try:
+            ciks[_ticker_key(str(entry["ticker"]))] = f"{int(entry['cik_str']):010d}"
+        except (KeyError, TypeError, ValueError):
+            raise EdgarError(
+                f"EDGAR company tickers file has a malformed entry: {entry!r}"
+            ) from None
+    return ciks
 
 
 def _is_kept(row: _Row) -> bool:
@@ -143,7 +187,9 @@ def discover(
     inside the range of the CIK it was filed under. Kept filings are inserted
     at stage `discovered` under that CIK; ones already stored are counted.
     8-K12B filings dated inside the window are returned as successor notices
-    and never stored. The caller commits.
+    and never stored. EDGAR's ticker file is read once: a covered company
+    whose ticker maps to a CIK it doesn't have, or is missing, is returned as
+    a CIK drift notice. The caller commits.
 
     Args:
         conn: Connection with write access.
@@ -153,14 +199,26 @@ def discover(
         index: Index whose members are covered.
 
     Returns:
-        Counts of new and already-stored filings, and any successor notices.
+        Counts of new and already-stored filings, and any successor and CIK
+        drift notices.
 
     Raises:
         EdgarError: If EDGAR fails or returns submissions that can't be read.
     """
     new = existing = 0
     notices: list[SuccessorNotice] = []
+    drift: list[CikDriftNotice] = []
+    edgar_ciks = _edgar_ciks_by_ticker(client)
     for company in covered_companies(conn, index, start, end):
+        edgar_cik = edgar_ciks.get(_ticker_key(company.ticker))
+        linked = {
+            row[0]
+            for row in conn.execute(
+                "select cik from company_ciks where company_id = %s", (company.company_id,)
+            ).fetchall()
+        }
+        if edgar_cik not in linked:
+            drift.append(CikDriftNotice(company.company_id, company.ticker, edgar_cik))
         for cik_range in company.ciks:
             for row in _submissions(client, cik_range.cik, start):
                 if not _within(row.filed, start, end):
@@ -169,7 +227,13 @@ def discover(
                     # Only the window applies: a notice exists to fix CIK ranges
                     # and memberships, so it must not be hidden by them.
                     notices.append(
-                        SuccessorNotice(company.company_id, cik_range.cik, row.accession, row.filed)
+                        SuccessorNotice(
+                            company.company_id,
+                            company.ticker,
+                            cik_range.cik,
+                            row.accession,
+                            row.filed,
+                        )
                     )
                     continue
                 if not (
@@ -202,7 +266,7 @@ def discover(
                     existing += 1
                 else:
                     new += 1
-    return DiscoverResult(new=new, existing=existing, successor_notices=notices)
+    return DiscoverResult(new=new, existing=existing, successor_notices=notices, cik_drift=drift)
 
 
 def _run(args: argparse.Namespace) -> int:
@@ -216,10 +280,17 @@ def _run(args: argparse.Namespace) -> int:
     print(f"discover: {result.new} new, {result.existing} existing")
     for notice in result.successor_notices:
         print(
-            f"successor notice: 8-K12B {notice.accession} filed {notice.filed} under CIK "
-            f"{notice.cik} (company {notice.company_id}); link the successor's CIK in "
-            "the company CIKs CSV"
+            f"covered company {notice.ticker} (CIK {notice.cik}) filed an 8-K12B on "
+            f"{notice.filed} ({notice.accession}); check whether its filer CIK changed"
         )
+    for drift in result.cik_drift:
+        if drift.edgar_cik is None:
+            print(f"{drift.ticker}: EDGAR's ticker file doesn't list this ticker; check it")
+        else:
+            print(
+                f"{drift.ticker}: EDGAR now maps this ticker to CIK {drift.edgar_cik}, which "
+                "isn't linked; add it to data/company_ciks.csv after checking the 8-K12B"
+            )
     return 0
 
 

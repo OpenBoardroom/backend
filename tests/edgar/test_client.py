@@ -78,6 +78,29 @@ def test_submissions_page_url() -> None:
     assert seen == ["https://data.sec.gov/submissions/CIK0000320193-submissions-001.json"]
 
 
+def test_company_tickers_url_and_body() -> None:
+    seen: list[httpx.Request] = []
+    body = {"0": {"cik_str": 320193, "ticker": "AAPL", "title": "Apple Inc."}}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, json=body)
+
+    with make_client(handler, FakeClock()) as client:
+        assert client.company_tickers() == body
+
+    assert [str(r.url) for r in seen] == ["https://www.sec.gov/files/company_tickers.json"]
+    assert seen[0].headers["User-Agent"] == USER_AGENT
+
+
+def test_company_tickers_non_dict_raises() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=[1, 2])
+
+    with make_client(handler, FakeClock()) as client, pytest.raises(EdgarError, match="ticker"):
+        client.company_tickers()
+
+
 def test_document_url() -> None:
     assert (
         document_url("0000320193", "0001308179-24-000010", "laapl2024_def14a.htm")
