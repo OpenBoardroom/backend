@@ -9,7 +9,12 @@ from typing import Any, cast
 
 import psycopg
 
-from openboardroom.companies import MembershipRange, SubParsers, covered_companies
+from openboardroom.companies import (
+    CikRange,
+    MembershipRange,
+    SubParsers,
+    covered_companies,
+)
 from openboardroom.config import Settings
 from openboardroom.edgar import EdgarClient, EdgarError, document_url
 
@@ -20,8 +25,12 @@ RESULTS_ITEM = "5.07"
 # Membership is judged at the meeting date (spec §4), which isn't known until
 # extraction. A proxy precedes its meeting by under about six months and a 5.07
 # 8-K follows it within days, so a filing is kept when a membership overlaps
-# [filed, filed + 180 days]; extraction checks the exact meeting date.
+# [filed - MEMBERSHIP_LOOKBACK, filed + 180 days]; extraction checks the exact
+# meeting date.
 MEMBERSHIP_LOOKAHEAD = timedelta(days=180)
+# A 5.07 8-K is filed within four business days after the meeting, so a
+# membership that ended up to 14 days before it still covers the meeting.
+MEMBERSHIP_LOOKBACK = timedelta(days=14)
 # Filed by a successor issuer; a person links its CIK to the company (spec §4).
 SUCCESSOR_FORM = "8-K12B"
 # The parallel arrays read from `filings.recent` and from each paged file.
@@ -97,10 +106,16 @@ def _within(day: date, first: date, last: date | None) -> bool:
     return first <= day and (last is None or day <= last)
 
 
-def _overlaps_lookahead(filed: date, membership: MembershipRange) -> bool:
-    """Whether `membership` overlaps [filed, filed + MEMBERSHIP_LOOKAHEAD] inclusive."""
+def _overlaps(cik_range: CikRange, start: date, end: date) -> bool:
+    return cik_range.valid_from <= end and (
+        cik_range.valid_to is None or cik_range.valid_to >= start
+    )
+
+
+def _could_cover_meeting(filed: date, membership: MembershipRange) -> bool:
+    """Whether `membership` overlaps [filed - LOOKBACK, filed + LOOKAHEAD] inclusive."""
     return membership.start <= filed + MEMBERSHIP_LOOKAHEAD and (
-        membership.end is None or membership.end >= filed
+        membership.end is None or membership.end >= filed - MEMBERSHIP_LOOKBACK
     )
 
 
@@ -196,8 +211,9 @@ def discover(
     Every CIK range of each covered company is polled. A DEF 14A, DEFA14A, or
     8-K listing item 5.07 is kept only if its filing date is inside the window
     and inside the range of the CIK it was filed under, and one of the
-    company's memberships (not just their merged span) overlaps the filing
-    date plus `MEMBERSHIP_LOOKAHEAD`. Kept filings are inserted
+    company's memberships (not just their merged span) overlaps
+    [filed - `MEMBERSHIP_LOOKBACK`, filed + `MEMBERSHIP_LOOKAHEAD`]. Companies
+    and memberships are selected over the window widened the same way. Kept filings are inserted
     at stage `discovered` under that CIK; ones already stored are counted.
     8-K12B filings dated inside the window are returned as successor notices
     and never stored. EDGAR's ticker file is read once: a covered company
@@ -222,7 +238,12 @@ def discover(
     notices: list[SuccessorNotice] = []
     drift: list[CikDriftNotice] = []
     edgar_ciks = _edgar_ciks_by_ticker(client)
-    for company in covered_companies(conn, index, start, end):
+    # Widened so every membership that could match a filing dated in the window
+    # is listed, even one starting after `end` or ending before `start`.
+    covered = covered_companies(
+        conn, index, start - MEMBERSHIP_LOOKBACK, end + MEMBERSHIP_LOOKAHEAD
+    )
+    for company in covered:
         edgar_cik = edgar_ciks.get(_ticker_key(company.ticker))
         linked = {
             row[0]
@@ -232,7 +253,9 @@ def discover(
         }
         if edgar_cik not in linked:
             drift.append(CikDriftNotice(company.company_id, company.ticker, edgar_cik))
-        for cik_range in company.ciks:
+        # covered_companies listed the CIKs in use over the widened dates; a
+        # filing must be inside the real window, so poll only those used in it.
+        for cik_range in (c for c in company.ciks if _overlaps(c, start, end)):
             for row in _submissions(client, cik_range.cik, start):
                 if not _within(row.filed, start, end):
                     continue
@@ -252,7 +275,7 @@ def discover(
                 if not (
                     _is_kept(row)
                     and _within(row.filed, cik_range.valid_from, cik_range.valid_to)
-                    and any(_overlaps_lookahead(row.filed, m) for m in company.memberships)
+                    and any(_could_cover_meeting(row.filed, m) for m in company.memberships)
                 ):
                     continue
                 inserted = conn.execute(

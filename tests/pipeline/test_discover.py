@@ -271,6 +271,66 @@ def test_filing_long_before_membership_is_dropped(conn: psycopg.Connection, tmp_
     assert stored(conn) == []
 
 
+def one_filing(form: str, filed: str, items: str = "") -> FakeEdgar:
+    """EDGAR serving Apple with one synthetic filing."""
+    return FakeEdgar(
+        {"CIK0000320193.json": synthetic_submissions((form, filed, "0009999999-26-000001", items))}
+    )
+
+
+def test_short_window_before_membership_start_finds_proxy(
+    conn: psycopg.Connection, tmp_path: Path
+) -> None:
+    """A December-only run still polls a company whose membership starts in January."""
+    sync_companies(conn, apple_only(tmp_path, "2026-01-01,"))
+
+    result = run(conn, one_filing("DEF 14A", "2025-12-10"), date(2025, 12, 1), date(2025, 12, 31))
+
+    assert result.new == 1
+
+
+def test_results_8k_shortly_after_membership_end_is_kept(
+    conn: psycopg.Connection, tmp_path: Path
+) -> None:
+    """The meeting fell inside the membership; its 5.07 8-K came a few days after it ended."""
+    sync_companies(conn, apple_only(tmp_path, "2026-01-01,2026-01-31"))
+
+    result = run(conn, one_filing("8-K", "2026-02-05", "5.07"), *SEASON)
+
+    assert result.new == 1
+
+
+def test_results_8k_long_after_membership_end_is_dropped(
+    conn: psycopg.Connection, tmp_path: Path
+) -> None:
+    sync_companies(conn, apple_only(tmp_path, "2026-01-01,2026-01-31"))
+
+    result = run(conn, one_filing("8-K", "2026-02-24", "5.07"), *SEASON)
+
+    assert result.new == 0
+
+
+@pytest.mark.parametrize(
+    ("membership", "filed", "kept"),
+    [
+        # 180 and 181 days before a 2026-01-01 start.
+        ("2026-01-01,", "2025-07-05", True),
+        ("2026-01-01,", "2025-07-04", False),
+        # 14 and 15 days after a 2026-01-31 end.
+        ("2026-01-01,2026-01-31", "2026-02-14", True),
+        ("2026-01-01,2026-01-31", "2026-02-15", False),
+    ],
+)
+def test_membership_match_boundaries(
+    conn: psycopg.Connection, tmp_path: Path, membership: str, filed: str, kept: bool
+) -> None:
+    sync_companies(conn, apple_only(tmp_path, membership))
+
+    result = run(conn, one_filing("DEFA14A", filed), date(2025, 7, 1), date(2026, 3, 31))
+
+    assert result.new == int(kept)
+
+
 def test_xom_filings_come_from_both_ciks(conn: psycopg.Connection) -> None:
     """2026 proxy and results come from the old CIK; later supplements from the new one."""
     sync_companies(conn, XOM, XOM_CIKS)
@@ -294,6 +354,17 @@ def test_xom_filings_come_from_both_ciks(conn: psycopg.Connection) -> None:
     assert url == (
         "https://www.sec.gov/Archives/edgar/data/2115436/000119312526457440/d173488ddefa14a.htm",
     )
+
+
+def test_cik_not_in_use_during_window_not_polled(conn: psycopg.Connection) -> None:
+    """Companies are selected over widened dates, but only CIKs used in the window are polled."""
+    sync_companies(conn, XOM, XOM_CIKS)
+    edgar = xom_edgar()
+
+    run(conn, edgar, date(2026, 1, 1), date(2026, 6, 30))
+
+    assert "CIK0000034088.json" in edgar.requested
+    assert "CIK0002115436.json" not in edgar.requested
 
 
 def test_filing_outside_cik_range_excluded(conn: psycopg.Connection) -> None:
