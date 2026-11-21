@@ -1,0 +1,10 @@
+pre-commit:
+  commands:
+    ruff-format:
+      run: uv run ruff format --check
+    ruff-check:
+      run: uv run ruff check
+    pyright:
+      run: uv run pyright
+    gitleaks:
+      run: gitleaks protect --staged
