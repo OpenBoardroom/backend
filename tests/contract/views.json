@@ -18,6 +18,7 @@
     "id",
     "meeting_id",
     "cik",
+    "filer_cik",
     "ticker",
     "company_name",
     "meeting_date",

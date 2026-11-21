@@ -1,0 +1,4 @@
+# source: test fixture
+ticker,cik,valid_from,valid_to,note
+XOM,0000034088,1994-03-04,2026-06-30,"Exxon Mobil Corp; succeeded by ExxonMobil Holdings Corp (8-K12B 2026-07-01)"
+XOM,0002115436,2026-07-01,,

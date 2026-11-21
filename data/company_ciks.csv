@@ -1,0 +1,5 @@
+# source: CIKs other than a company's current one (companies.csv), with the dates each was in use. A current CIK not listed here is recorded as in use since 1900-01-01 (start not recorded).
+# XOM: change of filer per ExxonMobil Holdings Corp Form 8-K12B effective 2026-07-01 (spec §4, update 2026-11-21). 0000034088 valid_from 1994-03-04 is the earliest filingFrom in EDGAR's submissions data for that CIK (filings.files, fetched 2026-11-21); EDGAR's electronic records start around then, so the CIK was in use earlier (verify)
+ticker,cik,valid_from,valid_to,note
+XOM,0000034088,1994-03-04,2026-06-30,"Exxon Mobil Corp; succeeded by ExxonMobil Holdings Corp (8-K12B 2026-07-01)"
+XOM,0002115436,2026-07-01,,

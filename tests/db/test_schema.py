@@ -26,8 +26,8 @@ def _company(conn: psycopg.Connection, cik: str = "0000320193") -> int:
 def _filing(conn: psycopg.Connection, company_id: int, accession: str) -> int:
     row = conn.execute(
         """
-        insert into filings (accession, company_id, form, filed_at, source_url)
-        values (%s, %s, 'DEF 14A', '2026-01-08', 'https://www.sec.gov/x.htm')
+        insert into filings (accession, company_id, cik, form, filed_at, source_url)
+        values (%s, %s, '0000320193', 'DEF 14A', '2026-01-08', 'https://www.sec.gov/x.htm')
         returning id
         """,
         (accession, company_id),

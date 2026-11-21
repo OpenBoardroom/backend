@@ -132,6 +132,50 @@ ALTER TABLE public.companies ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
 
 
 --
+-- Name: company_ciks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.company_ciks (
+    id bigint NOT NULL,
+    company_id bigint NOT NULL,
+    cik text NOT NULL,
+    valid_from date NOT NULL,
+    valid_to date,
+    note text,
+    CONSTRAINT company_ciks_check CHECK (((valid_to IS NULL) OR (valid_to >= valid_from))),
+    CONSTRAINT company_ciks_cik_check CHECK ((cik ~ '^[0-9]{10}$'::text))
+);
+
+
+--
+-- Name: COLUMN company_ciks.valid_from; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.company_ciks.valid_from IS 'First day the company filed under this CIK. 1900-01-01 means the start is not recorded: in use since before coverage began.';
+
+
+--
+-- Name: COLUMN company_ciks.valid_to; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.company_ciks.valid_to IS 'Last day the company filed under this CIK; null while it is the current one.';
+
+
+--
+-- Name: company_ciks_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.company_ciks ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.company_ciks_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: corrections; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -214,12 +258,21 @@ CREATE TABLE public.filings (
     text_sha256 text,
     stage text DEFAULT 'discovered'::text NOT NULL,
     stage_updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    cik text NOT NULL,
     CONSTRAINT filings_accession_check CHECK ((accession ~ '^[0-9]{10}-[0-9]{2}-[0-9]{6}$'::text)),
+    CONSTRAINT filings_cik_check CHECK ((cik ~ '^[0-9]{10}$'::text)),
     CONSTRAINT filings_form_check CHECK ((form = ANY (ARRAY['DEF 14A'::text, 'DEFA14A'::text, '8-K'::text]))),
     CONSTRAINT filings_raw_sha256_check CHECK ((raw_sha256 ~ '^[0-9a-f]{64}$'::text)),
     CONSTRAINT filings_stage_check CHECK ((stage = ANY (ARRAY['discovered'::text, 'fetched'::text, 'extracted'::text, 'checked'::text, 'in_review'::text, 'published'::text, 'reconciled'::text]))),
     CONSTRAINT filings_text_sha256_check CHECK ((text_sha256 ~ '^[0-9a-f]{64}$'::text))
 );
+
+
+--
+-- Name: COLUMN filings.cik; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.filings.cik IS 'The CIK the filing was filed under, which may differ from companies.cik (the company''s current CIK).';
 
 
 --
@@ -246,6 +299,7 @@ CREATE TABLE public.index_memberships (
     index_name text NOT NULL,
     start_date date NOT NULL,
     end_date date,
+    dates_approximate boolean DEFAULT false NOT NULL,
     CONSTRAINT index_memberships_check CHECK (((end_date IS NULL) OR (end_date >= start_date))),
     CONSTRAINT index_memberships_index_name_check CHECK ((index_name = ANY (ARRAY['sp100'::text, 'sp500'::text])))
 );
@@ -431,6 +485,7 @@ CREATE VIEW public.published_ballot_items WITH (security_barrier='true') AS
  SELECT bi.id,
     bi.meeting_id,
     c.cik,
+    f.cik AS filer_cik,
     c.ticker,
     c.name AS company_name,
     m.meeting_date,
@@ -661,6 +716,22 @@ ALTER TABLE ONLY public.companies
 
 
 --
+-- Name: company_ciks company_ciks_cik_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.company_ciks
+    ADD CONSTRAINT company_ciks_cik_key UNIQUE (cik);
+
+
+--
+-- Name: company_ciks company_ciks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.company_ciks
+    ADD CONSTRAINT company_ciks_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: corrections corrections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -803,6 +874,13 @@ CREATE INDEX check_results_extraction_run_id_idx ON public.check_results USING b
 
 
 --
+-- Name: company_ciks_company_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX company_ciks_company_id_idx ON public.company_ciks USING btree (company_id);
+
+
+--
 -- Name: corrections_ballot_item_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -880,6 +958,14 @@ ALTER TABLE ONLY public.ballot_items
 
 ALTER TABLE ONLY public.check_results
     ADD CONSTRAINT check_results_extraction_run_id_fkey FOREIGN KEY (extraction_run_id) REFERENCES public.extraction_runs(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: company_ciks company_ciks_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.company_ciks
+    ADD CONSTRAINT company_ciks_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE RESTRICT;
 
 
 --
@@ -1032,4 +1118,6 @@ ALTER TABLE ONLY public.vote_results
 INSERT INTO public.schema_migrations (version) VALUES
     ('20261121000001'),
     ('20261121000002'),
-    ('20261121000003');
+    ('20261121000003'),
+    ('20261121000004'),
+    ('20261121000005');

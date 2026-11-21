@@ -1,5 +1,5 @@
 # source: test fixture, as of 2026-01-01
-cik,ticker,name,index,start_date,end_date
-0000320193,AAPL,Apple Inc.,sp100,2026-01-01,
-0000789019,MSFT,MICROSOFT CORP,sp100,2026-01-01,
-0001652044,GOOGL,Alphabet Inc.,sp100,2026-03-01,2026-06-30
+cik,ticker,name,index,start_date,end_date,dates_approximate
+0000320193,AAPL,Apple Inc.,sp100,2026-01-01,,false
+0000789019,MSFT,MICROSOFT CORP,sp100,2026-01-01,,true
+0001652044,GOOGL,Alphabet Inc.,sp100,2026-03-01,2026-06-30,false

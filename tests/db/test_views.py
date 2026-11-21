@@ -29,21 +29,31 @@ def _one(conn: psycopg.Connection, query: LiteralString, params: tuple[object, .
     return row[0]
 
 
-def _item(conn: psycopg.Connection, *, published: bool) -> int:
-    """Insert a company, filing, run, meeting, and one ballot item; return the item id."""
+def _item(
+    conn: psycopg.Connection,
+    *,
+    published: bool,
+    cik: str = "0000320193",
+    filer_cik: str | None = None,
+) -> int:
+    """Insert a company, filing, run, meeting, and one ballot item; return the item id.
+
+    The filing is filed under ``filer_cik``, which defaults to the company's ``cik``.
+    """
     company_id = _one(
         conn,
-        "insert into companies (cik, ticker, name) values ('0000320193', 'AAPL', 'Apple Inc.') "
-        "returning id",
+        "insert into companies (cik, ticker, name) values (%s, 'AAPL', 'Apple Inc.') returning id",
+        (cik,),
     )
     filing_id = _one(
         conn,
         """
-        insert into filings (accession, company_id, form, filed_at, source_url)
-        values ('0001308179-26-000008', %s, 'DEF 14A', '2026-01-08', 'https://www.sec.gov/x.htm')
+        insert into filings (accession, company_id, cik, form, filed_at, source_url)
+        values ('0001308179-26-000008', %s, %s, 'DEF 14A', '2026-01-08',
+                'https://www.sec.gov/x.htm')
         returning id
         """,
-        (company_id,),
+        (company_id, filer_cik or cik),
     )
     run_id = _one(
         conn,
@@ -196,6 +206,18 @@ def test_item_carries_company_meeting_and_source(admin_conn: psycopg.Connection)
     )
 
 
+def test_filer_cik_is_filing_cik(admin_conn: psycopg.Connection) -> None:
+    # ExxonMobil filed its 2026 proxy under its old CIK, then changed filer (spec §4).
+    item_id = _item(admin_conn, published=True, cik="0002115436", filer_cik="0000034088")
+    _as_web_ro(admin_conn)
+
+    row = admin_conn.execute(
+        "select cik, filer_cik from published_ballot_items where id = %s", (item_id,)
+    ).fetchone()
+
+    assert row == ("0002115436", "0000034088")
+
+
 def test_only_published_vote_results(admin_conn: psycopg.Connection) -> None:
     item_id = _item(admin_conn, published=True)
     nominee_id = _one(
@@ -272,8 +294,8 @@ def _hidden_rows(conn: psycopg.Connection) -> set[str]:
 
     Builds one published item (so every view has visible rows to scan) and a
     second company whose only item is unpublished. Every value that exists only
-    in hidden rows starts with ``SECRET``, apart from the hidden item's id, which
-    is returned with them.
+    in hidden rows starts with ``SECRET``, apart from the hidden item's id and the
+    hidden filing's CIK, which are returned with them.
     """
     public_id = _item(conn, published=True)
     conn.execute(
@@ -291,8 +313,8 @@ def _hidden_rows(conn: psycopg.Connection) -> set[str]:
     filing_id = _one(
         conn,
         """
-        insert into filings (accession, company_id, form, filed_at, source_url)
-        values ('0000000001-26-000001', %s, 'DEF 14A', '2026-01-08', 'SECRET url')
+        insert into filings (accession, company_id, cik, form, filed_at, source_url)
+        values ('0000000001-26-000001', %s, '0000000001', 'DEF 14A', '2026-01-08', 'SECRET url')
         returning id
         """,
         (company_id,),
@@ -347,7 +369,7 @@ def _hidden_rows(conn: psycopg.Connection) -> set[str]:
         """,
         (item_id,),
     )
-    return {str(item_id)}
+    return {str(item_id), "0000000001"}
 
 
 # Each probe is a column whose value comes from a table the view joins or
@@ -358,6 +380,8 @@ def _hidden_rows(conn: psycopg.Connection) -> set[str]:
 LEAK_PROBES = [
     # companies is joined, and holds the hidden-only company.
     ("published_ballot_items", "company_name"),
+    # filings is joined too, and the hidden filing's CIK appears in no visible row.
+    ("published_ballot_items", "filer_cik"),
     # The view's filter is an exists() on ballot_items, joined after meetings is scanned.
     ("published_meetings", "date_quote"),
     # Only a predicate on a `distinct on` key (ballot_item_id, kind) can be pushed
