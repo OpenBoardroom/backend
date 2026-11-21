@@ -2,7 +2,7 @@
 
 import argparse
 
-from openboardroom import __version__
+from openboardroom import __version__, companies
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -16,7 +16,8 @@ def build_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(prog="obr", description="OpenBoardroom backend tools.")
     parser.add_argument("--version", action="version", version=f"obr {__version__}")
-    parser.add_subparsers(dest="command", metavar="COMMAND")
+    subparsers = parser.add_subparsers(dest="command", metavar="COMMAND")
+    companies.register(subparsers)
     return parser
 
 
@@ -30,6 +31,9 @@ def main(argv: list[str] | None = None) -> int:
         The process exit code.
     """
     parser = build_parser()
-    parser.parse_args(argv)
-    parser.print_help()
-    return 0
+    args = parser.parse_args(argv)
+    func = getattr(args, "func", None)
+    if func is None:
+        parser.print_help()
+        return 0
+    return func(args)

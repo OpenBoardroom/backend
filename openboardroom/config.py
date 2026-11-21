@@ -23,6 +23,21 @@ def _required(env: Mapping[str, str], name: str) -> str:
     return value
 
 
+def database_url_from_env(env: Mapping[str, str] = os.environ) -> str:
+    """Read the Postgres URL alone, for commands that never call EDGAR.
+
+    Args:
+        env: Variable mapping to read; defaults to the process environment.
+
+    Returns:
+        The value of `OBR_DATABASE_URL`, stripped.
+
+    Raises:
+        ConfigError: If `OBR_DATABASE_URL` is missing or blank.
+    """
+    return _required(env, "OBR_DATABASE_URL")
+
+
 def _parse_rps(raw: str) -> float:
     name = "OBR_EDGAR_MAX_RPS"
     try:
@@ -66,7 +81,7 @@ class Settings:
             ConfigError: If a required variable is missing or a value is invalid.
         """
         return cls(
-            database_url=_required(env, "OBR_DATABASE_URL"),
+            database_url=database_url_from_env(env),
             edgar_user_agent=_required(env, "OBR_EDGAR_USER_AGENT"),
             edgar_max_rps=_parse_rps(env.get("OBR_EDGAR_MAX_RPS", DEFAULT_RPS)),
             # A blank value would become Path("."), caching filings at the repo root.

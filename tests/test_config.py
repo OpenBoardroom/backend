@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from openboardroom.config import ConfigError, Settings
+from openboardroom.config import ConfigError, Settings, database_url_from_env
 
 VALID = {
     "OBR_DATABASE_URL": "postgresql://u:p@localhost/db",
@@ -74,3 +74,9 @@ def test_from_env_reads_process_environment(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.delenv("OBR_EDGAR_MAX_RPS", raising=False)
     monkeypatch.delenv("OBR_CACHE_DIR", raising=False)
     assert Settings.from_env().database_url == VALID["OBR_DATABASE_URL"]
+
+
+def test_database_url_from_env_needs_only_database_url() -> None:
+    assert database_url_from_env({"OBR_DATABASE_URL": " postgresql://x "}) == "postgresql://x"
+    with pytest.raises(ConfigError, match="OBR_DATABASE_URL"):
+        database_url_from_env({"OBR_DATABASE_URL": "  "})

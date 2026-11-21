@@ -4,3 +4,4 @@ cache/
 !.env.example
 __pycache__/
 .coverage
+data/sources/
