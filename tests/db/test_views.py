@@ -5,6 +5,7 @@ from typing import LiteralString
 
 import psycopg
 import pytest
+from psycopg import sql
 
 
 @pytest.fixture
@@ -248,3 +249,114 @@ def test_web_ro_cannot_read_tables(role_urls: dict[str, str]) -> None:
         web_ro.rollback()
 
         web_ro.execute("select * from published_ballot_items").fetchall()
+
+
+def test_correction_on_unpublished_item_hidden(admin_conn: psycopg.Connection) -> None:
+    # A DEFA14A change can write a correction before the item publishes (spec §7.1);
+    # the log must not reveal the unpublished item (ADR-0003 §2).
+    item_id = _item(admin_conn, published=False)
+    admin_conn.execute(
+        """
+        insert into corrections (ballot_item_id, field, before, after, reason)
+        values (%s, 'status', '"active"', '"withdrawn"', 'DEFA14A withdrawal')
+        """,
+        (item_id,),
+    )
+    _as_web_ro(admin_conn)
+
+    assert admin_conn.execute("select count(*) from public_corrections").fetchone() == (0,)
+
+
+def _unpublished_secrets(conn: psycopg.Connection) -> None:
+    """Insert one hidden row per view, each holding a value that starts with ``SECRET``."""
+    item_id = _item(conn, published=False)
+    conn.execute("update ballot_items set title = 'SECRET item' where id = %s", (item_id,))
+    conn.execute("update meetings set date_quote = 'SECRET meeting'")
+    filing_id = _one(conn, "select max(id) from filings")
+    conn.execute(
+        """
+        insert into item_texts (ballot_item_id, kind, version, body, origin, review_status)
+        values (%s, 'summary', 1, 'SECRET text', 'model', 'approved')
+        """,
+        (item_id,),
+    )
+    conn.execute(
+        "insert into vote_results (ballot_item_id, outcome, source_filing_id) "
+        "values (%s, 'SECRET result', %s)",
+        (item_id, filing_id),
+    )
+    conn.execute(
+        """
+        insert into corrections (ballot_item_id, field, before, after, reason)
+        values (%s, 'status', '"active"', '"withdrawn"', 'SECRET correction')
+        """,
+        (item_id,),
+    )
+    # Rows hidden by their own status on a published item, in a second meeting
+    # so the first meeting stays unpublished.
+    published_id = _one(
+        conn,
+        """
+        with m as (
+            insert into meetings (company_id, proxy_filing_id, kind)
+            select company_id, proxy_filing_id, 'special' from meetings limit 1
+            returning id
+        )
+        insert into ballot_items (meeting_id, number, title, extraction_run_id, published_at)
+        select m.id, '1', 'Public', (select max(id) from extraction_runs), now() from m
+        returning id
+        """,
+    )
+    conn.execute(
+        """
+        insert into item_texts (ballot_item_id, kind, version, body, origin, review_status)
+        values (%s, 'summary', 1, 'SECRET pending text', 'model', 'pending')
+        """,
+        (published_id,),
+    )
+    conn.execute(
+        "insert into vote_results (ballot_item_id, outcome, source_filing_id) "
+        "values (%s, 'SECRET unreconciled result', %s)",
+        (published_id, filing_id),
+    )
+
+
+@pytest.mark.parametrize(
+    ("view", "column"),
+    [
+        ("published_ballot_items", "title"),
+        ("published_meetings", "date_quote"),
+        ("published_item_texts", "body"),
+        ("published_vote_results", "outcome"),
+        ("public_corrections", "reason"),
+    ],
+)
+def test_leaky_function_sees_no_hidden_rows(
+    admin_conn: psycopg.Connection, view: str, column: str
+) -> None:
+    # web_ro may create temp functions. A cheap one in a WHERE clause would be
+    # planned below the view's own filter, and see hidden rows, unless the view
+    # is a security barrier.
+    _unpublished_secrets(admin_conn)
+    _as_web_ro(admin_conn)
+    seen: list[str] = []
+    admin_conn.add_notice_handler(lambda diag: seen.append(diag.message_primary or ""))
+    admin_conn.execute(
+        """
+        create function pg_temp.leak(value text) returns boolean
+        language plpgsql cost 0.0000001 as $$
+        begin
+            raise notice '%', value;
+            return true;
+        end
+        $$
+        """
+    )
+
+    admin_conn.execute(
+        sql.SQL("select * from {} where pg_temp.leak({}::text)").format(
+            sql.Identifier(view), sql.Identifier(column)
+        )
+    ).fetchall()
+
+    assert [value for value in seen if value.startswith("SECRET")] == []

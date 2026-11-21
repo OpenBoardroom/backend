@@ -404,7 +404,7 @@ ALTER TABLE public.pending_changes ALTER COLUMN id ADD GENERATED ALWAYS AS IDENT
 -- Name: public_corrections; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE VIEW public.public_corrections AS
+CREATE VIEW public.public_corrections WITH (security_barrier='true') AS
  SELECT co.id,
     co.ballot_item_id,
     bi.number,
@@ -419,14 +419,15 @@ CREATE VIEW public.public_corrections AS
    FROM (((public.corrections co
      JOIN public.ballot_items bi ON ((bi.id = co.ballot_item_id)))
      JOIN public.meetings m ON ((m.id = bi.meeting_id)))
-     JOIN public.companies c ON ((c.id = m.company_id)));
+     JOIN public.companies c ON ((c.id = m.company_id)))
+  WHERE (bi.published_at IS NOT NULL);
 
 
 --
 -- Name: published_ballot_items; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE VIEW public.published_ballot_items AS
+CREATE VIEW public.published_ballot_items WITH (security_barrier='true') AS
  SELECT bi.id,
     bi.meeting_id,
     c.cik,
@@ -472,7 +473,7 @@ CREATE VIEW public.published_ballot_items AS
 -- Name: published_item_texts; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE VIEW public.published_item_texts AS
+CREATE VIEW public.published_item_texts WITH (security_barrier='true') AS
  SELECT DISTINCT ON (t.ballot_item_id, t.kind) t.ballot_item_id,
     t.kind,
     t.version,
@@ -488,7 +489,7 @@ CREATE VIEW public.published_item_texts AS
 -- Name: published_meetings; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE VIEW public.published_meetings AS
+CREATE VIEW public.published_meetings WITH (security_barrier='true') AS
  SELECT m.id,
     m.company_id,
     c.cik,
@@ -542,7 +543,7 @@ CREATE TABLE public.vote_results (
 -- Name: published_vote_results; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE VIEW public.published_vote_results AS
+CREATE VIEW public.published_vote_results WITH (security_barrier='true') AS
  SELECT vr.id,
     vr.ballot_item_id,
     vr.nominee_id,
