@@ -10,6 +10,8 @@
 
 **Spec:** [architecture/docs/specs/2026-11-21-ballot-item-pipeline-design.md](https://github.com/OpenBoardroom/architecture/blob/main/docs/specs/2026-11-21-ballot-item-pipeline-design.md), with [ADR-0003](https://github.com/OpenBoardroom/architecture/blob/main/docs/adr/0003-ballot-item-schema-contract.md) for the view contract. Ticket: BR-11.
 
+**Amended 2026-11-21:** Task 5b added and Task 7 amended after the spec made the company, not the EDGAR CIK, the unit [Quinn].
+
 **The five plans:** (1) foundation, this plan; (2) extraction and checks; (3) review CLI, publication, corrections; (4) 8-K reconciliation; (5) eval set and 2026 backfill. Each starts from the same spec.
 
 ## Global Constraints
@@ -132,6 +134,26 @@
 - [ ] **Step 5:** Run them. Expected: PASS.
 - [ ] **Step 6:** Commit `[BR-11] NEW: add covered company list and sync`.
 
+### Task 5b: Company filer IDs and approximate membership (added 2026-11-21)
+
+Spec update 2026-11-21 [Quinn]: a company is the unit; a company can file under several EDGAR CIKs over time (ExxonMobil: 0000034088 through 2026-06-30, 0002115436 from 2026-07-01). Each filing keeps the CIK it was filed under. 2026 memberships are approximate.
+
+**Files:**
+- Create: `db/migrations/20261121000004_company_ciks.sql`, `data/company_ciks.csv`, `tests/db/test_company_ciks.py`
+- Modify: `openboardroom/companies.py`, `tests/test_companies.py`, `db/schema.sql`, `tests/contract/views.json`, `db/migrations` views (via a new migration that recreates `published_ballot_items` with `filer_cik`, still `with (security_barrier)`), `tests/db/test_views.py`
+
+**Interfaces:**
+- Produces: table `company_ciks(id, company_id → companies, cik unique 10-digit, valid_from date not null, valid_to date null, note text)`; `filings.cik` (10-digit, not null, the CIK filed under); `index_memberships.dates_approximate boolean not null default false`; view column `published_ballot_items.filer_cik`.
+- `CoveredCompany` gains `ciks: list[CikRange]` where `CikRange(cik: str, valid_from: date, valid_to: date | None)`; `covered_companies(...)` returns, for each company, the CIK ranges that overlap the window.
+- `sync_companies` also loads `data/company_ciks.csv` (`ticker,cik,valid_from,valid_to,note`, `#` comments skipped) and ensures every company's current `companies.cik` has a `company_ciks` row with `valid_to` null; `--ciks PATH` option.
+- `data/companies.csv` gains a `dates_approximate` column (`true` for all 2026 rows); XOM's current CIK is 0002115436, and `data/company_ciks.csv` lists `XOM,0000034088,<first filing date in EDGAR or 1900-01-01>,2026-06-30,"Exxon Mobil Corp; succeeded by ExxonMobil Holdings Corp (8-K12B 2026-07-01)"` and `XOM,0002115436,2026-07-01,,`.
+
+- [ ] **Step 1: Failing tests:** `test_company_has_multiple_ciks` (XOM fixture → two ranges); `test_cik_unique_across_companies` (`UniqueViolation`); `test_current_cik_has_open_range`; `test_covered_companies_returns_overlapping_ranges` (window 2026-01-01..2026-12-31 → both XOM ranges; window 2027 → new CIK only); `test_dates_approximate_loaded`; view test `test_filer_cik_is_filing_cik` (item on a filing under the old CIK shows `filer_cik=0000034088`, `cik=0002115436`); contract: `filer_cik` in `views.json`.
+- [ ] **Step 2:** Run them. Expected: FAIL.
+- [ ] **Step 3:** Migration (up/down), loader, data files; regenerate `db/schema.sql` with `scripts/dump-schema.sh`; update `views.json`; keep every view `security_barrier`; extend the leak test's probe list if a new joined column is added.
+- [ ] **Step 4:** Run `uv run pytest --cov=openboardroom -v`, ruff, pyright. Expected: all pass, coverage ≥ 90%.
+- [ ] **Step 5:** Commit `[BR-11] NEW: add company filer IDs and approximate membership`.
+
 ### Task 6: EDGAR client
 
 **Files:**
@@ -181,6 +203,11 @@
 - [ ] **Step 3:** Implement `discover` and the CLI subcommand.
 - [ ] **Step 4:** Run them. Expected: PASS.
 - [ ] **Step 5:** Commit `[BR-11] NEW: add EDGAR filing discovery`.
+
+**Amendments (2026-11-21, spec update: company is the unit):**
+- Poll every `CikRange` of each covered company; keep a filing only if its date is inside both the window, the membership, and that CIK's range; insert with `filings.cik` set to that CIK.
+- Fixture: XOM submissions for both CIKs (from the real JSON, trimmed) → 2026 DEF 14A, DEFA14As, and results 8-K come from 0000034088; the new CIK's 2026-10/11 DEFA14As are kept (inside its range).
+- A covered company's `8-K12B` is not stored (form CHECK stays 3 forms) but is returned in `DiscoverResult.successor_notices: list[SuccessorNotice(company_id, cik, accession, filed)]` and printed by `obr discover` for a person to link; test `test_8k12b_reported_not_stored`.
 
 ### Task 8: Fetch and plain text
 
