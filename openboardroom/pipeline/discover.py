@@ -4,12 +4,12 @@ import argparse
 import sys
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any, cast
 
 import psycopg
 
-from openboardroom.companies import SubParsers, covered_companies
+from openboardroom.companies import MembershipRange, SubParsers, covered_companies
 from openboardroom.config import Settings
 from openboardroom.edgar import EdgarClient, EdgarError, document_url
 
@@ -17,6 +17,11 @@ PROXY_FORMS = ("DEF 14A", "DEFA14A")
 RESULTS_FORM = "8-K"
 # Item 5.07 of Form 8-K: Submission of Matters to a Vote of Security Holders.
 RESULTS_ITEM = "5.07"
+# Membership is judged at the meeting date (spec §4), which isn't known until
+# extraction. A proxy precedes its meeting by under about six months and a 5.07
+# 8-K follows it within days, so a filing is kept when a membership overlaps
+# [filed, filed + 180 days]; extraction checks the exact meeting date.
+MEMBERSHIP_LOOKAHEAD = timedelta(days=180)
 # Filed by a successor issuer; a person links its CIK to the company (spec §4).
 SUCCESSOR_FORM = "8-K12B"
 # The parallel arrays read from `filings.recent` and from each paged file.
@@ -90,6 +95,13 @@ class _Row:
 
 def _within(day: date, first: date, last: date | None) -> bool:
     return first <= day and (last is None or day <= last)
+
+
+def _overlaps_lookahead(filed: date, membership: MembershipRange) -> bool:
+    """Whether `membership` overlaps [filed, filed + MEMBERSHIP_LOOKAHEAD] inclusive."""
+    return membership.start <= filed + MEMBERSHIP_LOOKAHEAD and (
+        membership.end is None or membership.end >= filed
+    )
 
 
 def _parse_date(raw: object, cik: str, source: str) -> date:
@@ -182,9 +194,10 @@ def discover(
     """Record new filings of the companies covered during `start`..`end`.
 
     Every CIK range of each covered company is polled. A DEF 14A, DEFA14A, or
-    8-K listing item 5.07 is kept only if its filing date is inside the window,
-    inside one of the company's memberships (not just their merged span), and
-    inside the range of the CIK it was filed under. Kept filings are inserted
+    8-K listing item 5.07 is kept only if its filing date is inside the window
+    and inside the range of the CIK it was filed under, and one of the
+    company's memberships (not just their merged span) overlaps the filing
+    date plus `MEMBERSHIP_LOOKAHEAD`. Kept filings are inserted
     at stage `discovered` under that CIK; ones already stored are counted.
     8-K12B filings dated inside the window are returned as successor notices
     and never stored. EDGAR's ticker file is read once: a covered company
@@ -239,7 +252,7 @@ def discover(
                 if not (
                     _is_kept(row)
                     and _within(row.filed, cik_range.valid_from, cik_range.valid_to)
-                    and any(_within(row.filed, m.start, m.end) for m in company.memberships)
+                    and any(_overlaps_lookahead(row.filed, m) for m in company.memberships)
                 ):
                     continue
                 inserted = conn.execute(

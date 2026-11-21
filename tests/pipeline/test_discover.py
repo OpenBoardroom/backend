@@ -186,13 +186,13 @@ def test_reads_paged_file_for_older_window(conn: psycopg.Connection, tmp_path: P
 
 
 def test_membership_limits_window(conn: psycopg.Connection, tmp_path: Path) -> None:
-    """Apple joins on 2026-02-01, so its 2026-01-08 proxy is outside its membership."""
-    sync_companies(conn, apple_only(tmp_path, "2026-02-01,"))
+    """Apple leaves on 2026-01-31, so its 2026-02-24 results 8-K is outside its membership."""
+    sync_companies(conn, apple_only(tmp_path, "2026-01-01,2026-01-31"))
 
     result = run(conn, apple_edgar(), *SEASON)
 
-    assert result.new == 1
-    assert [r[2] for r in stored(conn)] == ["0001140361-26-006577"]
+    assert result.new == 2
+    assert [r[2] for r in stored(conn)] == ["0001308179-26-000008", "0001308179-26-000009"]
 
 
 def synthetic_submissions(*rows: tuple[str, str, str, str]) -> dict[str, Any]:
@@ -213,12 +213,17 @@ def synthetic_submissions(*rows: tuple[str, str, str, str]) -> dict[str, Any]:
 
 
 def test_membership_gap_excludes_filings(conn: psycopg.Connection, tmp_path: Path) -> None:
-    """A filing between two memberships is excluded, even inside their merged span."""
-    sync_companies(conn, apple_only(tmp_path, "2026-01-01,2026-03-31", "2026-06-01,"))
+    """A filing whose lookahead falls in the gap between memberships is excluded.
+
+    2026-04-15 looks ahead to 2026-10-12, overlapping neither membership, even
+    though it is inside their merged span; 2026-07-01 reaches 2026-12-28, past
+    the second membership's start.
+    """
+    sync_companies(conn, apple_only(tmp_path, "2026-01-01,2026-03-31", "2026-12-01,"))
     edgar = FakeEdgar(
         {
             "CIK0000320193.json": synthetic_submissions(
-                ("DEFA14A", "2026-06-15", "0009999999-26-000002", ""),
+                ("DEFA14A", "2026-07-01", "0009999999-26-000002", ""),
                 ("DEFA14A", "2026-04-15", "0009999999-26-000001", ""),
             )
         }
@@ -228,6 +233,42 @@ def test_membership_gap_excludes_filings(conn: psycopg.Connection, tmp_path: Pat
 
     assert result.new == 1
     assert [r[2] for r in stored(conn)] == ["0009999999-26-000002"]
+
+
+def test_proxy_filed_before_membership_start_is_kept(
+    conn: psycopg.Connection, tmp_path: Path
+) -> None:
+    """A proxy for a January meeting is filed in December, before a 2026-01-01 membership."""
+    sync_companies(conn, apple_only(tmp_path, "2026-01-01,"))
+    edgar = FakeEdgar(
+        {
+            "CIK0000320193.json": synthetic_submissions(
+                ("DEF 14A", "2025-12-10", "0009999999-25-000001", "")
+            )
+        }
+    )
+
+    result = run(conn, edgar, date(2025, 9, 1), date(2026, 12, 31))
+
+    assert result.new == 1
+    assert [r[2] for r in stored(conn)] == ["0009999999-25-000001"]
+
+
+def test_filing_long_before_membership_is_dropped(conn: psycopg.Connection, tmp_path: Path) -> None:
+    """2025-03-01 is more than 180 days before a 2026-01-01 membership."""
+    sync_companies(conn, apple_only(tmp_path, "2026-01-01,"))
+    edgar = FakeEdgar(
+        {
+            "CIK0000320193.json": synthetic_submissions(
+                ("DEF 14A", "2025-03-01", "0009999999-25-000001", "")
+            )
+        }
+    )
+
+    result = run(conn, edgar, date(2025, 1, 1), date(2026, 12, 31))
+
+    assert result.new == 0
+    assert stored(conn) == []
 
 
 def test_xom_filings_come_from_both_ciks(conn: psycopg.Connection) -> None:
