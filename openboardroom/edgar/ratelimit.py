@@ -42,5 +42,7 @@ class RateLimiter:
         now = self._clock()
         if self._next_allowed is not None and now < self._next_allowed:
             self._sleep(self._next_allowed - now)
-            now = self._next_allowed
+            # Re-read the clock: sleep may wake late, and booking the next slot
+            # from the scheduled time would let the call after it come too soon.
+            now = self._clock()
         self._next_allowed = now + self.interval

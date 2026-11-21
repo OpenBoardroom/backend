@@ -98,7 +98,7 @@ class _Row:
     form: str
     filed: date
     accession: str
-    primary_document: str
+    primary_document: str | None
     items: str
 
 
@@ -126,6 +126,16 @@ def _parse_date(raw: object, cik: str, source: str) -> date:
         raise EdgarError(f"CIK {cik} ({source}): unparseable date {raw!r}") from None
 
 
+def _document_name(raw: object) -> str | None:
+    """EDGAR's `primaryDocument`, or None if it is missing, empty, or blank.
+
+    An empty name would make the document URL the filing's directory index,
+    which fetch would then store as if it were the filing itself.
+    """
+    name = "" if raw is None else str(raw).strip()
+    return name or None
+
+
 def _rows(table: Mapping[str, Any], cik: str, source: str) -> list[_Row]:
     """Zip EDGAR's parallel arrays into rows, refusing arrays that don't line up."""
     columns: dict[str, list[Any]] = {}
@@ -142,7 +152,7 @@ def _rows(table: Mapping[str, Any], cik: str, source: str) -> list[_Row]:
             form=str(form),
             filed=_parse_date(filed, cik, source),
             accession=str(accession),
-            primary_document=str(primary_document),
+            primary_document=_document_name(primary_document),
             items=str(items or ""),
         )
         for form, filed, accession, primary_document, items in zip(
@@ -294,7 +304,9 @@ def discover(
                         # EDGAR gives a date only; midnight UTC keeps filed_at::date
                         # equal to it whatever the session time zone.
                         datetime.combine(row.filed, time(), tzinfo=UTC),
-                        document_url(cik_range.cik, row.accession, row.primary_document),
+                        # Without a primary document this is the filing's directory,
+                        # still a valid link to its source.
+                        document_url(cik_range.cik, row.accession, row.primary_document or ""),
                         row.primary_document,
                     ),
                 ).fetchone()

@@ -331,6 +331,24 @@ def test_membership_match_boundaries(
     assert result.new == int(kept)
 
 
+@pytest.mark.parametrize("document", ["", "   "])
+def test_empty_primary_document_stored_as_null(
+    conn: psycopg.Connection, tmp_path: Path, document: str
+) -> None:
+    """An empty name would point fetch at the filing's directory index, not the proxy."""
+    sync_companies(conn, apple_only(tmp_path, "2026-01-01,"))
+    submissions = synthetic_submissions(("DEF 14A", "2026-01-08", "0009999999-26-000001", ""))
+    submissions["filings"]["recent"]["primaryDocument"] = [document]
+
+    result = run(conn, FakeEdgar({"CIK0000320193.json": submissions}), *SEASON)
+
+    assert result.new == 1
+    row = conn.execute(
+        "select primary_document from filings where accession = '0009999999-26-000001'"
+    ).fetchone()
+    assert row == (None,)
+
+
 def test_xom_filings_come_from_both_ciks(conn: psycopg.Connection) -> None:
     """2026 proxy and results come from the old CIK; later supplements from the new one."""
     sync_companies(conn, XOM, XOM_CIKS)

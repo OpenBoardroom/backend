@@ -30,14 +30,20 @@ def sha256(data: bytes) -> str:
 class FakeArchive:
     """Serves documents by URL path and records every requested path."""
 
-    def __init__(self, documents: dict[str, bytes]) -> None:
-        """Map Archives paths (``/Archives/edgar/data/...``) to document bodies."""
+    def __init__(self, documents: dict[str, bytes], status: int | None = None) -> None:
+        """Map Archives paths (``/Archives/edgar/data/...``) to document bodies.
+
+        If ``status`` is set, every request is answered with that status instead.
+        """
         self.documents = documents
+        self.status = status
         self.requested: list[str] = []
 
     def handler(self, request: httpx.Request) -> httpx.Response:
         """Answer with the document at the request's path, or 404."""
         self.requested.append(request.url.path)
+        if self.status is not None:
+            return httpx.Response(self.status)
         if request.url.path not in self.documents:
             return httpx.Response(404)
         return httpx.Response(200, content=self.documents[request.url.path])
@@ -109,9 +115,14 @@ def filing(conn: psycopg.Connection, accession: str = ACCESSION) -> tuple[Any, .
     return tuple(row)
 
 
-def run(conn: psycopg.Connection, archive: FakeArchive, cache: Path) -> FetchResult:
+def run(
+    conn: psycopg.Connection,
+    archive: FakeArchive,
+    cache: Path,
+    on_error: Callable[[str], None] | None = None,
+) -> FetchResult:
     with archive.client() as client:
-        return fetch(conn, client, cache)
+        return fetch(conn, client, cache, on_error=on_error)
 
 
 def test_fetch_advances_stage_and_records_hashes(conn: psycopg.Connection, tmp_path: Path) -> None:
@@ -194,8 +205,80 @@ def test_download_error_leaves_filing_discovered(conn: psycopg.Connection, tmp_p
     assert filing(conn)[0] == "fetched"
 
 
-def test_filing_without_primary_document_fails(conn: psycopg.Connection, tmp_path: Path) -> None:
-    add_filing(conn, document=None)
+def test_403_stops_run_after_one_request(conn: psycopg.Connection, tmp_path: Path) -> None:
+    """SEC answers 403 when it blocks a client; asking again only prolongs the block."""
+    add_filing(conn, OTHER, OTHER_DOCUMENT)
+    add_filing(conn)
+    archive = FakeArchive({}, status=403)
+
+    result = run(conn, archive, tmp_path)
+
+    assert archive.requested == [path(OTHER, OTHER_DOCUMENT)]
+    assert result.fetched == 0
+    assert result.stopped is not None
+    assert OTHER in result.stopped
+    assert "HTTP 403" in result.stopped
+    assert filing(conn, OTHER)[0] == "discovered"
+    assert filing(conn)[0] == "discovered"
+
+
+def test_429_exhausted_stops_run(conn: psycopg.Connection, tmp_path: Path) -> None:
+    add_filing(conn, OTHER, OTHER_DOCUMENT)
+    add_filing(conn)
+    archive = FakeArchive({}, status=429)
+
+    result = run(conn, archive, tmp_path)
+
+    # One filing's attempts (first try plus three retries), none for the second.
+    assert archive.requested == [path(OTHER, OTHER_DOCUMENT)] * 4
+    assert result.stopped is not None
+    assert "HTTP 429" in result.stopped
+    assert filing(conn, OTHER)[0] == "discovered"
+    assert filing(conn)[0] == "discovered"
+
+
+def test_unreachable_edgar_stops_run(conn: psycopg.Connection, tmp_path: Path) -> None:
+    add_filing(conn, OTHER, OTHER_DOCUMENT)
+    add_filing(conn)
+    requested: list[str] = []
+
+    def refuse(request: httpx.Request) -> httpx.Response:
+        requested.append(request.url.path)
+        raise httpx.ConnectError("connection refused", request=request)
+
+    archive = apple_archive()
+    archive.handler = refuse  # type: ignore[method-assign]
+
+    result = run(conn, archive, tmp_path)
+
+    assert requested == [path(OTHER, OTHER_DOCUMENT)] * 4
+    assert result.stopped is not None
+    assert "ConnectError" in result.stopped
+    assert filing(conn)[0] == "discovered"
+
+
+def test_404_skips_and_continues(conn: psycopg.Connection, tmp_path: Path) -> None:
+    add_filing(conn, OTHER, OTHER_DOCUMENT)  # not served: 404
+    add_filing(conn)
+    archive = apple_archive()
+    reported: list[str] = []
+
+    result = run(conn, archive, tmp_path, on_error=reported.append)
+
+    assert archive.requested == [path(OTHER, OTHER_DOCUMENT), path(ACCESSION, DOCUMENT)]
+    assert result.stopped is None
+    assert (result.fetched, result.failed) == (1, 1)
+    # Each failure is reported as it happens, not only in the result.
+    assert reported == result.errors
+    assert filing(conn, OTHER)[0] == "discovered"
+    assert filing(conn)[0] == "fetched"
+
+
+@pytest.mark.parametrize("document", [None, "", "   "])
+def test_filing_without_primary_document_fails(
+    conn: psycopg.Connection, tmp_path: Path, document: str | None
+) -> None:
+    add_filing(conn, document=document)
     archive = apple_archive()
 
     result = run(conn, archive, tmp_path)
@@ -237,8 +320,16 @@ def cli_env(monkeypatch: pytest.MonkeyPatch, role_urls: dict[str, str], tmp_path
     def setup(result: FetchResult) -> list[tuple[bool, Path]]:
         calls: list[tuple[bool, Path]] = []
 
-        def fake(conn: psycopg.Connection, client: EdgarClient, cache_dir: Path) -> FetchResult:
+        def fake(
+            conn: psycopg.Connection,
+            client: EdgarClient,
+            cache_dir: Path,
+            on_error: Callable[[str], None] | None = None,
+        ) -> FetchResult:
             calls.append((conn.autocommit, cache_dir))
+            for error in result.errors:
+                assert on_error is not None
+                on_error(error)
             return result
 
         monkeypatch.setenv("OBR_DATABASE_URL", role_urls["pipeline_rw"])
@@ -274,3 +365,17 @@ def test_cli_exits_nonzero_when_a_filing_failed(
     assert code != 0
     assert "fetch: 2 fetched, 1 failed" in captured.out
     assert f"{OTHER}: EDGAR returned HTTP 404" in captured.err
+
+
+def test_cli_exits_nonzero_and_explains_a_stopped_run(
+    cli_env: CliEnv, capsys: pytest.CaptureFixture[str]
+) -> None:
+    cli_env(FetchResult(fetched=1, failed=0, stopped=f"{OTHER}: EDGAR returned HTTP 403"))
+
+    code = main(["fetch"])
+
+    captured = capsys.readouterr()
+    assert code != 0
+    assert "stopped early" in captured.err
+    assert f"{OTHER}: EDGAR returned HTTP 403" in captured.err
+    assert "fetch: 1 fetched, 0 failed" in captured.out

@@ -1,5 +1,6 @@
 """Tests for the rate-limited EDGAR client (no real network: httpx.MockTransport only)."""
 
+import itertools
 from collections.abc import Callable
 from pathlib import Path
 
@@ -150,6 +151,28 @@ def test_rate_limiter_does_not_wait_when_time_has_passed() -> None:
     assert clock.sleeps == []
 
 
+def test_rate_limiter_spaces_calls_after_oversleeping() -> None:
+    """A late wake-up must not let the next call land closer than the interval."""
+    clock = FakeClock()
+    # The first sleep wakes 0.1 s late, the next on time, and so on.
+    lateness = itertools.cycle([0.1, 0.0])
+
+    def oversleep(seconds: float) -> None:
+        clock.sleeps.append(seconds)
+        clock.now += seconds + next(lateness)
+
+    limiter = RateLimiter(8, clock=clock, sleep=oversleep)
+    times: list[float] = []
+    for _ in range(5):
+        limiter.wait()
+        times.append(clock.now)
+        clock.now += 0.01  # the request itself takes a moment
+
+    gaps = [b - a for a, b in zip(times, times[1:], strict=False)]
+    # The tolerance only absorbs float rounding.
+    assert all(gap >= limiter.interval - 1e-9 for gap in gaps), gaps
+
+
 def test_rate_limiter_rejects_non_positive_rate() -> None:
     with pytest.raises(ValueError):
         RateLimiter(0)
@@ -167,6 +190,7 @@ def test_403_raises_without_retry() -> None:
         client.submissions("0000320193")
 
     assert len(calls) == 1
+    assert excinfo.value.status == 403
     message = str(excinfo.value)
     assert "403" in message
     assert "https://data.sec.gov/submissions/CIK0000320193.json" in message
@@ -181,9 +205,10 @@ def test_429_retries_then_raises() -> None:
         calls.append(request)
         return httpx.Response(429)
 
-    with make_client(handler, clock) as client, pytest.raises(EdgarError, match="429"):
+    with make_client(handler, clock) as client, pytest.raises(EdgarError, match="429") as excinfo:
         client.submissions("0000320193")
 
+    assert excinfo.value.status == 429
     assert len(calls) == 4
     backoffs = [s for s in clock.sleeps if s >= 1]
     assert backoffs == [1, 2, 4]
@@ -217,4 +242,49 @@ def test_transport_error_retries_then_raises() -> None:
         client.submissions("0000320193")
 
     assert len(calls) == 4
+    assert excinfo.value.status is None
     assert "https://data.sec.gov/submissions/CIK0000320193.json" in str(excinfo.value)
+
+
+def _call(client: EdgarClient, method: str) -> object:
+    if method == "submissions":
+        return client.submissions("0000320193")
+    if method == "submissions_page":
+        return client.submissions_page("CIK0000320193-submissions-001.json")
+    return client.company_tickers()
+
+
+METHODS = ["submissions", "submissions_page", "company_tickers"]
+
+
+@pytest.mark.parametrize("method", METHODS)
+def test_invalid_json_raises_edgar_error(method: str) -> None:
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(str(request.url))
+        return httpx.Response(200, content=b"<html>not json</html>")
+
+    with make_client(handler, FakeClock()) as client, pytest.raises(EdgarError) as excinfo:
+        _call(client, method)
+
+    message = str(excinfo.value)
+    assert "200" in message
+    assert seen[0] in message
+
+
+@pytest.mark.parametrize("method", METHODS)
+def test_json_list_raises_edgar_error(method: str) -> None:
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(str(request.url))
+        return httpx.Response(200, json=[1, 2])
+
+    with make_client(handler, FakeClock()) as client, pytest.raises(EdgarError) as excinfo:
+        _call(client, method)
+
+    message = str(excinfo.value)
+    assert "not a JSON object" in message
+    assert "200" in message
+    assert seen[0] in message

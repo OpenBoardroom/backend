@@ -19,7 +19,22 @@ BACKOFF_SECONDS = (1.0, 2.0, 4.0)
 
 
 class EdgarError(Exception):
-    """Raised when EDGAR returns an error or cannot be reached."""
+    """Raised when EDGAR returns an error or cannot be reached.
+
+    Attributes:
+        status: The HTTP status EDGAR answered with, or None if no response
+            arrived (a network error) or the response itself was unusable.
+    """
+
+    def __init__(self, message: str, status: int | None = None) -> None:
+        """Create the error.
+
+        Args:
+            message: What failed, naming the URL.
+            status: The HTTP status, if the failure was one.
+        """
+        super().__init__(message)
+        self.status = status
 
 
 def document_url(cik: str, accession: str, primary_document: str) -> str:
@@ -94,9 +109,10 @@ class EdgarClient:
             The decoded JSON object.
 
         Raises:
-            EdgarError: On a non-retryable error or once retries run out.
+            EdgarError: On a non-retryable error, once retries run out, or if the
+                body isn't a JSON object.
         """
-        return self._get(f"{SUBMISSIONS_BASE}/CIK{cik}.json").json()
+        return self._get_object(f"{SUBMISSIONS_BASE}/CIK{cik}.json")
 
     def submissions_page(self, name: str) -> dict[str, Any]:
         """Fetch an additional submissions page listed under ``filings.files``.
@@ -108,9 +124,10 @@ class EdgarClient:
             The decoded JSON object.
 
         Raises:
-            EdgarError: On a non-retryable error or once retries run out.
+            EdgarError: On a non-retryable error, once retries run out, or if the
+                body isn't a JSON object.
         """
-        return self._get(f"{SUBMISSIONS_BASE}/{name}").json()
+        return self._get_object(f"{SUBMISSIONS_BASE}/{name}")
 
     def company_tickers(self) -> dict[str, Any]:
         """Fetch EDGAR's current ticker-to-CIK map.
@@ -120,15 +137,10 @@ class EdgarClient:
             "title": "Apple Inc."}, ...}``.
 
         Raises:
-            EdgarError: On an HTTP error once retries run out, or if the body isn't
-                a JSON object.
+            EdgarError: On a non-retryable error, once retries run out, or if the
+                body isn't a JSON object.
         """
-        body = self._get(COMPANY_TICKERS_URL).json()
-        if not isinstance(body, dict):
-            raise EdgarError(
-                f"EDGAR company tickers file is not a JSON object: {COMPANY_TICKERS_URL}"
-            )
-        return cast(dict[str, Any], body)
+        return self._get_object(COMPANY_TICKERS_URL)
 
     def document(self, cik: str, accession: str, primary_document: str) -> bytes:
         """Fetch a filing document's raw bytes, undecoded.
@@ -145,6 +157,21 @@ class EdgarClient:
             EdgarError: On a non-retryable error or once retries run out.
         """
         return self._get(document_url(cik, accession, primary_document)).content
+
+    def _get_object(self, url: str) -> dict[str, Any]:
+        """GET `url` and decode its body, which must be a JSON object."""
+        response = self._get(url)
+        try:
+            body = response.json()
+        except ValueError:
+            raise EdgarError(
+                f"EDGAR returned invalid JSON (HTTP {response.status_code}) for {url}"
+            ) from None
+        if not isinstance(body, dict):
+            raise EdgarError(
+                f"EDGAR response is not a JSON object (HTTP {response.status_code}) for {url}"
+            )
+        return cast(dict[str, Any], body)
 
     def _get(self, url: str) -> httpx.Response:
         attempts = len(BACKOFF_SECONDS) + 1
@@ -164,5 +191,8 @@ class EdgarClient:
             if response.is_success:
                 return response
             if not _retryable(response.status_code) or attempt == attempts - 1:
-                raise EdgarError(f"EDGAR returned HTTP {response.status_code} for {url}")
+                raise EdgarError(
+                    f"EDGAR returned HTTP {response.status_code} for {url}",
+                    status=response.status_code,
+                )
         raise AssertionError("unreachable")  # pragma: no cover
