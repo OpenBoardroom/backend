@@ -267,12 +267,63 @@ def test_correction_on_unpublished_item_hidden(admin_conn: psycopg.Connection) -
     assert admin_conn.execute("select count(*) from public_corrections").fetchone() == (0,)
 
 
-def _unpublished_secrets(conn: psycopg.Connection) -> None:
-    """Insert one hidden row per view, each holding a value that starts with ``SECRET``."""
-    item_id = _item(conn, published=False)
-    conn.execute("update ballot_items set title = 'SECRET item' where id = %s", (item_id,))
-    conn.execute("update meetings set date_quote = 'SECRET meeting'")
-    filing_id = _one(conn, "select max(id) from filings")
+def _hidden_rows(conn: psycopg.Connection) -> set[str]:
+    """Insert rows no view may show, and return the values that would reveal them.
+
+    Builds one published item (so every view has visible rows to scan) and a
+    second company whose only item is unpublished. Every value that exists only
+    in hidden rows starts with ``SECRET``, apart from the hidden item's id, which
+    is returned with them.
+    """
+    public_id = _item(conn, published=True)
+    conn.execute(
+        """
+        insert into item_texts (ballot_item_id, kind, version, body, origin, review_status)
+        values (%s, 'summary', 1, 'SECRET pending text', 'model', 'pending')
+        """,
+        (public_id,),
+    )
+    company_id = _one(
+        conn,
+        "insert into companies (cik, ticker, name) values ('0000000001', 'SECRET', 'SECRET co') "
+        "returning id",
+    )
+    filing_id = _one(
+        conn,
+        """
+        insert into filings (accession, company_id, form, filed_at, source_url)
+        values ('0000000001-26-000001', %s, 'DEF 14A', '2026-01-08', 'SECRET url')
+        returning id
+        """,
+        (company_id,),
+    )
+    run_id = _one(
+        conn,
+        "insert into extraction_runs (filing_id, kind, status) values (%s, 'llm', 'succeeded') "
+        "returning id",
+        (filing_id,),
+    )
+    meeting_id = _one(
+        conn,
+        """
+        insert into meetings (company_id, proxy_filing_id, kind, date_quote)
+        values (%s, %s, 'annual', 'SECRET meeting')
+        returning id
+        """,
+        (company_id, filing_id),
+    )
+    item_id = _one(
+        conn,
+        "insert into ballot_items (meeting_id, number, title, extraction_run_id) "
+        "values (%s, '1', 'SECRET item', %s) returning id",
+        (meeting_id, run_id),
+    )
+    nominee_id = _one(
+        conn,
+        "insert into nominees (ballot_item_id, name, position) values (%s, 'SECRET nominee', 1) "
+        "returning id",
+        (item_id,),
+    )
     conn.execute(
         """
         insert into item_texts (ballot_item_id, kind, version, body, origin, review_status)
@@ -280,10 +331,14 @@ def _unpublished_secrets(conn: psycopg.Connection) -> None:
         """,
         (item_id,),
     )
+    # Published by its own column, hidden only because its item is unpublished.
     conn.execute(
-        "insert into vote_results (ballot_item_id, outcome, source_filing_id) "
-        "values (%s, 'SECRET result', %s)",
-        (item_id, filing_id),
+        """
+        insert into vote_results (ballot_item_id, nominee_id, outcome, source_filing_id,
+                                  published_at)
+        values (%s, %s, 'SECRET result', %s, now())
+        """,
+        (item_id, nominee_id, filing_id),
     )
     conn.execute(
         """
@@ -292,59 +347,42 @@ def _unpublished_secrets(conn: psycopg.Connection) -> None:
         """,
         (item_id,),
     )
-    # Rows hidden by their own status on a published item, in a second meeting
-    # so the first meeting stays unpublished.
-    published_id = _one(
-        conn,
-        """
-        with m as (
-            insert into meetings (company_id, proxy_filing_id, kind)
-            select company_id, proxy_filing_id, 'special' from meetings limit 1
-            returning id
-        )
-        insert into ballot_items (meeting_id, number, title, extraction_run_id, published_at)
-        select m.id, '1', 'Public', (select max(id) from extraction_runs), now() from m
-        returning id
-        """,
-    )
-    conn.execute(
-        """
-        insert into item_texts (ballot_item_id, kind, version, body, origin, review_status)
-        values (%s, 'summary', 1, 'SECRET pending text', 'model', 'pending')
-        """,
-        (published_id,),
-    )
-    conn.execute(
-        "insert into vote_results (ballot_item_id, outcome, source_filing_id) "
-        "values (%s, 'SECRET unreconciled result', %s)",
-        (published_id, filing_id),
-    )
+    return {str(item_id)}
 
 
-@pytest.mark.parametrize(
-    ("view", "column"),
-    [
-        ("published_ballot_items", "title"),
-        ("published_meetings", "date_quote"),
-        ("published_item_texts", "body"),
-        ("published_vote_results", "outcome"),
-        ("public_corrections", "reason"),
-    ],
-)
-def test_leaky_function_sees_no_hidden_rows(
-    admin_conn: psycopg.Connection, view: str, column: str
-) -> None:
-    # web_ro may create temp functions. A cheap one in a WHERE clause would be
-    # planned below the view's own filter, and see hidden rows, unless the view
-    # is a security barrier.
-    _unpublished_secrets(admin_conn)
-    _as_web_ro(admin_conn)
+# Each probe is a column whose value comes from a table the view joins or
+# filters through, so a predicate pushed into the view would scan hidden rows
+# before the view's own filter removes them. Probing a column of the table that
+# carries the filter proves nothing: the planner runs the zero-cost
+# `published_at is not null` first in the same scan.
+LEAK_PROBES = [
+    # companies is joined, and holds the hidden-only company.
+    ("published_ballot_items", "company_name"),
+    # The view's filter is an exists() on ballot_items, joined after meetings is scanned.
+    ("published_meetings", "date_quote"),
+    # Only a predicate on a `distinct on` key (ballot_item_id, kind) can be pushed
+    # below the distinct and the join to ballot_items, and kind holds no hidden
+    # value, so the hidden item's id is the probe.
+    ("published_item_texts", "ballot_item_id"),
+    # filings is joined, and holds the hidden-only filing.
+    ("published_vote_results", "source_url"),
+    # corrections is scanned before the join that filters on ballot_items.
+    ("public_corrections", "reason"),
+]
+
+
+def _leaked(conn: psycopg.Connection, view: str, column: str) -> list[str]:
+    """As web_ro, query ``view`` through a cheap leaky function; return what it saw."""
     seen: list[str] = []
-    admin_conn.add_notice_handler(lambda diag: seen.append(diag.message_primary or ""))
-    admin_conn.execute(
+    conn.add_notice_handler(lambda diag: seen.append(diag.message_primary or ""))
+    _as_web_ro(conn)
+    # web_ro has the default TEMP privilege, so it can create this. Declaring it
+    # immutable is a lie an attacker can tell; it lets the planner push it below
+    # `distinct on`, which a volatile function can't cross.
+    conn.execute(
         """
         create function pg_temp.leak(value text) returns boolean
-        language plpgsql cost 0.0000001 as $$
+        language plpgsql immutable cost 0.0000001 as $$
         begin
             raise notice '%', value;
             return true;
@@ -352,11 +390,37 @@ def test_leaky_function_sees_no_hidden_rows(
         $$
         """
     )
-
-    admin_conn.execute(
+    conn.execute(
         sql.SQL("select * from {} where pg_temp.leak({}::text)").format(
             sql.Identifier(view), sql.Identifier(column)
         )
     ).fetchall()
+    return seen
 
-    assert [value for value in seen if value.startswith("SECRET")] == []
+
+def _secret(values: list[str], hidden_ids: set[str]) -> list[str]:
+    return [value for value in values if value.startswith("SECRET") or value in hidden_ids]
+
+
+@pytest.mark.parametrize(("view", "column"), LEAK_PROBES)
+def test_leaky_function_sees_no_hidden_rows(
+    admin_conn: psycopg.Connection, view: str, column: str
+) -> None:
+    hidden_ids = _hidden_rows(admin_conn)
+
+    assert _secret(_leaked(admin_conn, view, column), hidden_ids) == []
+
+
+@pytest.mark.parametrize(("view", "column"), LEAK_PROBES)
+def test_leak_probe_fails_without_barrier(
+    admin_conn: psycopg.Connection, view: str, column: str
+) -> None:
+    # Control for the test above: with the barrier removed (inside this
+    # rolled-back transaction), the same probe must see hidden values.
+    # Otherwise the test above would pass whether or not the view is a barrier.
+    hidden_ids = _hidden_rows(admin_conn)
+    admin_conn.execute(
+        sql.SQL("alter view {} reset (security_barrier)").format(sql.Identifier(view))
+    )
+
+    assert _secret(_leaked(admin_conn, view, column), hidden_ids) != []
