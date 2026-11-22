@@ -223,8 +223,12 @@ CREATE TABLE public.extraction_runs (
     status text NOT NULL,
     started_at timestamp with time zone DEFAULT now() NOT NULL,
     finished_at timestamp with time zone,
+    batch_id text,
+    detail text,
     CONSTRAINT extraction_runs_input_tokens_check CHECK ((input_tokens >= 0)),
-    CONSTRAINT extraction_runs_output_tokens_check CHECK ((output_tokens >= 0))
+    CONSTRAINT extraction_runs_kind_check CHECK ((kind = ANY (ARRAY['regex'::text, 'llm'::text, 'reconcile'::text]))),
+    CONSTRAINT extraction_runs_output_tokens_check CHECK ((output_tokens >= 0)),
+    CONSTRAINT extraction_runs_status_check CHECK ((status = ANY (ARRAY['submitted'::text, 'succeeded'::text, 'refused'::text, 'failed'::text])))
 );
 
 
@@ -263,7 +267,7 @@ CREATE TABLE public.filings (
     CONSTRAINT filings_cik_check CHECK ((cik ~ '^[0-9]{10}$'::text)),
     CONSTRAINT filings_form_check CHECK ((form = ANY (ARRAY['DEF 14A'::text, 'DEFA14A'::text, '8-K'::text]))),
     CONSTRAINT filings_raw_sha256_check CHECK ((raw_sha256 ~ '^[0-9a-f]{64}$'::text)),
-    CONSTRAINT filings_stage_check CHECK ((stage = ANY (ARRAY['discovered'::text, 'fetched'::text, 'extracted'::text, 'checked'::text, 'in_review'::text, 'published'::text, 'reconciled'::text]))),
+    CONSTRAINT filings_stage_check CHECK ((stage = ANY (ARRAY['discovered'::text, 'fetched'::text, 'extracted'::text, 'checked'::text, 'in_review'::text, 'published'::text, 'reconciled'::text, 'out_of_scope'::text]))),
     CONSTRAINT filings_text_sha256_check CHECK ((text_sha256 ~ '^[0-9a-f]{64}$'::text))
 );
 
@@ -812,6 +816,14 @@ ALTER TABLE ONLY public.meetings
 
 
 --
+-- Name: meetings meetings_proxy_filing_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meetings
+    ADD CONSTRAINT meetings_proxy_filing_id_key UNIQUE (proxy_filing_id);
+
+
+--
 -- Name: nominees nominees_ballot_item_id_position_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -921,13 +933,6 @@ CREATE INDEX filings_stage_idx ON public.filings USING btree (stage);
 --
 
 CREATE INDEX meetings_company_id_idx ON public.meetings USING btree (company_id);
-
-
---
--- Name: meetings_proxy_filing_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX meetings_proxy_filing_id_idx ON public.meetings USING btree (proxy_filing_id);
 
 
 --
@@ -1137,4 +1142,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261121000003'),
     ('20261121000004'),
     ('20261121000005'),
-    ('20261121000006');
+    ('20261121000006'),
+    ('20261122000001');
