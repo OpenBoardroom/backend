@@ -12,7 +12,7 @@
       "additionalProperties": false,
       "required": ["kind", "date", "time", "format", "record_date", "shares_outstanding", "date_quote"],
       "properties": {
-        "kind": {"type": "string", "enum": ["annual", "special"]},
+        "kind": {"anyOf": [{"type": "string", "enum": ["annual", "special"]}, {"type": "null"}]},
         "date": {"anyOf": [{"type": "string", "format": "date"}, {"type": "null"}], "description": "YYYY-MM-DD"},
         "time": {"anyOf": [{"type": "string"}, {"type": "null"}], "description": "As written, with time zone"},
         "format": {"anyOf": [{"type": "string", "enum": ["virtual", "in_person", "hybrid"]}, {"type": "null"}]},

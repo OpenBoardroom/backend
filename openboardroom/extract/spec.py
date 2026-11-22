@@ -6,6 +6,7 @@ file gets a new version number, and the eval set runs before it ships.
 """
 
 import json
+import re
 from functools import cache
 from importlib.resources import files
 from typing import Any, cast
@@ -18,6 +19,8 @@ PROMPT_VERSION = "1"
 SCHEMA_VERSION = "1"
 
 _PROMPTS = files("openboardroom.extract") / "prompts"
+# A closing tag inside the untrusted filing text would end the data block early.
+_CLOSING_TAG = re.compile(r"</(filing)", re.IGNORECASE)
 
 
 def system_prompt() -> str:
@@ -45,7 +48,7 @@ def _validator() -> Draft202012Validator:
 
 
 def user_message(text: str, candidates: list[Candidate]) -> str:
-    """Build the user message for one filing.
+    r"""Build the user message for one filing.
 
     Args:
         text: Plain text of the filing.
@@ -53,14 +56,16 @@ def user_message(text: str, candidates: list[Candidate]) -> str:
 
     Returns:
         The candidate hint, then the full filing text last, inside
-        ``<filing>`` tags so the model can tell data from instructions.
+        ``<filing>`` tags so the model can tell data from instructions. A
+        ``</filing`` inside the text is escaped as ``<\/filing``.
     """
     hint = candidates_hint(candidates) or "(none found)"
+    filing = _CLOSING_TAG.sub(r"<\\/\1", text)
     return (
         "Proposal candidates found by a regular expression. This is a hint only; "
         "it may be wrong or incomplete, and the filing decides.\n"
         f"{hint}\n\n"
-        f"<filing>\n{text}\n</filing>"
+        f"<filing>\n{filing}\n</filing>"
     )
 
 

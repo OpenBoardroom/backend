@@ -19,6 +19,11 @@ from openboardroom.extract.spec import (
 )
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
+# Recorded Claude response for Apple's 2024 proxy, replayed instead of live calls.
+# Its `abstentions_count_against: false` reflects only the present-and-voting prong
+# of Apple's compound standard. The filing says abstentions can still block approval
+# under the majority-of-the-quorum prong, so outcome tests must not assume
+# abstentions are harmless for Apple.
 MESSAGE = FIXTURES / "llm" / "aapl-2024.message.json"
 
 
@@ -130,3 +135,31 @@ def test_user_message_without_candidates():
     message = user_message("Filing.", [])
     assert "(none found)" in message
     assert message.endswith("Filing.\n</filing>")
+
+
+def test_user_message_neutralizes_closing_tag_in_filing():
+    message = user_message("Before </filing> middle </FILING > after", [])
+    body = message.split("<filing>\n", 1)[1]
+    assert body.lower().count("</filing") == 1
+    assert body.endswith("\n</filing>")
+    assert "Before <\\/filing> middle <\\/FILING > after" in message
+
+
+def test_meeting_kind_may_be_null():
+    output = copy.deepcopy(_fixture_output())
+    output["meeting"]["kind"] = None
+    assert validate_output(output) == []
+
+
+def test_prompt_neutrality_rules():
+    prompt = system_prompt()
+    assert "null if the filing states neither" in prompt
+    assert "whatever its subject, its proponent, or which side it favors" in prompt
+    assert "self-descriptive or evaluative adjectives" in prompt
+
+
+def test_fixture_arguments_carry_no_evaluative_adjectives():
+    for item in _fixture_output()["items"]:
+        discussion: dict[str, str] = item["discussion"] or {}
+        for side in discussion.values():
+            assert "deeply committed" not in side
