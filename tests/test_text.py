@@ -7,10 +7,11 @@ of Proposals 1, 4, and 8, joined at page breaks. ``expected.txt`` was produced
 once by ``to_text`` and checked by eye. ``cp1252.htm`` is synthetic.
 """
 
+import re
 import warnings
 from pathlib import Path
 
-from openboardroom.text import to_text
+from openboardroom.text import decode, to_text
 
 FILINGS = Path(__file__).resolve().parent / "fixtures" / "filings"
 
@@ -20,6 +21,9 @@ def test_golden_apple_2024() -> None:
     expected = (FILINGS / "aapl-2024-def14a.expected.txt").read_text(encoding="utf-8")
 
     assert to_text(html) == expected
+    # The hidden inline-XBRL header (context IDs, dates) must not lead the text.
+    hidden = re.compile(r"^[a-z0-9-]+_\d+$|^\d{4}-\d{2}-\d{2}$")
+    assert not any(hidden.match(line) for line in expected.splitlines()[:5])
 
 
 def test_cp1252_document_decodes() -> None:
@@ -100,3 +104,35 @@ def test_inline_xbrl_parses_as_html_without_warning() -> None:
 
 def test_empty_document_is_empty_text() -> None:
     assert to_text(b"<html><body> </body></html>") == ""
+
+
+def test_drops_inline_xbrl_header() -> None:
+    hidden = (
+        b'<div style="display:none"><ix:header><ix:hidden>2024-01-02</ix:hidden>'
+        b"<ix:references>abc_1</ix:references></ix:header></div><p>Proposal 1</p>"
+    )
+    bare = b"<ix:header><ix:hidden>2024-01-02</ix:hidden></ix:header><p>Proposal 1</p>"
+
+    assert to_text(hidden) == "Proposal 1\n"
+    assert to_text(bare) == "Proposal 1\n"
+
+
+def test_ignores_utf16_declaration() -> None:
+    # WHATWG reads a utf-16 meta label as UTF-8: the bytes can't be UTF-16 if the tag is ASCII.
+    # An even byte count, so a UTF-16 decode would succeed with garbage.
+    assert to_text(b'<meta charset="utf-16"><p>caf\xc3\xa9</p> ') == "café\n"
+
+
+def test_ignores_utf32_declaration() -> None:
+    assert to_text(b'<meta charset="utf-32"><p>caf\xc3\xa9</p>  ') == "café\n"
+
+
+def test_drops_utf8_bom() -> None:
+    text = to_text(b"\xef\xbb\xbf<p>x</p>")
+
+    assert text == "x\n"
+    assert "\ufeff" not in text
+
+
+def test_decode_drops_leading_bom() -> None:
+    assert decode(b"\xef\xbb\xbf<p>x</p>") == "<p>x</p>"
