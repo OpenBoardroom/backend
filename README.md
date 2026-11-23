@@ -85,6 +85,8 @@ Run them in order:
 
 All stages are safe to rerun: discovery skips filings it already has, fetch reuses cached documents, and extract only takes filings still at `fetched`.
 
+After a change to text conversion, run `uv run obr fetch --reconvert` to rebuild every cached text from its raw document (no downloads). Stages don't change; a filing whose cached document is missing or doesn't match its recorded hash is reported and left as it was.
+
 ### Extract
 
 `obr extract` sends each `fetched` proxy statement (DEF 14A) to Claude, validates the output with four checks, and writes the meeting, ballot items, and draft texts to the database. It costs money on every call. Choose a mode:
