@@ -11,6 +11,7 @@ import re
 import warnings
 from pathlib import Path
 
+from openboardroom.extract.checks import normalize
 from openboardroom.text import decode, to_text
 
 FILINGS = Path(__file__).resolve().parent / "fixtures" / "filings"
@@ -173,3 +174,64 @@ def test_nbsp_between_inline_elements_is_a_space() -> None:
     html = b"<p><span>Executive</span>&#160;<span>Compensation</span></p>"
 
     assert to_text(html) == "Executive Compensation\n"
+
+
+_BREAK = b'<div style="page-break-after:always"></div>'
+
+
+def _pages(bodies: list[bytes]) -> bytes:
+    return _BREAK.join(bodies)
+
+
+def test_running_header_and_page_numbers_are_dropped() -> None:
+    html = _pages(
+        [
+            b"<div>2026 Proxy Statement</div><div>%d</div>" % n
+            + b"<div>Table of Contents</div><p>Body %d</p>" % n
+            for n in range(1, 6)
+        ]
+    )
+
+    assert to_text(html) == "Body 1\nBody 2\nBody 3\nBody 4\nBody 5\n"
+
+
+def test_sentence_split_by_furniture_is_contiguous_after_drop() -> None:
+    # ExxonMobil 2026, Item 6: the resolution runs across a page break.
+    furniture = b"<div>2026 Proxy Statement</div><div>%d</div><div>Table of Contents</div>"
+    bodies = [furniture % n + b"<p>Other page %d</p>" % n for n in range(1, 6)]
+    bodies[2] = furniture % 3 + b"<p>provides multiple independent options to shareholders so</p>"
+    bodies[3] = (
+        furniture % 4 + b"<p>that the retail voting program does not inordinately advantage</p>"
+    )
+
+    text = normalize(to_text(_pages(bodies)))
+
+    assert "shareholders so that the retail voting program" in text
+
+
+def test_numbered_headings_repeated_at_page_tops_are_kept() -> None:
+    html = _pages([b"<div>(ITEM %d ON THE PROXY CARD)</div><p>Body</p>" % n for n in range(1, 6)])
+
+    assert to_text(html).count("ON THE PROXY CARD") == 5
+
+
+def test_no_page_breaks_drops_nothing() -> None:
+    assert to_text(b"<p>Repeated</p>" * 10) == "Repeated\n" * 10
+
+
+def test_repeat_below_threshold_is_kept() -> None:
+    bodies = [b"<p>Body %d</p>" % n for n in range(1, 6)]
+    bodies[0] = b"<div>Rare header</div>" + bodies[0]
+    bodies[1] = b"<div>Rare header</div>" + bodies[1]
+
+    assert to_text(_pages(bodies)).count("Rare header") == 2
+
+
+def test_content_repeated_on_some_page_edges_is_kept() -> None:
+    # Section labels like Alphabet's "Required Vote" repeat at page edges on about
+    # 12% of pages; running headers repeat on nearly all. Here: 3 of 10 pages.
+    bodies = [b"<p>Body %d</p>" % n for n in range(1, 11)]
+    for n in (2, 5, 8):
+        bodies[n] = b"<div>Vote Required</div>" + bodies[n]
+
+    assert to_text(_pages(bodies)).count("Vote Required") == 3

@@ -34,6 +34,20 @@ _BLOCK_TAGS = frozenset({
 # collapse can't merge it away; filings never contain private-use characters
 # that matter to the text.
 _BLOCK_BREAK = "\ue001"
+# Marks a printed page break, on a line of its own, until furniture is dropped.
+_PAGE_BREAK = "\ue000"
+_PAGE_BREAK_STYLE = re.compile(
+    r"(page-break-(?P<old>before|after)\s*:\s*always)|(break-(?P<new>before|after)\s*:\s*page)",
+    re.IGNORECASE,
+)
+# Running headers and footers sit in the first or last lines of a page and repeat
+# exactly on most pages. Measured on the 2026 AAPL, XOM, GOOGL, and CSCO proxies:
+# furniture repeats at the edges of 47-100% of pages, while repeated content
+# ("Required Vote", a vote-standard sentence) stays at or below 23%.
+_EDGE_LINES = 12
+_MIN_PAGES = 3
+_MIN_PAGE_SHARE = 0.4
+_PAGE_NUMBER = re.compile(r"\d+|[ivxlc]+")
 
 
 def _declared_charset(html: bytes) -> str | None:
@@ -79,6 +93,49 @@ def decode(html: bytes) -> str:
     return html.decode("cp1252", errors="replace").removeprefix("\ufeff")
 
 
+def _furniture_key(line: str) -> str:
+    """Page numbers all share one key; any other line is its own key."""
+    return "#" if _PAGE_NUMBER.fullmatch(line) else line
+
+
+def _drop_furniture(lines: list[str]) -> list[str]:
+    """Drop running headers and footers, and the page-break markers.
+
+    A line is furniture when it is among the first or last ``_EDGE_LINES`` lines
+    of a page and its key (``_furniture_key``) appears at the edges of at least
+    ``_MIN_PAGES`` pages and ``_MIN_PAGE_SHARE`` of all pages. Lines away from
+    page edges are never dropped, and a document without page breaks loses nothing.
+
+    Args:
+        lines: Text lines, with ``_PAGE_BREAK`` lines between pages.
+
+    Returns:
+        The lines without furniture or page-break markers.
+    """
+    pages: list[list[str]] = [[]]
+    for line in lines:
+        if line == _PAGE_BREAK:
+            pages.append([])
+        else:
+            pages[-1].append(line)
+    edges = [
+        {*range(min(_EDGE_LINES, len(page))), *range(max(0, len(page) - _EDGE_LINES), len(page))}
+        for page in pages
+    ]
+    pages_with: dict[str, int] = {}
+    for page, edge in zip(pages, edges, strict=True):
+        for key in {_furniture_key(page[i]) for i in edge}:
+            pages_with[key] = pages_with.get(key, 0) + 1
+    needed = max(_MIN_PAGES, _MIN_PAGE_SHARE * len(pages))
+    furniture = {key for key, count in pages_with.items() if count >= needed}
+    return [
+        line
+        for page, edge in zip(pages, edges, strict=True)
+        for i, line in enumerate(page)
+        if i not in edge or _furniture_key(line) not in furniture
+    ]
+
+
 def to_text(html: bytes) -> str:
     """Convert a filing's HTML to plain text, one block of text per line.
 
@@ -86,7 +143,8 @@ def to_text(html: bytes) -> str:
     ``_BLOCK_TAGS``) starts a new line; inline text joins as a browser renders it,
     with no added space. Script and style contents and the inline-XBRL header are
     left out. Runs of whitespace, including source newlines, become one space; empty
-    lines are dropped.
+    lines are dropped. Running page headers and footers are dropped
+    (``_drop_furniture``), so a sentence split by a page break reads on.
 
     Args:
         html: The raw document.
@@ -106,7 +164,14 @@ def to_text(html: bytes) -> str:
     for element in soup.find_all(_BLOCK_TAGS):
         element.insert_before(_BLOCK_BREAK)
         element.insert_after(_BLOCK_BREAK)
+    marker = _BLOCK_BREAK + _PAGE_BREAK + _BLOCK_BREAK
+    for element in soup.find_all(style=_PAGE_BREAK_STYLE):
+        match = _PAGE_BREAK_STYLE.search(str(element.get("style", "")))
+        if match and (match.group("old") or match.group("new")) == "before":
+            element.insert_before(marker)
+        else:
+            element.insert_after(marker)
     text = _WHITESPACE.sub(" ", soup.get_text(""))
     lines = [line.strip() for line in text.split(_BLOCK_BREAK)]
-    kept = [line for line in lines if line]
+    kept = _drop_furniture([line for line in lines if line])
     return "\n".join(kept) + "\n" if kept else ""
