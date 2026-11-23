@@ -10,7 +10,7 @@ from openboardroom.extract.regex import Candidate, candidates_hint, find_candida
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 # Proposal counts read from each filing's ballot (see the fixtures README).
-BALLOT_COUNTS = {"aapl-2023": 9, "aapl-2024": 8, "msft-2023": 13}
+BALLOT_COUNTS = {"aapl-2023": 9, "aapl-2024": 8, "googl-2026": 14, "msft-2023": 13}
 
 
 @pytest.mark.parametrize("name", sorted(BALLOT_COUNTS))
@@ -26,6 +26,8 @@ def test_golden(name: str):
     ("line", "number"),
     [
         ("Proposal No. 3 — Advisory Vote", 3),
+        ("Proposal Number 13: Shareholder Proposal", 13),
+        ("PROPOSAL NUMBER 2", 2),
         ("PROPOSAL 4: Shareholder Proposal", 4),
         ("Item 2. Ratification", 2),
         ("Proposal Three", 3),
@@ -39,7 +41,9 @@ def test_variants(line: str, number: int):
     assert found[0].heading == line
 
 
-@pytest.mark.parametrize("line", ["see Proposal 3 above", "Proposal 31", "Proposal 0", "Proposals"])
+@pytest.mark.parametrize(
+    "line", ["see Proposal 3 above", "Proposal 31", "Proposal 0", "Proposals", "Proposal Numbers 2"]
+)
 def test_non_headings_do_not_match(line: str):
     assert find_candidates(line) == []
 
