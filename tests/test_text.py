@@ -79,7 +79,8 @@ def test_bytes_undefined_in_cp1252_are_replaced() -> None:
 def test_whitespace_collapsed_and_empty_lines_dropped() -> None:
     html = b"<div>  Proposal\t No.\xc2\xa01 </div>\n\n<p> </p><p>Election\r\nof Directors</p>"
 
-    assert to_text(html) == "Proposal No. 1\nElection\nof Directors\n"
+    # A source newline inside a block is whitespace, as in a browser.
+    assert to_text(html) == "Proposal No. 1\nElection of Directors\n"
 
 
 def test_script_and_style_text_is_dropped() -> None:
@@ -136,3 +137,39 @@ def test_drops_utf8_bom() -> None:
 
 def test_decode_drops_leading_bom() -> None:
     assert decode(b"\xef\xbb\xbf<p>x</p>") == "<p>x</p>"
+
+
+def test_inline_elements_join_without_added_space() -> None:
+    # Alphabet 2026 splits one word across two links.
+    html = b"<div><a>Proposal Number 3: A</a><a>pproval of the Plan</a></div>"
+
+    assert to_text(html) == "Proposal Number 3: Approval of the Plan\n"
+
+
+def test_whitespace_only_inline_element_keeps_one_space() -> None:
+    # Cisco 2026 puts the space between "Proposal" and "2" in its own link.
+    html = b"<div><a>Proposal</a><a> </a><a>2</a><a>: Advisory Vote</a></div>"
+
+    assert to_text(html) == "Proposal 2: Advisory Vote\n"
+
+
+def test_block_elements_start_new_lines() -> None:
+    html = b"<p>One</p><div>Two<div>Three</div></div><h2>Four</h2><li>Five</li>"
+
+    assert to_text(html) == "One\nTwo\nThree\nFour\nFive\n"
+
+
+def test_br_breaks_a_line() -> None:
+    assert to_text(b"<p>A<br/>B</p>") == "A\nB\n"
+
+
+def test_table_cells_are_separate_lines() -> None:
+    html = b"<table><tr><td>Proposal</td><td>2</td></tr></table>"
+
+    assert to_text(html) == "Proposal\n2\n"
+
+
+def test_nbsp_between_inline_elements_is_a_space() -> None:
+    html = b"<p><span>Executive</span>&#160;<span>Compensation</span></p>"
+
+    assert to_text(html) == "Executive Compensation\n"

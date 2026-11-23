@@ -22,6 +22,18 @@ _READ_AS_CP1252 = {"ascii", "iso8859-1"}
 # treat these labels as UTF-8 (WHATWG); honoring them would garble the text.
 _UTF_16_32 = re.compile(r"utf[-_]?(16|32)", re.IGNORECASE)
 _WHITESPACE = re.compile(r"\s+")
+# Elements a browser lays out as their own block. Everything else is inline and
+# joins its neighbours exactly as rendered, with no added space (spec §6.2).
+_BLOCK_TAGS = frozenset({
+    "address", "article", "aside", "blockquote", "br", "caption", "dd", "div", "dl", "dt",
+    "figcaption", "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header",
+    "hr", "li", "main", "nav", "ol", "p", "pre", "section", "table", "tbody", "td", "tfoot",
+    "th", "thead", "tr", "ul",
+})  # fmt: skip
+# Marks a block boundary while converting. Not whitespace, so the whitespace
+# collapse can't merge it away; filings never contain private-use characters
+# that matter to the text.
+_BLOCK_BREAK = "\ue001"
 
 
 def _declared_charset(html: bytes) -> str | None:
@@ -70,9 +82,11 @@ def decode(html: bytes) -> str:
 def to_text(html: bytes) -> str:
     """Convert a filing's HTML to plain text, one block of text per line.
 
-    Text is taken with BeautifulSoup's lxml parser, one newline between strings;
-    script and style contents and the inline-XBRL header are left out. Within each line, runs of
-    whitespace become one space; empty lines are dropped.
+    Text is taken with BeautifulSoup's lxml parser. Each block element (see
+    ``_BLOCK_TAGS``) starts a new line; inline text joins as a browser renders it,
+    with no added space. Script and style contents and the inline-XBRL header are
+    left out. Runs of whitespace, including source newlines, become one space; empty
+    lines are dropped.
 
     Args:
         html: The raw document.
@@ -89,7 +103,10 @@ def to_text(html: bytes) -> str:
     # The hidden inline-XBRL header holds context IDs and dates, not filing text.
     for header in soup.find_all("ix:header"):
         header.decompose()
-    text = soup.get_text("\n")
-    lines = [_WHITESPACE.sub(" ", line).strip() for line in text.splitlines()]
+    for element in soup.find_all(_BLOCK_TAGS):
+        element.insert_before(_BLOCK_BREAK)
+        element.insert_after(_BLOCK_BREAK)
+    text = _WHITESPACE.sub(" ", soup.get_text(""))
+    lines = [line.strip() for line in text.split(_BLOCK_BREAK)]
     kept = [line for line in lines if line]
     return "\n".join(kept) + "\n" if kept else ""
