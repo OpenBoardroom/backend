@@ -134,6 +134,35 @@ def test_pending_filings_takes_fetched_def14a_without_a_submitted_run(
     assert filings[0] == store.Filing(second, "0000320193-24-000002", company)
 
 
+def billed(conn: psycopg.Connection, filing_id: int, tokens: int | None = 100) -> None:
+    outcome = Outcome("failed", None, "claude-opus-5-5", tokens, tokens, "stop_reason max_tokens")
+    store.insert_llm_run(conn, filing_id, SETTINGS, outcome, STARTED)
+
+
+def test_pending_filings_skips_two_billed_failures_at_the_current_versions(
+    conn: psycopg.Connection,
+) -> None:
+    company = add_company(conn)
+    once = add_filing(conn, company, "0000320193-24-000001")
+    billed(conn, once)
+    twice = add_filing(conn, company, "0000320193-24-000002")
+    billed(conn, twice)
+    billed(conn, twice)
+    unbilled = add_filing(conn, company, "0000320193-24-000003")
+    billed(conn, unbilled, tokens=None)
+    billed(conn, unbilled, tokens=None)
+    older = add_filing(conn, company, "0000320193-24-000004")
+    billed(conn, older)
+    billed(conn, older)
+    conn.execute("update extraction_runs set schema_version = '0' where filing_id = %s", (older,))
+
+    assert [f.id for f in store.pending_filings(conn)] == [once, unbilled, older]
+    capped = store.capped_filings(conn)
+    assert capped == [store.Filing(twice, "0000320193-24-000002", company)]
+    assert store.capped_filings(conn, accession="0000320193-24-000001") == []
+    assert store.MAX_BILLED_FAILURES == 2
+
+
 def test_pending_filings_limit_and_accession(conn: psycopg.Connection) -> None:
     company = add_company(conn)
     first = add_filing(conn, company, "0000320193-24-000001")

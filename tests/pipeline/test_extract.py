@@ -12,7 +12,9 @@ import pytest
 from llm_replay import Recorder, api_error, json_response, jsonl_response, mock_client
 from llm_replay import stream_response as stream
 
+from openboardroom.extract import store
 from openboardroom.extract.llm import LlmSettings
+from openboardroom.extract.spec import PROMPT_VERSION, SCHEMA_VERSION
 from openboardroom.pipeline.extract import ExtractResult, collect, extract_direct, submit
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
@@ -355,7 +357,7 @@ def test_direct_skips_defa14a(conn: psycopg.Connection, tmp_path: Path) -> None:
 
 
 def test_direct_rolls_back_a_failed_write(conn: psycopg.Connection, tmp_path: Path) -> None:
-    """Ruling R4: no partial rows; a failed run keeps the output and the error."""
+    """Rulings R4 and R10: no partial rows; a failed run keeps the output; a person reviews."""
     setup(conn, tmp_path)
 
     def duplicate(output: dict[str, Any]) -> None:
@@ -363,9 +365,9 @@ def test_direct_rolls_back_a_failed_write(conn: psycopg.Connection, tmp_path: Pa
 
     result, _ = direct(conn, tmp_path, stream(aapl(duplicate)))
 
-    assert (result.failed, result.checked, result.in_review) == (1, 0, 0)
+    assert (result.failed, result.checked, result.in_review) == (0, 0, 1)
     assert "UniqueViolation" in result.errors[0]
-    assert stage(conn) == "fetched"
+    assert stage(conn) == "in_review"
     assert counts(conn) == {
         "runs": 2, "checks": 0, "meetings": 0, "items": 0, "nominees": 0, "texts": 0,
     }  # fmt: skip
@@ -378,7 +380,95 @@ def test_direct_rolls_back_a_failed_write(conn: psycopg.Connection, tmp_path: Pa
     assert (status, has_output, input_tokens, output_tokens) == ("failed", True, 107179, 5931)
     assert detail.startswith("could not write the extraction: UniqueViolation: ")
     # The connection is still usable for the next filing.
+    assert stage(conn) == "in_review"
+
+
+def test_direct_sends_a_threshold_the_column_rejects_to_review(
+    conn: psycopg.Connection, tmp_path: Path
+) -> None:
+    setup(conn, tmp_path)
+
+    def zero_threshold(output: dict[str, Any]) -> None:
+        output["items"][2]["vote_threshold_pct"] = 0
+
+    result, _ = direct(conn, tmp_path, stream(aapl(zero_threshold)))
+
+    assert (result.failed, result.in_review) == (0, 1)
+    assert result.errors[0].startswith(
+        f"{ACCESSION}: could not write the extraction: CheckViolation: "
+    )
+    assert stage(conn) == "in_review"
+    assert counts(conn) == {
+        "runs": 2, "checks": 0, "meetings": 0, "items": 0, "nominees": 0, "texts": 0,
+    }  # fmt: skip
+    assert runs(conn)[1][:2] == ("llm", "failed")
+
+
+def billed_failure(conn: psycopg.Connection, prompt_version: str | None = None) -> None:
+    """Record a failed llm run that was billed (it has tokens) for ACCESSION."""
+    conn.execute(
+        """
+        insert into extraction_runs (filing_id, kind, model, prompt_version, schema_version,
+                                     input_tokens, output_tokens, status, detail)
+        select id, 'llm', 'claude-opus-5-5', %s, %s, 107179, 64000, 'failed',
+               'stop_reason max_tokens'
+        from filings where accession = %s
+        """,
+        (prompt_version or PROMPT_VERSION, SCHEMA_VERSION, ACCESSION),
+    )
+
+
+def test_direct_skips_and_reports_a_filing_after_two_billed_failures(
+    conn: psycopg.Connection, tmp_path: Path
+) -> None:
+    setup(conn, tmp_path, (ACCESSION, SECOND))
+    billed_failure(conn)
+    billed_failure(conn)
+
+    result, recorder = direct(conn, tmp_path, stream(aapl()))
+    submitted = submit_all(conn, tmp_path)
+
+    assert result.checked == 1
+    assert len(recorder.requests) == 1
     assert stage(conn) == "fetched"
+    reason = (
+        f"{ACCESSION}: skipped: 2 billed failed llm runs at prompt version {PROMPT_VERSION}, "
+        f"schema version {SCHEMA_VERSION}; needs a person"
+    )
+    assert result.errors == [reason]
+    assert (submitted.submitted, submitted.errors) == (0, [reason])
+
+
+def test_direct_skips_a_capped_filing_named_by_accession(
+    conn: psycopg.Connection, tmp_path: Path
+) -> None:
+    setup(conn, tmp_path, (ACCESSION, SECOND))
+    billed_failure(conn)
+    billed_failure(conn)
+
+    other, _ = direct(conn, tmp_path, stream(aapl()), accession=SECOND)
+    capped, recorder = direct(conn, tmp_path, accession=ACCESSION)
+
+    # Only the named filing is considered or reported.
+    assert (other.checked, other.errors) == (1, [])
+    assert recorder.requests == []
+    assert capped.checked == 0
+    assert len(capped.errors) == 1
+    assert capped.errors[0].startswith(f"{ACCESSION}: skipped: ")
+
+
+def test_direct_still_tries_a_filing_with_unbilled_or_older_failures(
+    conn: psycopg.Connection, tmp_path: Path
+) -> None:
+    setup(conn, tmp_path)
+    direct(conn, tmp_path, api_error(529, "overloaded_error", "Overloaded"))
+    direct(conn, tmp_path, api_error(529, "overloaded_error", "Overloaded"))
+    billed_failure(conn, prompt_version="0")
+    billed_failure(conn, prompt_version="0")
+
+    result, _ = direct(conn, tmp_path, stream(aapl()))
+
+    assert (result.checked, result.errors) == (1, [])
 
 
 def items_not_a_list(output: dict[str, Any]) -> None:
@@ -417,9 +507,9 @@ def test_direct_fails_on_output_it_cannot_write(
 
     result, _ = direct(conn, tmp_path, stream(aapl(edit)))
 
-    assert result.failed == 1
+    assert (result.failed, result.in_review) == (0, 1)
     assert f"MalformedOutputError: {reason}" in result.errors[0]
-    assert stage(conn) == "fetched"
+    assert stage(conn) == "in_review"
     assert counts(conn)["meetings"] == 0
     assert counts(conn)["checks"] == 0
 
@@ -695,7 +785,39 @@ def test_collect_rolls_back_a_failed_write(conn: psycopg.Connection, tmp_path: P
 
     result, _ = do_collect(conn, tmp_path, batch("ended"), batch("ended"), results)
 
-    assert result.failed == 1
+    assert (result.failed, result.in_review) == (0, 1)
     assert runs(conn)[1][:3] == ("llm", "failed", BATCH_ID)
     assert counts(conn)["meetings"] == 0
-    assert stage(conn) == "fetched"
+    assert stage(conn) == "in_review"
+
+
+@pytest.mark.parametrize(
+    "cancel",
+    [lambda: batch("canceling"), lambda: api_error(500, "api_error", "Down")],
+    ids=["cancelled", "cancel-fails"],
+)
+def test_submit_cancels_a_batch_it_cannot_record(
+    conn: psycopg.Connection,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    cancel: Callable[[], httpx2.Response],
+) -> None:
+    setup(conn, tmp_path)
+
+    def lost_connection(*_: object, **__: object) -> int:
+        # Fault injection only: the database fails while the runs are recorded.
+        raise psycopg.errors.AdminShutdown("terminating connection")
+
+    monkeypatch.setattr(store, "insert_llm_run", lost_connection)
+    recorder = Recorder(batch("in_progress"), cancel())
+
+    with pytest.raises(psycopg.errors.AdminShutdown) as raised:
+        submit(conn, mock_client(recorder), SETTINGS, tmp_path)
+
+    assert [(r.method, r.url.path) for r in recorder.requests] == [
+        ("POST", "/v1/messages/batches"),
+        ("POST", f"/v1/messages/batches/{BATCH_ID}/cancel"),
+    ]
+    assert any(BATCH_ID in note for note in raised.value.__notes__)
+    monkeypatch.undo()
+    assert runs(conn) == []

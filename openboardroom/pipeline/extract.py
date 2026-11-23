@@ -35,6 +35,7 @@ from openboardroom.extract.llm import (
     submit_batch,
 )
 from openboardroom.extract.regex import Candidate, find_candidates
+from openboardroom.extract.spec import PROMPT_VERSION, SCHEMA_VERSION
 
 Result = Literal["checked", "in_review", "out_of_scope", "failed"]
 # Records a filing's runs and returns the llm run its facts and checks belong to.
@@ -50,15 +51,17 @@ class ExtractResult:
 
     Attributes:
         checked: Filings advanced to `checked`: all four checks passed.
-        in_review: Filings sent to `in_review`: a check failed or the model refused.
+        in_review: Filings sent to `in_review`: a check failed, the model
+            refused, or the output couldn't be written.
         out_of_scope: Filings whose meeting date no index membership covers.
-        failed: Filings left at `fetched` to be tried again: the call failed,
-            the output couldn't be written, or the text file is missing. For
-            `submit`, also filings not submitted because the batch was refused.
+        failed: Filings left at `fetched` to be tried again: the call failed
+            or the text file is missing. For `submit`, also filings not
+            submitted because the batch was refused.
         submitted: For `submit`, filings submitted in the batch. For `collect`,
             runs still waiting: their batch hasn't ended or its results
             couldn't be read.
-        errors: One message per failed filing (naming its accession) or batch.
+        errors: One message per failed or unwritable filing and per skipped
+            (capped) filing, each naming its accession, and per unreadable batch.
     """
 
     checked: int
@@ -80,8 +83,16 @@ class _Tally:
 
     def add(self, result: Result, accession: str, detail: str | None) -> None:
         self.counts[result] += 1
-        if result == "failed":
+        if detail is not None:
             self.errors.append(f"{accession}: {detail}")
+
+    def skip_capped(self, conn: psycopg.Connection, accession: str | None) -> None:
+        for filing in store.capped_filings(conn, accession):
+            self.errors.append(
+                f"{filing.accession}: skipped: {store.MAX_BILLED_FAILURES} billed failed llm "
+                f"runs at prompt version {PROMPT_VERSION}, schema version {SCHEMA_VERSION}; "
+                "needs a person"
+            )
 
     def result(self) -> ExtractResult:
         return ExtractResult(
@@ -209,11 +220,13 @@ def _apply(
 
     If the write fails, the transaction rolls back and, in a new one, the
     runs are recorded with the llm run `failed`, keeping the model's output
-    and tokens, and the error in its detail (ruling R4). The filing stays at
-    `fetched` with no facts.
+    and tokens, and the error in its detail (ruling R4), and the filing moves
+    to `in_review` with no facts (ruling R10): output that can't be written
+    would fail the same way again, so a person looks at it instead of the
+    model being billed for it again.
 
     Returns:
-        What happened, and the failure detail when it failed.
+        What happened, and the detail when it failed or couldn't be written.
     """
     try:
         with conn.transaction():
@@ -223,7 +236,8 @@ def _apply(
         detail = f"could not write the extraction: {type(error).__name__}: {error}"
         with conn.transaction():
             record(replace(outcome, status="failed", detail=detail))
-        return "failed", detail
+            store.set_stage(conn, filing.id, "in_review")
+        return "in_review", detail
     return result, outcome.detail if result == "failed" else None
 
 
@@ -253,8 +267,9 @@ def extract_direct(
 ) -> ExtractResult:
     """Extract fetched DEF 14A filings one at a time with direct calls.
 
-    Takes `fetched` DEF 14A filings with no `submitted` run, in id order.
-    Each filing's writes commit (or roll back) as one transaction; on a
+    Takes `fetched` DEF 14A filings with no `submitted` run, in id order,
+    except filings capped for repeated billed failures, which are reported
+    in `errors` instead. Each filing's writes commit (or roll back) as one transaction; on a
     connection that isn't autocommit, that is a savepoint and the caller
     commits.
 
@@ -270,6 +285,7 @@ def extract_direct(
         Counts per result, and a message per failed filing.
     """
     tally = _Tally()
+    tally.skip_capped(conn, accession)
     for filing in store.pending_filings(conn, limit, accession):
         text = _read_text(text_dir, filing.accession)
         if text is None:
@@ -296,7 +312,8 @@ def submit(
     Takes the same filings as `extract_direct`. Once the batch is accepted,
     each filing's regex run and `submitted` llm run (with the batch id) are
     recorded in one transaction; `collect` finishes them. If the batch is
-    refused, nothing is recorded and the filings stay selectable.
+    refused, nothing is recorded and the filings stay selectable. Capped
+    filings are reported in `errors`, as in `extract_direct`.
 
     Args:
         conn: Connection with write access.
@@ -307,8 +324,14 @@ def submit(
 
     Returns:
         How many filings were submitted or failed, and a message per failure.
+
+    Raises:
+        psycopg.Error: The runs of an accepted batch couldn't be recorded. The
+            batch is canceled first, on a best-effort basis, so it isn't
+            billed and then submitted again; a note on the error names it.
     """
     tally = _Tally()
+    tally.skip_capped(conn, None)
     ready: list[tuple[store.Filing, list[Candidate]]] = []
     requests: list[tuple[str, str, list[Candidate]]] = []
     for filing in store.pending_filings(conn, limit):
@@ -328,10 +351,24 @@ def submit(
         tally.counts["failed"] += len(requests)
         tally.errors.append(f"batch submit failed: {_api_error(error)}")
         return tally.result()
-    with conn.transaction():
-        for filing, candidates in ready:
-            store.insert_regex_run(conn, filing.id, candidates)
-            store.insert_llm_run(conn, filing.id, settings, None, started_at, batch_id)
+    try:
+        with conn.transaction():
+            for filing, candidates in ready:
+                store.insert_regex_run(conn, filing.id, candidates)
+                store.insert_llm_run(conn, filing.id, settings, None, started_at, batch_id)
+    except psycopg.Error as error:
+        # Unrecorded, the batch would never be collected; its filings would
+        # be submitted again and billed twice.
+        try:
+            client.messages.batches.cancel(batch_id)
+            note = f"batch {batch_id} was submitted but not recorded; cancel requested"
+        except _API_ERRORS as cancel_error:
+            note = (
+                f"batch {batch_id} was submitted but not recorded; cancel failed "
+                f"({_api_error(cancel_error)}): cancel it by hand"
+            )
+        error.add_note(note)
+        raise
     tally.counts["submitted"] += len(ready)
     return tally.result()
 

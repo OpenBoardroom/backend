@@ -7,7 +7,7 @@ The functions here neither commit nor open transactions; the stage
 import dataclasses
 from collections.abc import Mapping
 from datetime import date, datetime
-from typing import Any
+from typing import Any, LiteralString
 
 import psycopg
 from psycopg.types.json import Jsonb
@@ -19,6 +19,37 @@ from openboardroom.extract.spec import PROMPT_VERSION, SCHEMA_VERSION
 
 # One model-written text per kind, from these keys of an output item.
 _TEXT_KINDS = ("summary", "proponent_argument", "board_argument")
+# Billed failures (ones with token counts) at the current prompt and schema
+# after which a filing is no longer sent to the model (ruling R10): the same
+# input at the same settings tends to fail the same way, and each try is billed.
+MAX_BILLED_FAILURES = 2
+# Fetched DEF 14A filings not waiting on a batch, with how often the model
+# failed on them at a cost. Shared by pending_filings and capped_filings.
+_CANDIDATE_FILINGS: LiteralString = """
+    select f.id, f.accession, f.company_id, (
+        select count(*) from extraction_runs r
+        where r.filing_id = f.id and r.kind = 'llm' and r.status = 'failed'
+          and r.input_tokens is not null
+          and r.prompt_version = %(prompt)s and r.schema_version = %(schema)s
+    ) as billed_failures
+    from filings f
+    where f.form = 'DEF 14A' and f.stage = 'fetched'
+      and (%(accession)s::text is null or f.accession = %(accession)s)
+      and not exists (
+          select 1 from extraction_runs r
+          where r.filing_id = f.id and r.status = 'submitted'
+      )
+"""
+
+
+def _params(accession: str | None, **extra: object) -> dict[str, object]:
+    return {
+        "prompt": PROMPT_VERSION,
+        "schema": SCHEMA_VERSION,
+        "accession": accession,
+        "cap": MAX_BILLED_FAILURES,
+        **extra,
+    }
 
 
 @dataclasses.dataclass(frozen=True)
@@ -54,7 +85,12 @@ class SubmittedRun:
 def pending_filings(
     conn: psycopg.Connection, limit: int | None = None, accession: str | None = None
 ) -> list[Filing]:
-    """Return fetched DEF 14A filings that are not waiting on a batch, in id order.
+    """Return fetched DEF 14A filings to extract, in id order.
+
+    Skips filings waiting on a batch, and filings with `MAX_BILLED_FAILURES`
+    billed failed llm runs at the current prompt and schema versions (see
+    `capped_filings`). Unbilled failures (no tokens) don't count, and a
+    version bump makes a capped filing eligible again.
 
     Args:
         conn: Database connection.
@@ -65,18 +101,28 @@ def pending_filings(
         The filings to extract.
     """
     rows = conn.execute(
-        """
-        select f.id, f.accession, f.company_id from filings f
-        where f.form = 'DEF 14A' and f.stage = 'fetched'
-          and (%(accession)s::text is null or f.accession = %(accession)s)
-          and not exists (
-              select 1 from extraction_runs r
-              where r.filing_id = f.id and r.status = 'submitted'
-          )
-        order by f.id
-        limit %(limit)s
-        """,
-        {"accession": accession, "limit": limit},
+        f"select id, accession, company_id from ({_CANDIDATE_FILINGS}) c "
+        "where billed_failures < %(cap)s order by id limit %(limit)s",
+        _params(accession, limit=limit),
+    ).fetchall()
+    return [Filing(*row) for row in rows]
+
+
+def capped_filings(conn: psycopg.Connection, accession: str | None = None) -> list[Filing]:
+    """Return the filings `pending_filings` skips for repeated billed failures, in id order.
+
+    Args:
+        conn: Database connection.
+        accession: Only this filing, when given.
+
+    Returns:
+        Fetched DEF 14A filings, not waiting on a batch, with at least
+        `MAX_BILLED_FAILURES` billed failed llm runs at the current versions.
+    """
+    rows = conn.execute(
+        f"select id, accession, company_id from ({_CANDIDATE_FILINGS}) c "
+        "where billed_failures >= %(cap)s order by id",
+        _params(accession),
     ).fetchall()
     return [Filing(*row) for row in rows]
 
