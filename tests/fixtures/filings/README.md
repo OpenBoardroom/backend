@@ -4,12 +4,18 @@ Plain text of four DEF 14A primary documents, produced by `openboardroom.text.to
 Raw HTML is not committed. Retrieved 2026-11-22 with `EdgarClient`
 (User-Agent `Boardroom LLC quinn@brdrmr.org`).
 
+**Update (2026-11-23):** all four texts were rebuilt with block-level conversion and page-furniture
+removal (backend plan 2026-11-23). The three older documents were downloaded again through
+`EdgarClient`; none matched the raw sha256 recorded on 2026-11-22 (Apple 2023 now arrives with an
+SGML `<DOCUMENT>` header), so the table records today's raw and text hashes. Ballot counts are
+unchanged.
+
 | Fixture | Source | Accession | Raw sha256 | Text sha256 |
 |---|---|---|---|---|
-| `aapl-2023-def14a.txt` | https://www.sec.gov/Archives/edgar/data/320193/000130817923000019/laap2023_def14a.htm | 0001308179-23-000019 | `62753e9405d6aa7c3d573a5effb5b3fe87e5da3bcdca5fe2e36fe012a05c48c4` | `6cfdfa62fa5aa06f8b5cd8a877a3ee9c895da2b7d1d6ad2258c0a0e5cddfdb4a` |
-| `aapl-2024-def14a.txt` | https://www.sec.gov/Archives/edgar/data/320193/000130817924000010/laapl2024_def14a.htm | 0001308179-24-000010 | `56a3b2430961e9cd961b82e55c2c66a3e638dbb1936c54a234c26d1c49e7e32c` | `77eed34f3a3e08b4c1f3c2640a85772f3a1d812945121dac471609e523cc6f45` |
-| `msft-2023-def14a.txt` | https://www.sec.gov/Archives/edgar/data/789019/000119312523259247/d356108ddef14a.htm | 0001193125-23-259247 | `70ddcfc73f2714a2caaa05d59a2f567957407139b1998cae1abeb5f12d8b087b` | `31a151f91cb2bf382249c12e6e414699804afd72780a5019da13402c7d1cd1c0` |
-| `googl-2026-def14a.txt` | https://www.sec.gov/Archives/edgar/data/1652044/000130817926000342/goog-20260424.htm | 0001308179-26-000342 | `a74eec5771ad796d7d48acb9f0acf33f002d68d7893e2291223c4d2f4e7ce030` | `e671d902a8d69407aae8394596dc6f99ed4cbcf394681451c1aadcaff2bc159b` |
+| `aapl-2023-def14a.txt` | https://www.sec.gov/Archives/edgar/data/320193/000130817923000019/laap2023_def14a.htm | 0001308179-23-000019 | `b849951eb75962fc6129a9f800262fc04c6b47f9e84cb8d813a3949dbbafd6c2` | `041e6b96c54cc869a0948a191d4c3de95b4c92dbb6aa797e391cf80e6544be01` |
+| `aapl-2024-def14a.txt` | https://www.sec.gov/Archives/edgar/data/320193/000130817924000010/laapl2024_def14a.htm | 0001308179-24-000010 | `da4a310060bedef5020d7d8cdcd52b053b29b77c6b13cf8e1b4c453f5a00f8cf` | `6ed87624fbf18a336fb39ac35b4b869e4869512e986e9502491424b38d8e4d34` |
+| `msft-2023-def14a.txt` | https://www.sec.gov/Archives/edgar/data/789019/000119312523259247/d356108ddef14a.htm | 0001193125-23-259247 | `2fbf508cd9a9c3502472d9152230acb84c19cb838f890cd83bbbca521727098d` | `2b9059c141447e1732bc2dd5a066a302a5bc54f878e9e6e1d3c1239b931c0d16` |
+| `googl-2026-def14a.txt` | https://www.sec.gov/Archives/edgar/data/1652044/000130817926000342/goog-20260424.htm | 0001308179-26-000342 | `a74eec5771ad796d7d48acb9f0acf33f002d68d7893e2291223c4d2f4e7ce030` | `766aaae18d463b12489d7765c509a94d1ba360392d1db29ae38f233ee59d0114` |
 
 The Alphabet 2026 fixture was added 2026-11-23 from the local cache (fetched the same way). It
 uses "Proposal Number N" headings, which the regex pass missed before (extraction sample finding F8).

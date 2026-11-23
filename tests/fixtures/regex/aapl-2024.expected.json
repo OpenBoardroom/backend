@@ -1,83 +1,81 @@
 [
   {
     "number": 1,
-    "heading": "Proposal No. 1 - Election",
+    "heading": "Proposal No. 1 - Election of Directors",
     "lines": [
-      132,
-      4029
+      85,
+      2026,
+      2029
     ]
   },
   {
     "number": 2,
-    "heading": "Proposal No. 2 -",
+    "heading": "Proposal No. 2 - Ratification of Appointment of Independent Registered Public Accounting Firm",
     "lines": [
-      135,
-      4068,
-      4153
+      86,
+      2027,
+      2040
     ]
   },
   {
     "number": 3,
-    "heading": "Proposal No. 3 - Advisory",
+    "heading": "Proposal No. 3 - Advisory Vote to Approve Executive Compensation",
     "lines": [
-      138,
-      4165,
-      4200
+      87,
+      2028,
+      2079
     ]
   },
   {
     "number": 4,
-    "heading": "Proposal No. 4 - EEO",
+    "heading": "Proposal No. 4 - EEO Policy Risk Report",
     "lines": [
-      151,
-      4220,
-      4382,
-      4435,
-      4510
+      92,
+      2098,
+      2178,
+      2197,
+      2215
     ]
   },
   {
     "number": 5,
-    "heading": "Proposal No. 5 - Report on",
+    "heading": "Proposal No. 5 - Report on Ensuring Respect for Civil Liberties",
     "lines": [
-      154,
-      4222,
-      4524,
-      4603,
-      4718
+      93,
+      2099,
+      2218,
+      2245,
+      2279
     ]
   },
   {
     "number": 6,
-    "heading": "Proposal No. 6 - Racial",
+    "heading": "Proposal No. 6 - Racial and Gender Pay Gaps",
     "lines": [
-      157,
-      4224,
-      4736,
-      4820,
-      4956
+      95,
+      2100,
+      2286,
+      2317
     ]
   },
   {
     "number": 7,
-    "heading": "Proposal No. 7 - Report on",
+    "heading": "Proposal No. 7 - Report on Use of AI",
     "lines": [
-      160,
-      4226,
-      4970,
-      5021,
-      5177
+      97,
+      2101,
+      2347,
+      2361
     ]
   },
   {
     "number": 8,
-    "heading": "Proposal No. 8 -",
+    "heading": "Proposal No. 8 - Congruency Report on Privacy and Human Rights",
     "lines": [
-      163,
-      4228,
-      5191,
-      5271,
-      5390
+      99,
+      2102,
+      2397,
+      2434
     ]
   }
 ]
