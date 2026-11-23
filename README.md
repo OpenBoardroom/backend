@@ -23,6 +23,10 @@ Set these environment variables (`.env.example` lists them):
 | `OBR_EDGAR_USER_AGENT` | yes | User-Agent sent to SEC EDGAR, naming your organization and a contact address, e.g. `Example Org contact@example.org`. SEC blocks requests without one |
 | `OBR_EDGAR_MAX_RPS` | no | EDGAR requests per second; at most 10 (SEC's limit), default 8 |
 | `OBR_CACHE_DIR` | no | Where raw filings and their text are cached; default `./cache`. Never commit it |
+| `OBR_EXTRACT_MODEL` | no | Claude model that extracts ballot items; default `claude-opus-5-5` |
+| `OBR_EXTRACT_EFFORT` | no | Output effort: `low`, `medium`, `high`, `xhigh`, or `max`; default `high` |
+| `OBR_EXTRACT_MAX_TOKENS` | no | Output token ceiling per filing, thinking included; a positive integer, default `64000` |
+| `ANTHROPIC_API_KEY` | for `extract` | Anthropic API key. The Anthropic SDK reads it; `obr` never does. Don't keep it in your shell environment or a file; pass it per command (see [Extract](#extract)) |
 
 ### Database
 
@@ -40,7 +44,35 @@ Run them in order:
 2. `uv run obr discover --since YYYY-MM-DD --until YYYY-MM-DD` finds new proxy statements (DEF 14A), proxy supplements (DEFA14A), and vote-result 8-Ks (item 5.07) filed in that window, and records them at stage `discovered`. A proxy is filed up to about six months before its meeting, so to cover a season, start the window about six months before the season's first meeting.
 3. `uv run obr fetch` downloads each discovered filing's primary document into the cache, converts it to plain text, and advances it to `fetched`. It prints each failed filing as it goes and exits non-zero if any failed. If EDGAR refuses requests (HTTP 403 or 429) or can't be reached, it stops the whole run early and says why; the remaining filings stay `discovered`, so run it again later.
 
-All stages are safe to rerun: discovery skips filings it already has, and fetch reuses cached documents.
+4. `uv run obr extract` reads each fetched proxy statement with Claude, checks the result, and advances the filing to `checked`, `in_review`, or `out_of_scope` (see [Extract](#extract)).
+
+All stages are safe to rerun: discovery skips filings it already has, fetch reuses cached documents, and extract only takes filings still at `fetched`.
+
+### Extract
+
+`obr extract` sends each `fetched` proxy statement (DEF 14A) to Claude, validates the output with four checks, and writes the meeting, ballot items, and draft texts to the database. It costs money on every call. Choose a mode:
+
+| Command | Use it for |
+|---|---|
+| `uv run obr extract --filing ACCESSION` | One filing now. Development, the eval set, and retries |
+| `uv run obr extract --limit N` | The next N pending filings now, one call each. Small runs |
+| `uv run obr extract --submit [--limit N]` | Scheduled runs. Sends pending filings as message batches (at half price) of up to 100 filings each; `--limit` caps the total across batches. Returns at once |
+| `uv run obr extract --collect` | Later, to apply the results of batches that have ended. Batches finish within 24 hours; one still running is left alone, so run `--collect` again |
+
+`--submit` and `--collect` can't be combined, and `--filing` works only in direct mode. A collect also retries, with one direct call, any batched filing whose result is missing or was refused.
+
+Pass the API key per command so it is never in your shell environment (`<keychain-item>` is the name of your Keychain item):
+
+```sh
+ANTHROPIC_API_KEY="$(security find-generic-password -s <keychain-item> -w)" uv run obr extract --filing ACCESSION
+```
+
+Each run commits filing by filing, so a crash keeps results already paid for. It prints one line of counts and one line per failure to stderr, and exits 1 if any filing failed. What a filing's stage means afterward:
+
+- `checked`: all four checks passed. It is ready for review.
+- `in_review`: a check failed, the model refused, or the output couldn't be written. A reviewer looks at the items it did produce; nothing is published.
+- `out_of_scope`: the meeting date isn't covered by any index membership, so the filing is set aside.
+- still `fetched`: the call failed (API error, truncated or unparseable output) or the text file is missing. Run extract again. After 2 billed failures a filing is capped: later runs skip it and report it as an error until someone looks at it.
 
 ### Discovery notices
 

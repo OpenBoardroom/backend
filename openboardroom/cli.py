@@ -3,7 +3,7 @@
 import argparse
 
 from openboardroom import __version__, companies
-from openboardroom.pipeline import discover, fetch
+from openboardroom.pipeline import discover, extract_cli, fetch
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -21,6 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
     companies.register(subparsers)
     discover.register(subparsers)
     fetch.register(subparsers)
+    extract_cli.register(subparsers)
     return parser
 
 
