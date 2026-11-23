@@ -243,9 +243,13 @@ def _type_problems(label: str, item: dict[str, Any]) -> list[str]:
             problems.append(
                 f"{label}: effect is {effect!r}, a shareholder proposal is 'precatory' or 'binding'"
             )
-        for field in ("request", "lead_filer"):
-            if _missing(item.get(field)):
-                problems.append(f"{label}: {field} is required for a shareholder proposal")
+        if _missing(item.get("request")):
+            problems.append(f"{label}: request is required for a shareholder proposal")
+        # A filing may name only the agent acting "on behalf of its client" (spec §6.4).
+        if _missing(item.get("lead_filer")) and _missing(item.get("representative")):
+            problems.append(
+                f"{label}: lead_filer or representative is required for a shareholder proposal"
+            )
         return problems
 
     if category == "shareholder_proposal":

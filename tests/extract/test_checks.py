@@ -247,14 +247,14 @@ def test_relabelled_shareholder_proposal_fails() -> None:
     )
 
 
-@pytest.mark.parametrize("field", ["request", "lead_filer"])
 @pytest.mark.parametrize("blank", ["", "  "])
-def test_shareholder_item_needs_request_and_lead_filer(field: str, blank: str) -> None:
+def test_shareholder_item_needs_request(blank: str) -> None:
+    # The filer rule is covered by test_shareholder_item_without_filer_or_representative_fails.
     out = _output()
-    out["items"][3][field] = blank
+    out["items"][3]["request"] = blank
     results = _run(out)
     assert _failed(results) == ["consistency"]
-    assert f"item 4: {field} is required for a shareholder proposal" in (results[3].detail or "")
+    assert "item 4: request is required for a shareholder proposal" in (results[3].detail or "")
 
 
 @pytest.mark.parametrize(
@@ -492,3 +492,24 @@ def test_zero_items_and_zero_candidates_fails_count() -> None:
     results = _run({**_output(), "items": []}, candidates=[])
     assert not results[0].passed
     assert "no proposals found" in (results[0].detail or "")
+
+
+def test_shareholder_item_with_only_a_representative_passes() -> None:
+    # Alphabet 2026 item 6: "Inspire Investing, LLC, on behalf of its client" names
+    # the representative but not the filer (sample finding F15).
+    out = _output()
+    item = _item(out, "shareholder_proposal")
+    item.update(lead_filer="", representative="Inspire Investing, LLC")
+    assert _run(out)[3].passed
+
+
+@pytest.mark.parametrize("blank", ["", "  "])
+def test_shareholder_item_without_filer_or_representative_fails(blank: str) -> None:
+    out = _output()
+    item = _item(out, "shareholder_proposal")
+    item.update(lead_filer=blank, representative=blank)
+    results = _run(out)
+    assert _failed(results) == ["consistency"]
+    assert f"item {item['number']}: lead_filer or representative is required" in (
+        results[3].detail or ""
+    )
