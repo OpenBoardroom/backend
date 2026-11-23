@@ -23,6 +23,15 @@ _HEADING = re.compile(
     r"^\s*(?:Proposal|Item)\s+(?:No\.?\s*|Number\s+)?(\d{1,2}|" + "|".join(_WORD_NUMBERS) + r")\b",
     re.IGNORECASE,
 )
+# A parenthesized label anywhere in the line: "ELECTION OF DIRECTORS (ITEM 1)",
+# "(ITEM 1 ON THE PROXY CARD)", "Animals within Supply Chain (Proxy Item No. 6)".
+# The closing parenthesis must follow the number, so "(Item 5.07)" doesn't match.
+_PAREN_LABEL = re.compile(
+    r"\((?:Proxy\s+)?(?:Proposal|Item)\s+(?:No\.?\s*|Number\s+)?(\d{1,2}|"
+    + "|".join(_WORD_NUMBERS)
+    + r")(?:\s+on\s+the\s+proxy\s+card)?\)",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -59,7 +68,7 @@ def find_candidates(text: str) -> list[Candidate]:
     headings: dict[int, str] = {}
     matched: dict[int, list[int]] = {}
     for index, line in enumerate(text.splitlines()):
-        match = _HEADING.match(line)
+        match = _HEADING.match(line) or _PAREN_LABEL.search(line)
         number = _number(match.group(1)) if match else None
         if number is None:
             continue

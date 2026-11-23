@@ -33,6 +33,10 @@ def test_golden(name: str):
         ("Proposal Three", 3),
         ("Proposal 12 " + "x" * 300, 12),
         ("Proposal Twenty", 20),
+        ("Animals within Supply Chain (Proxy Item No. 6)", 6),
+        ("(ITEM 1 ON THE PROXY CARD)", 1),
+        ("ELECTION OF DIRECTORS (ITEM 1)", 1),
+        ("Shareholder Proposal – Action by Written Consent (Item 5)", 5),
     ],
 )
 def test_variants(line: str, number: int):
@@ -42,7 +46,17 @@ def test_variants(line: str, number: int):
 
 
 @pytest.mark.parametrize(
-    "line", ["see Proposal 3 above", "Proposal 31", "Proposal 0", "Proposals", "Proposal Numbers 2"]
+    "line",
+    [
+        "see Proposal 3 above",
+        "Proposal 31",
+        "Proposal 0",
+        "Proposals",
+        "Proposal Numbers 2",
+        "Fee computed (Item 25(b))",
+        "(Item 5.07)",
+        "Each director nominee named in Proxy Item No. 1 must receive",
+    ],
 )
 def test_non_headings_do_not_match(line: str):
     assert find_candidates(line) == []
