@@ -12,6 +12,7 @@ Prompt version 1 (version 2 from 2026-11-23, marked in the table), schema versio
 | XOM 2026 | `0001193125-26-147614` | checked | 288,282 | 8,683 | 75 s | 6 | Facts correct; F2–F7 |
 | GOOGL 2026 | `0001308179-26-000342` | in_review | 142,235 | 17,348 | 120 s | 14 | Facts correct; sent to review only by F8; F9–F11 |
 | AAPL 2026 (prompt v2) | `0001308179-26-000008` | checked | 98,106 | 6,946 | 52 s | 5 | Facts correct; F2 and F9 rules applied. See below |
+| XOM 2026 (prompt v2) | `0001193125-26-147614` | checked | 282,722 | 8,764 | 68 s | 6 | Facts correct; F2, F3 fixed; F12–F14 |
 
 Planned next: JPM `0000019617-26-000096`, ACN `0001308179-25-000651`, MSFT `0001193125-25-245150` (expected `out_of_scope`), NOW `0001373715-25-000312` (possibly a special meeting **(verify)**).
 
@@ -30,6 +31,9 @@ Planned next: JPM `0000019617-26-000096`, ACN `0001308179-25-000651`, MSFT `0001
 | F9 | GOOGL | Texts (neutrality) | High | Two summaries state a proponent's framing in our own voice. Rule set in prompt v2. See below |
 | F10 | GOOGL | Vote standard | Low | The standard is a majority of *voting power* (Class B carries 10 votes per share); `vote_base = shares_present` loses that |
 | F11 | GOOGL | Co-filers | Low | Items 11 and 12 say other co-filers exist but aren't named. `co_filers` is empty, which follows the spec, but the fact that there are co-filers is lost |
+| F12 | XOM v2 | Arguments (neutrality) | Medium | The two sides' claims are reported at different levels of detail. See below |
+| F13 | XOM v2 | Quotes | Low | `recommendation_quote` picked the board's framed sentence ("For the 17th time, the Board recommends a vote AGAINST this proposal.") when a plain one exists |
+| F14 | XOM v2 | Quotes | Low | Items 2–6 share one vote-standard sentence, and the 40-word cap makes the quote start mid-sentence ("and the shareholder proposals require…"), so it doesn't name the item it covers |
 
 ### F1. Compound vote standards (AAPL, all five items)
 
@@ -146,4 +150,15 @@ Text from the block-level converter with page furniture removed (`fef44ea`), pro
 - **F1 partly better.** `vote_standard_quote` now covers both parts of the standard: "(i) … and (ii) a majority of the shares required to constitute a quorum". The structured fields still hold only part (i).
 - **Arguments.** 67 and 68 words. The proponent's figures ("nearly 20% of Apple's revenues", rare earth minerals, the espionage reference) all trace to the filing.
 - **Everything else is unchanged from v1:** meeting, 5 items, recommendations, and 8 nominees.
+
+**XOM** (`checked`, $1.31; input down 2%):
+- **F2 applied.** The titles are "Independent Board Chair" and "Voting Options in Retail Voting Program". Neither the company's heading ("…overwhelmingly defeated on 16 separate occasions…", "…not aligned with the Board's recommendations") nor the proponent's "Board-Aligned Automatic Voting" is used.
+- **F3 fixed.** Item 6's `source_quote` now starts at the resolution ("Resolved: Shareholders request that the Board of Directors adopt and disclose policies…").
+- **F9 applied.** "Robo-voting" is quoted and attributed on both sides ("creates what it calls \"robo-voting\""; "disputes the \"robo-voting\" comparison"). Item 6's `request` quotes the resolution's "does not inordinately advantage the Board's own voting recommendations".
+- **Arguments.** 74/75 and 72/75 words, parallel in form and attributed. Every figure traces to the filing: 60% and 47% (Spencer Stuart), "16 times since 2000", "12 of 13", about 150 million shares, and Broadridge 2025.
+- **Unchanged:** facts, vote standards, filers, the 12 nominees, F4 (`shares_outstanding` null), and F6 (`other` category).
+
+### F12. Unequal detail between sides (XOM item 6)
+
+The board's charge is kept specific and close to its wording: "describes the proposal as part of a political campaign by a frequent submitter" (the filing says "long-standing political campaign by a serial submitter"). The proponent's charges are flattened to "points to the Company's past shareholder relations". The filing says Exxon "has a history of being unresponsive to shareholders", lost a 2021 proxy contest to Engine No. 1, and in 2024 sued investors over a shareholder proposal. Both are attributed, but one side's claim is concrete and the other's is vague, which conflicts with the handbook's equal-treatment rule. **Fix:** add a rule to the prompt that each side's main claims are reported at the same level of detail, then confirm in review. The review CLI's word-count check can't catch this, because the lengths match.
 
