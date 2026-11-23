@@ -2,6 +2,7 @@
 
 import copy
 import json
+from importlib.resources import files
 from pathlib import Path
 from typing import Any, cast
 
@@ -49,7 +50,7 @@ def _objects(node: object) -> list[dict[str, Any]]:
 
 
 def test_versions():
-    assert (PROMPT_VERSION, SCHEMA_VERSION) == ("1", "1")
+    assert (PROMPT_VERSION, SCHEMA_VERSION) == ("2", "1")
 
 
 def test_schema_is_valid_json_schema():
@@ -243,3 +244,40 @@ def test_fixture_arguments_carry_no_evaluative_adjectives():
         discussion: dict[str, str] = item["discussion"] or {}
         for side in discussion.values():
             assert "deeply committed" not in side
+
+
+def test_prompt_title_rule():
+    # Finding F2: company headings and proponent titles can carry an argument,
+    # so every title is written to one neutral standard.
+    prompt = system_prompt()
+    assert "Write every `title` to the same standard" in prompt
+    assert "not the company's heading or the proponent's title" in prompt
+    assert "a proposal shareholders have rejected every year" in prompt
+    assert "End Reckless Fleet Spending" in prompt
+
+
+def test_prompt_examples_are_not_from_sample_filings():
+    # Examples drawn from real filings would leak answers into the eval set.
+    prompt = system_prompt()
+    for phrase in (
+        "overwhelmingly defeated",
+        "Board-Aligned",
+        "viewpoint diversity",
+        "politicized",
+    ):
+        assert phrase not in prompt
+
+
+def test_prompt_hedge_and_attribution_rule():
+    # Finding F9: summaries kept one side's framing in OpenBoardroom's own voice.
+    prompt = system_prompt()
+    assert "Keep the resolution's hedges" in prompt
+    assert "the perceived concentration of suppliers" in prompt
+    assert "in quotation marks and attribute it" in prompt
+    assert "what the proponent calls" in prompt
+    assert "Apply this equally to the board's wording" in prompt
+
+
+def test_earlier_prompt_versions_stay_readable():
+    # Runs record the prompt version that produced them; the old text stays auditable.
+    assert (files("openboardroom.extract") / "prompts" / "system-v1.md").is_file()

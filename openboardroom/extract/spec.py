@@ -15,7 +15,7 @@ from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 
 from openboardroom.extract.regex import Candidate, candidates_hint
 
-PROMPT_VERSION = "1"
+PROMPT_VERSION = "2"
 SCHEMA_VERSION = "1"
 
 _PROMPTS = files("openboardroom.extract") / "prompts"

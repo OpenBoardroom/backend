@@ -19,14 +19,14 @@ Planned next: JPM `0000019617-26-000096`, ACN `0001308179-25-000651`, MSFT `0001
 | # | Filing | Area | Severity | Finding |
 |---|---|---|---|---|
 | F1 | AAPL | Vote standard | Medium | Compound standard stored as one part. See below |
-| F2 | XOM | Titles (neutrality) | High | Company-written headings for shareholder proposals are edited silently, with no rule. See below |
+| F2 | XOM | Titles (neutrality) | High | Company-written headings for shareholder proposals are edited silently, with no rule. Rule set in prompt v2. See below |
 | F3 | XOM | Text conversion | Medium | Page headers and footers split sentences, so quotes can't span them. Fixed (`b2c4612`). See below |
 | F4 | XOM | Meeting | Low | `shares_outstanding` is null; the filing gives a count as of a date other than the record date |
 | F5 | XOM | Quotes | Low | Item 1's `source_quote` doesn't name the nominees, so the 12 nominee names have no quote behind them |
 | F6 | XOM | Category | Low | Item 4 (Texas redomiciliation, by merger) is `other`; no category fits a reincorporation |
 | F7 | XOM | Cost | Info | 2.8× Apple's input tokens. The proxy includes the full merger agreement and Texas charter as annexes |
 | F8 | GOOGL | Regex pass | High | "Proposal Number 1" isn't matched, so the regex pass found 0 candidates. The count check failed on a correct extraction, and the model got no candidate hint. Fixed, and a scan found 10 more filings with other causes; after the conversion fix, 6 remain, all with unlabeled items. See below |
-| F9 | GOOGL | Texts (neutrality) | High | Two summaries state a proponent's framing in our own voice. See below |
+| F9 | GOOGL | Texts (neutrality) | High | Two summaries state a proponent's framing in our own voice. Rule set in prompt v2. See below |
 | F10 | GOOGL | Vote standard | Low | The standard is a majority of *voting power* (Class B carries 10 votes per share); `vote_base = shares_present` loses that |
 | F11 | GOOGL | Co-filers | Low | Items 11 and 12 say other co-filers exist but aren't named. `co_filers` is empty, which follows the spec, but the fact that there are co-filers is lost |
 
@@ -52,6 +52,8 @@ The company's headings contain the company's own argument. The extraction shorte
 | 6 | "Proposal requesting Company to modify its Voluntary Retail Voting Program to provide multiple options not aligned with the Board's recommendations" | "Board-Aligned Automatic Voting" | "Proposal requesting Company to modify its Voluntary Retail Voting Program" |
 
 Titles are facts, so they publish automatically when checks pass (§7.1), with no reviewer. Neither heading is neutral as written: the company's carries the board's argument, and the proponent's carries the proponent's. The handbook's equal-treatment rule means this needs one rule applied to every proposal. For example: a neutral title generated from the resolution, with both originals kept and attributed. Decide this before the batch, or titles will be inconsistent across filings.
+
+**Decided 2026-11-23 (prompt v2):** every title, management or shareholder, follows one standard: a short neutral name for what the vote is about, taken from the resolution or a plain heading. The model writes it itself whenever the company's heading or the proponent's title carries an argument, a characterization, or a vote history. The original headings aren't stored as separate fields; the filing link and `source_quote` keep them reachable. Storing them would change the schema contract (ADR-0003).
 
 ### F3. Page furniture inside sentences (XOM item 6)
 
@@ -108,6 +110,8 @@ All six keep going to review until the 8-K reconciliation can confirm their coun
 | 9 | "risks of the use of diagnostic tools created by politicized corporate partners" | "a report on the benefits, costs, and risks of using diagnostic tools created by politicized corporate partners" |
 
 Item 8 drops "apparent", so the summary asserts as fact something the proponent only claims. Item 9 repeats the proponent's characterization ("politicized") in our voice, without quotes or attribution. Both summaries describe the request accurately, but the summary is the platform's own layer-1 voice, where the policy allows "no adjectives that take sides." A style rule is needed: a summary keeps the resolution's hedges, and puts any characterization taken from one side in quotes or attributes it ("which the proponent describes as…"). The same rule applies to board-written framing. These texts go through review before publication, but the prompt should get them right first.
+
+**Decided 2026-11-23 (prompt v2):** `summary`, `request`, and `title` keep the resolution's hedges. A characterization that belongs to one side is quoted and attributed ("what the proponent calls …"), with the same rule for board wording. The prompt's examples are invented, not taken from the sample filings, so the eval set stays a fair test of these rules.
 
 ## Verified correct
 
