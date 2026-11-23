@@ -6,7 +6,7 @@ The data pipeline and database schema for OpenBoardroom, a neutral civic platfor
 
 - Python 3.13 with [uv](https://docs.astral.sh/uv/): `uv sync`
 - [dbmate](https://github.com/amacneil/dbmate) applies the migrations in `db/`.
-- Docker must be running: tests start a real Postgres with Testcontainers.
+- Docker must be running: tests start a real Postgres with Testcontainers, and `compose.yaml` runs the local database (see [Database](#database)).
 - Run the checks: `uv run pytest`, `uv run ruff check`, `uv run ruff format --check`, `uv run pyright`.
 
 See `CLAUDE.md` and the [engineering handbook](https://github.com/OpenBoardroom/architecture/blob/main/docs/handbook.md) for working rules.
@@ -30,10 +30,47 @@ Set these environment variables (`.env.example` lists them):
 
 ### Database
 
-The `pipeline_rw` and `web_ro` roles must exist before you apply the migrations: the migrations grant to them but don't create them. In production the `infrastructure` repo creates them; locally, create them yourself as a superuser. Then apply the migrations as the database owner:
+The migrations grant to the `pipeline_rw` and `web_ro` roles but don't create them. In production the `infrastructure` repo creates them. Locally, `compose.yaml` runs Postgres 17.12 (the version CI uses) and creates both roles the first time it starts.
+
+**Start a local database** (Docker must be running):
 
 ```sh
-DATABASE_URL=postgres://OWNER:PASSWORD@HOST:5432/DBNAME dbmate up
+docker compose up -d --wait
+```
+
+It listens on `127.0.0.1:5432` only, with database `openboardroom`. Its passwords are for this local container and are not secrets:
+
+| Role | Password | Used by |
+|---|---|---|
+| `obr_owner` | `obr_owner_local` | `dbmate` (owns the tables) |
+| `pipeline_rw` | `pipeline_rw_local` | `obr` (`OBR_DATABASE_URL`) |
+| `web_ro` | `web_ro_local` | the frontend, later |
+
+**Apply the migrations** as the owner. dbmate reads `DATABASE_URL` (not `OBR_DATABASE_URL`):
+
+```sh
+DATABASE_URL="postgres://obr_owner:obr_owner_local@127.0.0.1:5432/openboardroom?sslmode=disable" dbmate --no-dump-schema up
+```
+
+`--no-dump-schema` stops dbmate from rewriting `db/schema.sql` with your local `pg_dump`; CI checks that file against its own dump, so regenerate it only with `scripts/dump-schema.sh`.
+
+**Point `obr` at it** for the session:
+
+```sh
+export OBR_DATABASE_URL="postgres://pipeline_rw:pipeline_rw_local@127.0.0.1:5432/openboardroom?sslmode=disable"
+export OBR_EDGAR_USER_AGENT="Example Org contact@example.org"   # your organization and contact
+```
+
+Then run the [stages](#stages) from `companies sync` onward. A fresh database has no record of earlier downloads, so fetch downloads each filing again (448 for the 2026 season, about a minute at 8 requests per second) and overwrites the cached copies.
+
+**Stop it** with `docker compose stop` (data kept), or wipe it with `docker compose down -v` (deletes the data volume; the roles are created again on the next start).
+
+If uv warns that `VIRTUAL_ENV` doesn't match the project environment, another virtual environment is active in your shell; run `deactivate` (or ignore the warning: uv uses the project's own `.venv`).
+
+For a remote database, create the two roles as a superuser and apply the migrations as the database owner:
+
+```sh
+DATABASE_URL=postgres://OWNER:PASSWORD@HOST:5432/DBNAME dbmate --no-dump-schema up
 ```
 
 ### Stages
