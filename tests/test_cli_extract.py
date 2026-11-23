@@ -12,7 +12,9 @@ import anthropic
 import pytest
 
 from openboardroom.cli import main
+from openboardroom.extract import store
 from openboardroom.extract.llm import LlmSettings
+from openboardroom.pipeline import extract as extract_stage
 from openboardroom.pipeline import extract_cli
 from openboardroom.pipeline.extract import ExtractResult
 
@@ -179,6 +181,61 @@ def test_submit_without_limit_runs_until_nothing_is_submitted(
     monkeypatch.setattr(extract_cli, "submit", submit)
     assert main(["extract", "--submit"]) == 0
     assert "130 submitted" in capsys.readouterr().out
+
+
+def test_submit_loop_reaches_healthy_filings_behind_missing_text(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, calls: list[Any]
+) -> None:
+    """With the real `submit`, 3 leading filings lacking text don't block the next ones."""
+    pending = [f"A-{n}" for n in range(5)]
+    sent: list[str] = []
+
+    def fake_pending(conn: Any, limit: int | None, accession: str | None = None) -> list[Any]:
+        return [store.Filing(n, a, 1) for n, a in enumerate(pending) if a not in sent][:limit]
+
+    def fake_batch(client: Any, settings: Any, requests: list[Any]) -> str:
+        sent.extend(r[0] for r in requests)
+        return "batch_1"
+
+    def no_filings(*args: Any, **kwargs: Any) -> list[store.Filing]:
+        return []
+
+    def nothing(*args: Any, **kwargs: Any) -> None:
+        return None
+
+    class Tx:
+        def __enter__(self) -> None:
+            return None
+
+        def __exit__(self, *exc: object) -> None:
+            return None
+
+    class Conn(FakeConn):
+        def transaction(self) -> Tx:
+            return Tx()
+
+    for a in pending[3:]:
+        (tmp_path / "text").mkdir(exist_ok=True)
+        (tmp_path / "text" / f"{a}.txt").write_text("x", encoding="utf-8")
+    monkeypatch.setattr(extract_cli, "submit", extract_stage.submit)
+    monkeypatch.setattr(extract_stage.store, "pending_filings", fake_pending)
+    monkeypatch.setattr(extract_stage.store, "capped_filings", no_filings)
+    monkeypatch.setattr(extract_stage.store, "insert_regex_run", nothing)
+    monkeypatch.setattr(extract_stage.store, "insert_llm_run", nothing)
+    monkeypatch.setattr(extract_stage, "submit_batch", fake_batch)
+    monkeypatch.setattr(extract_cli.psycopg, "connect", lambda url, **kw: Conn())  # pyright: ignore
+
+    assert main(["extract", "--submit", "--limit", "2"]) == 1
+    assert sent == ["A-3", "A-4"]
+
+
+def test_collect_labels_waiting_batches(
+    monkeypatch: pytest.MonkeyPatch, calls: list[Any], capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(extract_cli, "collect", returning(result(submitted=2)))
+    assert main(["extract", "--collect"]) == 0
+    out = capsys.readouterr().out
+    assert "2 still waiting" in out and "submitted" not in out
 
 
 def test_submit_dedupes_repeated_errors_and_exits_1(

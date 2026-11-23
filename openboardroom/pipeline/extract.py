@@ -278,7 +278,8 @@ def extract_direct(
         client: Anthropic client.
         settings: Model settings.
         text_dir: Directory of `{accession}.txt` files from the fetch stage.
-        limit: At most this many filings.
+        limit: At most this many filings with a text file; missing-text
+            filings are reported but don't count.
         accession: Only this filing.
 
     Returns:
@@ -286,11 +287,16 @@ def extract_direct(
     """
     tally = _Tally()
     tally.skip_capped(conn, accession)
-    for filing in store.pending_filings(conn, limit, accession):
+    done = 0
+    # As in `submit`, `limit` counts filings with text, not missing-text failures.
+    for filing in store.pending_filings(conn, None, accession):
+        if limit is not None and done >= limit:
+            break
         text = _read_text(text_dir, filing.accession)
         if text is None:
             tally.add("failed", filing.accession, _missing_text(text_dir, filing.accession))
             continue
+        done += 1
         candidates = find_candidates(text)
         started_at = _now()
         outcome = run_direct(client, settings, text, candidates)
@@ -320,7 +326,8 @@ def submit(
         client: Anthropic client.
         settings: Model settings.
         text_dir: Directory of `{accession}.txt` files from the fetch stage.
-        limit: At most this many filings.
+        limit: At most this many filings with a text file; missing-text
+            filings are reported but don't count.
 
     Returns:
         How many filings were submitted or failed, and a message per failure.
@@ -334,7 +341,11 @@ def submit(
     tally.skip_capped(conn, None)
     ready: list[tuple[store.Filing, list[Candidate]]] = []
     requests: list[tuple[str, str, list[Candidate]]] = []
-    for filing in store.pending_filings(conn, limit):
+    # `limit` counts filings with text: unbilled missing-text failures are never
+    # capped and sort first, so counting them would starve the healthy ones.
+    for filing in store.pending_filings(conn, None):
+        if limit is not None and len(ready) >= limit:
+            break
         text = _read_text(text_dir, filing.accession)
         if text is None:
             tally.add("failed", filing.accession, _missing_text(text_dir, filing.accession))

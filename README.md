@@ -67,7 +67,7 @@ Pass the API key per command so it is never in your shell environment (`<keychai
 ANTHROPIC_API_KEY="$(security find-generic-password -s <keychain-item> -w)" uv run obr extract --filing ACCESSION
 ```
 
-Each run commits filing by filing, so a crash keeps results already paid for. It prints one line of counts and one line per failure to stderr, and exits 1 if any filing failed. What a filing's stage means afterward:
+In `--collect` runs, the last count is batches still waiting. Each run commits filing by filing, so a crash keeps results already paid for. It prints one line of counts and one line per failure to stderr, and exits 1 if any filing failed. What a filing's stage means afterward:
 
 - `checked`: all four checks passed. It is ready for review.
 - `in_review`: a check failed, the model refused, or the output couldn't be written. A reviewer looks at the items it did produce; nothing is published.

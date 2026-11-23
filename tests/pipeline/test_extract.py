@@ -606,6 +606,32 @@ def test_submit_counts_a_missing_text_file_as_failed(
     assert runs(conn, SECOND) == []
 
 
+def test_submit_limit_counts_only_filings_with_text(
+    conn: psycopg.Connection, tmp_path: Path
+) -> None:
+    setup(conn, tmp_path, (ACCESSION, SECOND, THIRD))
+    (tmp_path / f"{ACCESSION}.txt").unlink()
+    (tmp_path / f"{SECOND}.txt").unlink()
+
+    result = submit_all(conn, tmp_path, limit=1)
+
+    assert (result.submitted, result.failed) == (1, 2)
+    assert runs(conn, THIRD)[1][1] == "submitted"
+    assert runs(conn, ACCESSION) == []
+
+
+def test_direct_limit_counts_only_filings_with_text(
+    conn: psycopg.Connection, tmp_path: Path
+) -> None:
+    setup(conn, tmp_path, (ACCESSION, SECOND, THIRD))
+    (tmp_path / f"{ACCESSION}.txt").unlink()
+
+    result, _ = direct(conn, tmp_path, stream(aapl()), limit=1)
+
+    assert (result.checked, result.failed) == (1, 1)
+    assert [stage(conn, a) for a in (ACCESSION, SECOND, THIRD)] == ["fetched", "checked", "fetched"]
+
+
 def test_submit_records_nothing_when_the_batch_is_refused(
     conn: psycopg.Connection, tmp_path: Path
 ) -> None:

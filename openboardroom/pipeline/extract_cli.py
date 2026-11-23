@@ -108,7 +108,7 @@ def _run(args: argparse.Namespace) -> int:
     print(
         f"extract: {result.checked} checked, {result.in_review} in review, "
         f"{result.out_of_scope} out of scope, {result.failed} failed, "
-        f"{result.submitted} submitted"
+        f"{result.submitted} {'still waiting' if args.collect else 'submitted'}"
     )
     return 1 if result.failed or result.errors else 0
 
