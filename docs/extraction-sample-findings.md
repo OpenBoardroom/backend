@@ -2,7 +2,7 @@
 
 A hand check of single-filing extractions (`obr extract --filing`) before any batch run. Each filing is compared against its cached text (`cache/text/<accession>.txt`) and the EDGAR document. The four checks only confirm that quotes are verbatim; this log records what they can't catch. Findings feed the eval set (Plan 5) and the review CLI (Plan 3).
 
-Prompt version 1, schema version as of BR-15 Plan 2, model `claude-opus-5-5`, effort `high`.
+Prompt version 1 (version 2 from 2026-11-23, marked in the table), schema version as of BR-15 Plan 2, model `claude-opus-5-5`, effort `high`. The v1 rows were deleted from the local database before the v2 re-runs; this log is their record.
 
 ## Runs
 
@@ -11,6 +11,7 @@ Prompt version 1, schema version as of BR-15 Plan 2, model `claude-opus-5-5`, ef
 | AAPL 2026 | `0001308179-26-000008` | checked | 104,301 | 4,652 | 34 s | 5 | Facts correct; F1 |
 | XOM 2026 | `0001193125-26-147614` | checked | 288,282 | 8,683 | 75 s | 6 | Facts correct; F2–F7 |
 | GOOGL 2026 | `0001308179-26-000342` | in_review | 142,235 | 17,348 | 120 s | 14 | Facts correct; sent to review only by F8; F9–F11 |
+| AAPL 2026 (prompt v2) | `0001308179-26-000008` | checked | 98,106 | 6,946 | 52 s | 5 | Facts correct; F2 and F9 rules applied. See below |
 
 Planned next: JPM `0000019617-26-000096`, ACN `0001308179-25-000651`, MSFT `0001193125-25-245150` (expected `out_of_scope`), NOW `0001373715-25-000312` (possibly a special meeting **(verify)**).
 
@@ -134,3 +135,15 @@ Item 8 drops "apparent", so the summary asserts as fact something the proponent 
   - Co-filer: Mercy Investment Services on item 7.
   - The facts behind item 12's proponent argument (the October 2025 charter amendments that removed oversight of civil and human rights) are in the filing.
 - **Argument voice:** every argument is attributed ("The board argues…", "The proponent argues…"). The board's "long-standing political campaign by a serial submitter" became "a political campaign by a frequent proposal submitter": still attributed, but softened. Whether paraphrase may soften a side's wording is a question for the style rules.
+
+## Prompt v2 re-runs (2026-11-23)
+
+Text from the block-level converter with page furniture removed (`fef44ea`), prompt v2 (`bddbc96`).
+
+**AAPL** (`checked`, $0.53 at standard rates; input down 6% from v1, because the page furniture is gone):
+- **F2 applied.** Item 5's title is now "Report on Risks and Costs Related to Operations in China". In v1 it was "China Entanglement Audit", the proponent's own title.
+- **F9 applied.** The summary reads "…what the proponent calls the company's \"continued entanglement\" with the People's Republic of China", quoting the resolution's wording and attributing it.
+- **F1 partly better.** `vote_standard_quote` now covers both parts of the standard: "(i) … and (ii) a majority of the shares required to constitute a quorum". The structured fields still hold only part (i).
+- **Arguments.** 67 and 68 words. The proponent's figures ("nearly 20% of Apple's revenues", rare earth minerals, the espionage reference) all trace to the filing.
+- **Everything else is unchanged from v1:** meeting, 5 items, recommendations, and 8 nominees.
+
