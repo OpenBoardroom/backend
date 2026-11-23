@@ -30,6 +30,7 @@ _TRANSLATE = str.maketrans(
     }
 )  # fmt: skip
 _SPACES = re.compile(r"\s+")
+MIN_QUOTE_WORDS = 5
 
 
 @dataclass(frozen=True)
@@ -66,6 +67,16 @@ def _result(name: CheckName, problems: list[str]) -> CheckResult:
     return CheckResult(name, not problems, "; ".join(problems) if problems else None)
 
 
+def _missing(value: object) -> bool:
+    """True for None and for a blank string; blank text is not an answer."""
+    return value is None or (isinstance(value, str) and not value.strip())
+
+
+def _text(value: object) -> str | None:
+    """The value when it is a string, else None, so only strings reach set lookups."""
+    return value if isinstance(value, str) else None
+
+
 def _items(output: object) -> tuple[list[object] | None, str | None]:
     """Return the items list, or None and the reason it cannot be read."""
     if not isinstance(output, dict):
@@ -83,7 +94,7 @@ def _meeting(output: object) -> dict[str, Any] | None:
 
 def _label(index: int, item: object) -> str:
     number = cast(dict[str, Any], item).get("number") if isinstance(item, dict) else None
-    return f"item {number if isinstance(number, int) else f'at position {index + 1}'}"
+    return f"item {number if type(number) is int else f'at position {index + 1}'}"
 
 
 def _check_count(output: object, candidates: list[Candidate]) -> CheckResult:
@@ -91,12 +102,15 @@ def _check_count(output: object, candidates: list[Candidate]) -> CheckResult:
     if items is None:
         return _result("count", [f"cannot count: {reason}"])
     problems: list[str] = []
+    if not items:
+        problems.append("no proposals found")
     if len(items) != len(candidates):
         problems.append(f"{len(items)} items for {len(candidates)} candidates")
     numbers = [
         cast(dict[str, Any], i).get("number") if isinstance(i, dict) else None for i in items
     ]
-    if numbers != list(range(1, len(items) + 1)):
+    expected = list(range(1, len(items) + 1))
+    if not all(type(n) is int for n in numbers) or numbers != expected:
         problems.append(f"item numbers are {numbers}, expected 1..{len(items)} in order")
     return _result("count", problems)
 
@@ -109,7 +123,15 @@ def _check_quotes(output: object, text: str) -> CheckResult:
     problems: list[str] = []
 
     def check(label: str, field: str, quote: object) -> None:
-        if isinstance(quote, str) and normalize(quote) not in haystack:
+        if quote is None:
+            return  # a required-but-null quote is the consistency check's finding
+        if not isinstance(quote, str):
+            problems.append(f"{label}: {field} is not a string")
+            return
+        folded = normalize(quote)
+        if len(folded.split()) < MIN_QUOTE_WORDS:
+            problems.append(f"{label}: {field} has fewer than {MIN_QUOTE_WORDS} words")
+        elif folded not in haystack:
             problems.append(f"{label}: {field} not found in filing text")
 
     meeting = _meeting(output)
@@ -129,17 +151,19 @@ def _check_schema(output: object) -> CheckResult:
 
 
 def _item_problems(label: str, item: dict[str, Any]) -> list[str]:
-    problems = [f"{label}: {f} is required" for f in _ALWAYS_REQUIRED if item.get(f) is None]
+    problems = [f"{label}: {f} is required" for f in _ALWAYS_REQUIRED if _missing(item.get(f))]
     if (
-        item.get("board_recommendation") not in (None, "none")
-        and item.get("recommendation_quote") is None
+        item.get("board_recommendation") != "none"
+        and not _missing(item.get("board_recommendation"))
+        and _missing(item.get("recommendation_quote"))
     ):
         problems.append(f"{label}: recommendation_quote is required")
-    if item.get("vote_standard_text") is not None and item.get("vote_standard_quote") is None:
+    if not _missing(item.get("vote_standard_text")) and _missing(item.get("vote_standard_quote")):
         problems.append(f"{label}: vote_standard_quote is required")
 
     kind, category, effect = item.get("type"), item.get("category"), item.get("effect")
-    if kind == "shareholder" and item.get("lead_filer") is None:
+    group = _text(category)  # only a string can be looked up in the category sets
+    if kind == "shareholder" and _missing(item.get("lead_filer")):
         problems.append(f"{label}: lead_filer is required for a shareholder proposal")
     nominees = item.get("nominees")
     if category == "director_election" and not (isinstance(nominees, list) and nominees):
@@ -153,9 +177,7 @@ def _item_problems(label: str, item: dict[str, Any]) -> list[str]:
                 f"{label}: effect is {effect!r}, shareholder {category} requires {required!r}"
             )
     else:
-        required = (
-            "binding" if category in _BINDING else "advisory" if category in _ADVISORY else None
-        )
+        required = "binding" if group in _BINDING else "advisory" if group in _ADVISORY else None
         if required is not None and effect != required:
             problems.append(f"{label}: effect is {effect!r}, {category} requires {required!r}")
         if kind == "management" and effect == "precatory":
@@ -173,7 +195,7 @@ def _check_consistency(output: object) -> CheckResult:
         problems.append("meeting: missing or not an object")
     else:
         for field in ("date", "date_quote"):
-            if meeting.get(field) is None:
+            if _missing(meeting.get(field)):
                 problems.append(f"meeting.{field} is required")
     for index, item in enumerate(items):
         if isinstance(item, dict):

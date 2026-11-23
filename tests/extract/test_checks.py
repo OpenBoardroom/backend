@@ -247,3 +247,107 @@ def test_vote_standard_quote_required_with_text() -> None:
     out["items"][1]["vote_standard_text"] = None
     assert _run(out)[3].passed
     assert item["vote_standard_text"] is not None
+
+
+@pytest.mark.parametrize("field", ["category", "type", "effect", "board_recommendation"])
+@pytest.mark.parametrize("value", [["x"], {"a": 1}, 7, 1.5, True, False])
+def test_odd_enum_values_never_raise(field: str, value: object) -> None:
+    for index in (0, 1, 5):
+        out = _output()
+        out["items"][index][field] = value
+        results = _run(out)
+        assert [r.name for r in results] == NAMES
+        assert not results[2].passed  # the schema rejects every one of these
+
+
+@pytest.mark.parametrize("quote", ["", "   ", "\n "])
+def test_blank_quote_fails_quotes(quote: str) -> None:
+    out = _output()
+    out["items"][0]["source_quote"] = quote
+    out["meeting"]["date_quote"] = quote
+    results = _run(out)
+    assert "quotes" in _failed(results)
+    detail = results[1].detail or ""
+    assert "item 1: source_quote" in detail and "meeting: date_quote" in detail
+
+
+@pytest.mark.parametrize("value", [5, True, ["a b c d e f"], {"q": "a b c d e f"}])
+def test_non_string_quote_fails_quotes_itself(value: object) -> None:
+    out = _output()
+    out["items"][0]["source_quote"] = value
+    results = _run(out)
+    assert not results[1].passed
+    assert "item 1: source_quote is not a string" in (results[1].detail or "")
+
+
+def test_short_quote_fails_even_when_present_in_text() -> None:
+    out = _output()
+    out["items"][0]["source_quote"] = "Apple Inc."  # occurs in the filing, but too short
+    results = _run(out)
+    assert not results[1].passed
+    assert "item 1: source_quote has fewer than 5 words" in (results[1].detail or "")
+
+
+def test_five_word_quote_is_enough() -> None:
+    out = _output()
+    words = normalize(out["items"][0]["source_quote"]).split()[:5]
+    out["items"][0]["source_quote"] = " ".join(words)
+    assert _run(out)[1].passed
+
+
+def test_shortest_fixture_quote_has_at_least_five_words() -> None:
+    out = _output()
+    quotes = [out["meeting"]["date_quote"]]
+    for item in out["items"]:
+        quotes += [
+            q
+            for q in (
+                item["source_quote"],
+                item["recommendation_quote"],
+                item["vote_standard_quote"],
+            )
+            if q
+        ]
+    assert min(len(normalize(q).split()) for q in quotes) >= 5
+
+
+@pytest.mark.parametrize("bad", [True, 1.0])
+def test_bool_or_float_item_number_fails_count(bad: object) -> None:
+    out = _output()
+    out["items"][0]["number"] = bad
+    results = _run(out)
+    assert not results[0].passed
+    assert "expected 1..8" in (results[0].detail or "")
+
+
+@pytest.mark.parametrize("bad", ["", "   ", "\n"])
+def test_blank_required_strings_fail_consistency(bad: str) -> None:
+    out = _output()
+    out["items"][0]["title"] = bad
+    out["items"][0]["source_quote"] = bad
+    out["items"][1]["recommendation_quote"] = bad
+    out["items"][1]["vote_standard_quote"] = bad
+    out["meeting"]["date"] = bad
+    out["meeting"]["date_quote"] = bad
+    detail = _run(out)[3].detail or ""
+    for expected in (
+        "item 1: title",
+        "item 1: source_quote",
+        "item 2: recommendation_quote",
+        "item 2: vote_standard_quote",
+        "meeting.date is",
+        "meeting.date_quote",
+    ):
+        assert expected in detail
+
+
+def test_blank_lead_filer_fails_consistency() -> None:
+    out = _output()
+    _item(out, "shareholder_proposal")["lead_filer"] = "  "
+    assert "lead_filer" in (_run(out)[3].detail or "")
+
+
+def test_zero_items_and_zero_candidates_fails_count() -> None:
+    results = _run({**_output(), "items": []}, candidates=[])
+    assert not results[0].passed
+    assert "no proposals found" in (results[0].detail or "")
