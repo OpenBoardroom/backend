@@ -25,7 +25,7 @@ Planned next: JPM `0000019617-26-000096`, ACN `0001308179-25-000651`, MSFT `0001
 | F5 | XOM | Quotes | Low | Item 1's `source_quote` doesn't name the nominees, so the 12 nominee names have no quote behind them |
 | F6 | XOM | Category | Low | Item 4 (Texas redomiciliation, by merger) is `other`; no category fits a reincorporation |
 | F7 | XOM | Cost | Info | 2.8× Apple's input tokens. The proxy includes the full merger agreement and Texas charter as annexes |
-| F8 | GOOGL | Regex pass | High | "Proposal Number 1" isn't matched, so the regex pass found 0 candidates. The count check failed on a correct extraction, and the model got no candidate hint. See below |
+| F8 | GOOGL | Regex pass | High | "Proposal Number 1" isn't matched, so the regex pass found 0 candidates. The count check failed on a correct extraction, and the model got no candidate hint. Fixed; a scan found 10 more filings with other causes. See below |
 | F9 | GOOGL | Texts (neutrality) | High | Two summaries state a proponent's framing in our own voice. See below |
 | F10 | GOOGL | Vote standard | Low | The standard is a majority of *voting power* (Class B carries 10 votes per share); `vote_base = shares_present` loses that |
 | F11 | GOOGL | Co-filers | Low | Items 11 and 12 say other co-filers exist but aren't named. `co_filers` is empty, which follows the spec, but the fact that there are co-filers is lost |
@@ -69,7 +69,20 @@ The results 8-K does give the record-date count: "As of the close of business on
 
 `openboardroom/extract/regex.py` matches `Proposal|Item`, then an optional `No.`, then the number. Alphabet writes "Proposal Number 1: Election of Directors" (summary table, line 797) and "Proposal Number 1:" (section heading, line 3459). Neither matches, so the regex pass found 0 candidates. The model's 14 items all match the filing, but the count check failed ("14 items for 0 candidates") and the filing went to review.
 
-The fix is a parser bug fix. Per the handbook, it adds a fixture: Alphabet's heading lines with all 14 numbers expected. Before the batch, scan every cached DEF 14A for the heading styles in use, so other variants are found now rather than in review.
+**Fixed** in `8fd422c`: the pattern accepts "Number". Alphabet 2026 is now a golden fixture with 14 candidates.
+
+**Scan of all 105 cached DEF 14As (2026-11-23).** The regex pass was run on every cached proxy and the results compared with each filing's text. Before the fix, 3 filings had 0 candidates and 7 had gaps in their numbering. After it, 9 filings are still wrong, plus JNJ, whose missing items come after the last one found, so a gap check can't see them:
+
+| Cause | Filings | Example |
+|---|---|---|
+| Text conversion splits an inline label across lines | CSCO (items 2–3), JNJ (3–4), IBM (8) | "Proposal" / "2" / ": Advisory Vote to Approve Executive Compensation" on three lines |
+| Label in another position or wording | PEP, HD, BA | "Animals within Supply Chain (Proxy Item No. 6)", "(ITEM 1 ON THE PROXY CARD)", "ELECTION OF DIRECTORS (ITEM 1)" |
+| The number has no word next to it (a badge or bare numeral) | IBM (1–4), JNJ (1–2), BRK-B ("1." / "ELECTION OF DIRECTORS"); TXN (1–3) and V (1–4) probably **(verify)** | "2" / "Ratification of appointment of independent registered public accounting firm" |
+| One unnumbered item | NOW 2025 (special meeting, stock split) | "PROPOSAL" / "Approval of an Amended and Restated Certificate of Incorporation to Effect a 5-for-1 Split…" |
+
+That's 10 of 105 filings (about 10%). Every one of these misses sends a filing to review; none can publish a wrong count. But each costs a reviewer's time, and the model got a wrong or empty candidate hint on each.
+
+The first cause comes from `openboardroom/text.py`: `soup.get_text("\n")` puts a newline between every text node, including inline `<span>`s inside one heading. Breaking lines only at block-level elements would fix that cause and probably part of F3 too. But it changes every cached text, `text_sha256`, and the fixtures. That's a change to the fetch stage, not a regex tweak.
 
 ### F9. Summaries that adopt a proponent's framing (GOOGL items 8 and 9)
 
