@@ -20,12 +20,12 @@ Planned next: JPM `0000019617-26-000096`, ACN `0001308179-25-000651`, MSFT `0001
 |---|---|---|---|---|
 | F1 | AAPL | Vote standard | Medium | Compound standard stored as one part. See below |
 | F2 | XOM | Titles (neutrality) | High | Company-written headings for shareholder proposals are edited silently, with no rule. See below |
-| F3 | XOM | Text conversion | Medium | Page headers and footers split sentences, so quotes can't span them. See below |
+| F3 | XOM | Text conversion | Medium | Page headers and footers split sentences, so quotes can't span them. Fixed (`b2c4612`). See below |
 | F4 | XOM | Meeting | Low | `shares_outstanding` is null; the filing gives a count as of a date other than the record date |
 | F5 | XOM | Quotes | Low | Item 1's `source_quote` doesn't name the nominees, so the 12 nominee names have no quote behind them |
 | F6 | XOM | Category | Low | Item 4 (Texas redomiciliation, by merger) is `other`; no category fits a reincorporation |
 | F7 | XOM | Cost | Info | 2.8× Apple's input tokens. The proxy includes the full merger agreement and Texas charter as annexes |
-| F8 | GOOGL | Regex pass | High | "Proposal Number 1" isn't matched, so the regex pass found 0 candidates. The count check failed on a correct extraction, and the model got no candidate hint. Fixed; a scan found 10 more filings with other causes. See below |
+| F8 | GOOGL | Regex pass | High | "Proposal Number 1" isn't matched, so the regex pass found 0 candidates. The count check failed on a correct extraction, and the model got no candidate hint. Fixed, and a scan found 10 more filings with other causes; after the conversion fix, 6 remain, all with unlabeled items. See below |
 | F9 | GOOGL | Texts (neutrality) | High | Two summaries state a proponent's framing in our own voice. See below |
 | F10 | GOOGL | Vote standard | Low | The standard is a majority of *voting power* (Class B carries 10 votes per share); `vote_base = shares_present` loses that |
 | F11 | GOOGL | Co-filers | Low | Items 11 and 12 say other co-filers exist but aren't named. `co_filers` is empty, which follows the spec, but the fact that there are co-filers is lost |
@@ -59,6 +59,8 @@ The resolution reads "…provides multiple independent options to shareholders s
 
 Any quote that crosses a page break has this problem. Fix it either in fetch's text conversion (strip running headers and footers) or in the quote check (ignore known page furniture when matching).
 
+**Fixed** in `b2c4612`: fetch drops a line at a page edge when it repeats there on at least 40% of pages (measured: furniture 47–100%, repeated content at most 23%). XOM's resolution now reads "…shareholders so" / "that the retail voting program…" on adjacent lines, which the quote check joins.
+
 ### F4. Share count not at the record date (XOM)
 
 The filing: "On February 28, 2026, there were 4,156,559,415 shares of common stock outstanding and entitled to vote." The record date is April 1, 2026. Null follows the "not stated: null, never a guess" rule. But the schema has no as-of date for the count, so the number can't be stored honestly. It matters only for standards based on shares outstanding (none at XOM).
@@ -83,6 +85,20 @@ The results 8-K does give the record-date count: "As of the close of business on
 That's 10 of 105 filings (about 10%). Every one of these misses sends a filing to review; none can publish a wrong count. But each costs a reviewer's time, and the model got a wrong or empty candidate hint on each.
 
 The first cause comes from `openboardroom/text.py`: `soup.get_text("\n")` puts a newline between every text node, including inline `<span>`s inside one heading. Breaking lines only at block-level elements would fix that cause and probably part of F3 too. But it changes every cached text, `text_sha256`, and the fixtures. That's a change to the fetch stage, not a regex tweak.
+
+**After the fix (2026-11-23).** Fetch now writes one line per text block (`b5ab7db`), drops page furniture (`b2c4612`), and `obr fetch --reconvert` rebuilt all 416 cached texts (415 changed, 0 failed). The regex pass also matches parenthesized labels (`1512159`). `scripts/scan_candidates.py` over the 105 DEF 14As now flags 6 filings, down from 10:
+
+| Filing | Before | After | Why it remains |
+|---|---|---|---|
+| CSCO, JNJ, HD, BA, GOOGL | gaps or 0 | all items found | (fixed) |
+| IBM | items 5–8 | items 5–8 | Items 1–4 are numbered badges with no word |
+| V | items 5–8 | items 5–8 | Same |
+| PEP | 0 | items 1, 4–6 | Items 2–3 have no number in the text, only titles |
+| TXN | 1 | 0 | Its old "Proposal 4." line was a sentence split by the old converter ("…recommends you vote AGAINST" / "Proposal 4."), not a heading |
+| BRK-B | 2 | 0 | Same: "…Recommends a Vote For" / "Item 2." |
+| NOW 2025 | 0 | 0 | One unnumbered special-meeting item |
+
+All six keep going to review until the 8-K reconciliation can confirm their counts, as the plan's scope ruling says. Fixture headings are now whole ("Proposal No. 4 - EEO Policy Risk Report", where the hint used to read "Proposal No. 4 - EEO"), which improves the candidate hint the model gets.
 
 ### F9. Summaries that adopt a proponent's framing (GOOGL items 8 and 9)
 
