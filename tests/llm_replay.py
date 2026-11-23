@@ -118,7 +118,8 @@ def sse_body(message: dict[str, Any]) -> bytes:
     """Turn a recorded Message into a Messages streaming response body.
 
     The stream follows the API's event order: ``message_start`` with empty
-    content and no stop reason, then start/delta/stop events per content block,
+    content, no stop reason, and the requested model (the first fallback
+    block's ``from`` model when there is one), then start/delta/stop events per content block,
     then ``message_delta`` carrying the stop reason, stop details, and final
     usage, then ``message_stop``.
 
@@ -128,8 +129,13 @@ def sse_body(message: dict[str, Any]) -> bytes:
     Returns:
         The ``text/event-stream`` body.
     """
+    # A fallback-served stream starts on the requested model; the SDK relabels
+    # the message when the fallback block arrives.
+    fallbacks = [block for block in message["content"] if block["type"] == "fallback"]
+    model = fallbacks[0]["from"]["model"] if fallbacks else message["model"]
     start: dict[str, Any] = {
         **message,
+        "model": model,
         "content": [],
         "stop_reason": None,
         "stop_sequence": None,

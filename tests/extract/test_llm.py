@@ -3,6 +3,7 @@
 import copy
 import json
 import re
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, cast
 
@@ -43,6 +44,8 @@ CANDIDATES = [Candidate(number=1, heading="Proposal No. 1 Election of Directors"
 CUSTOM_ID = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 BATCH_ID = "msgbatch_fixture_01"
 BATCH_URL = f"https://api.anthropic.com/v1/messages/batches/{BATCH_ID}"
+# The custom_ids submitted in the batch-results fixture.
+IDS = [f"0000000000-24-00000{n}" for n in range(1, 6)]
 
 
 def _load(name: str) -> dict[str, Any]:
@@ -106,6 +109,15 @@ def test_sse_body_round_trips_through_the_sdk(name: str) -> None:
     assert final.get("stop_details") == recorded["stop_details"]
     for key, value in recorded["usage"].items():
         assert final["usage"][key] == value
+
+
+def test_sse_body_starts_a_fallback_stream_on_the_requested_model() -> None:
+    # The API names the requested model in message_start; the SDK relabels the
+    # message from the fallback block, which is what the refusal round trip proves.
+    body = sse_body(_load("refusal.json")).decode()
+    start = json.loads(body.split("data: ", 1)[1].split("\n", 1)[0])
+
+    assert start["message"]["model"] == "claude-opus-5-5"
 
 
 def test_sse_body_is_an_event_stream() -> None:
@@ -231,6 +243,64 @@ def test_run_direct_turns_a_mid_stream_error_into_failed() -> None:
     assert outcome.status == "failed"
     assert outcome.detail is not None
     assert REQUEST_ID in outcome.detail
+
+
+class _BrokenStream(httpx2.SyncByteStream):
+    """A response body that sends some bytes and then loses the connection."""
+
+    def __init__(self, head: bytes) -> None:
+        self._head = head
+
+    def __iter__(self) -> Iterator[bytes]:
+        yield self._head
+        raise httpx2.ReadError("connection reset")
+
+
+def test_run_direct_turns_a_dropped_stream_into_failed() -> None:
+    body = sse_body(_aapl())
+    response = httpx2.Response(
+        200,
+        headers={"content-type": "text/event-stream", "request-id": REQUEST_ID},
+        stream=_BrokenStream(body[: len(body) // 2]),
+    )
+
+    outcome, _ = _direct(response)
+
+    assert outcome.status == "failed"
+    assert outcome.output is None
+    assert outcome.detail is not None
+    assert "ReadError" in outcome.detail
+    assert REQUEST_ID in outcome.detail
+
+
+def test_run_direct_turns_a_malformed_event_into_failed() -> None:
+    response = httpx2.Response(
+        200,
+        headers={"content-type": "text/event-stream", "request-id": REQUEST_ID},
+        content=b"event: message_start\ndata: {not json\n\n",
+    )
+
+    outcome, _ = _direct(response)
+
+    assert outcome.status == "failed"
+    assert outcome.detail is not None
+    assert "JSONDecodeError" in outcome.detail
+    assert REQUEST_ID in outcome.detail
+
+
+def test_run_direct_fails_on_a_stream_cut_before_its_end() -> None:
+    body = sse_body(_aapl())
+    cut = body[: body.index(b"event: message_delta")]
+    response = httpx2.Response(
+        200,
+        headers={"content-type": "text/event-stream", "request-id": REQUEST_ID},
+        content=cut,
+    )
+
+    outcome, _ = _direct(response)
+
+    assert outcome.status == "failed"
+    assert outcome.output is None
 
 
 @pytest.mark.parametrize(
@@ -409,7 +479,7 @@ def test_batch_outcomes_maps_results_by_custom_id() -> None:
         jsonl_response(lines),
     )
 
-    outcomes = batch_outcomes(mock_client(recorder), BATCH_ID)
+    outcomes = batch_outcomes(mock_client(recorder), BATCH_ID, IDS)
 
     assert [r.url.path for r in recorder.requests] == [
         f"/v1/messages/batches/{BATCH_ID}",
@@ -440,6 +510,40 @@ def test_batch_outcomes_is_independent_of_result_order() -> None:
             json_response(_batch("ended", f"{BATCH_URL}/results")),
             jsonl_response(order),
         )
-        return batch_outcomes(mock_client(recorder), BATCH_ID)
+        return batch_outcomes(mock_client(recorder), BATCH_ID, IDS)
 
     assert outcomes_for(lines) == outcomes_for(list(reversed(copy.deepcopy(lines))))
+
+
+def test_batch_outcomes_includes_every_submitted_id() -> None:
+    lines = json.loads((LLM / "batch-results.json").read_text(encoding="utf-8"))
+    ok = next(line for line in lines if line["custom_id"] == IDS[0])
+    recorder = Recorder(
+        json_response(_batch("ended", f"{BATCH_URL}/results")), jsonl_response([ok])
+    )
+
+    outcomes = batch_outcomes(mock_client(recorder), BATCH_ID, IDS)
+
+    assert set(outcomes) == set(IDS)
+    assert outcomes[IDS[0]] is not None
+    assert [outcomes[i] for i in IDS[1:]] == [None] * 4
+
+
+def test_batch_outcomes_survives_a_malformed_results_line() -> None:
+    lines = json.loads((LLM / "batch-results.json").read_text(encoding="utf-8"))
+    ok = next(line for line in lines if line["custom_id"] == IDS[0])
+    body = (json.dumps(ok) + "\n{not json\n" + json.dumps(lines[0]) + "\n").encode()
+    results = httpx2.Response(
+        200,
+        headers={"content-type": "application/binary", "request-id": REQUEST_ID},
+        content=body,
+    )
+    recorder = Recorder(json_response(_batch("ended", f"{BATCH_URL}/results")), results)
+
+    outcomes = batch_outcomes(mock_client(recorder), BATCH_ID, IDS)
+
+    first = outcomes[IDS[0]]
+    assert first is not None
+    assert first.status == "succeeded"
+    # Everything not yet collected is retried directly.
+    assert [outcomes[i] for i in IDS[1:]] == [None] * 4

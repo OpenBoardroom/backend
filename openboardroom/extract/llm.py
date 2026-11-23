@@ -12,10 +12,12 @@ output matches the schema is the extraction checks' job, not this module's.
 
 import json
 import re
+from contextlib import suppress
 from dataclasses import dataclass, replace
 from typing import Any, Literal, cast
 
 import anthropic
+import httpx2
 from anthropic.types import Message
 from anthropic.types.beta import BetaMessage
 from anthropic.types.message_create_params import MessageCreateParamsNonStreaming
@@ -177,14 +179,20 @@ def run_direct(
         The outcome. API, connection, and timeout errors become ``failed``.
     """
     params = cast(Any, request_params(settings, text, candidates))
+    request_id: str | None = None
     try:
         with client.beta.messages.stream(
             **params, betas=[FALLBACK_BETA], fallbacks="default"
         ) as stream:
-            message = stream.get_final_message()
             request_id = stream.request_id
+            message = stream.get_final_message()
     except anthropic.APIError as error:
         return _error_outcome(error)
+    except (httpx2.HTTPError, json.JSONDecodeError) as error:
+        # The SDK wraps errors only until the headers arrive; while the body
+        # streams, a dropped connection or a malformed event comes through raw.
+        detail = f"{type(error).__name__} while reading the stream (request {request_id})"
+        return Outcome("failed", None, None, None, None, detail)
     outcome = outcome_from_message(message)
     if outcome.detail is None:
         return outcome
@@ -237,21 +245,28 @@ def batch_status(client: anthropic.Anthropic, batch_id: str) -> Literal["in_prog
     return "ended" if status == "ended" else "in_progress"
 
 
-def batch_outcomes(client: anthropic.Anthropic, batch_id: str) -> dict[str, Outcome | None]:
+def batch_outcomes(
+    client: anthropic.Anthropic, batch_id: str, custom_ids: list[str]
+) -> dict[str, Outcome | None]:
     """Read an ended batch's results.
 
     Args:
         client: An Anthropic client.
         batch_id: The batch id.
+        custom_ids: Every ``custom_id`` submitted in the batch.
 
     Returns:
-        Outcomes keyed by ``custom_id`` (results arrive in any order). ``None``
-        means the request errored, expired, or was canceled: retry it directly.
+        An outcome for every submitted ``custom_id``, keyed by it (results
+        arrive in any order). ``None`` means retry it directly: the request
+        errored, expired, or was canceled, or no readable result came back for
+        it. A malformed results line ends the read, so every id not yet
+        collected is ``None``.
     """
-    outcomes: dict[str, Outcome | None] = {}
-    for entry in client.messages.batches.results(batch_id):
-        result = entry.result
-        outcomes[entry.custom_id] = (
-            outcome_from_message(result.message) if result.type == "succeeded" else None
-        )
+    outcomes: dict[str, Outcome | None] = dict.fromkeys(custom_ids)
+    with suppress(json.JSONDecodeError):
+        for entry in client.messages.batches.results(batch_id):
+            result = entry.result
+            outcomes[entry.custom_id] = (
+                outcome_from_message(result.message) if result.type == "succeeded" else None
+            )
     return outcomes
