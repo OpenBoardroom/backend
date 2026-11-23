@@ -31,9 +31,13 @@ These materials were first sent or made available to shareholders on January 11,
 Table of Contents
 Notice of 2024 Annual Meeting of Shareholders
 Message from our Chief Executive Officer
+8
 Apple Values
+9
 Proxy Statement Summary
+11
 2023 Business Highlights
+12
 Executive Compensation
 13
 Nominees to Apple’s Board of Directors
@@ -81,16 +85,24 @@ Message from the People and Compensation Committee
 Compensation Discussion and Analysis
 46
 People and Compensation Committee Report
+61
 Executive Compensation Tables
+62
 Management Proposals
+73
 Proposal No. 1 - Election of Directors
+74
 Proposal No. 2 - Ratification of Appointment of Independent Registered Public Accounting Firm
 Proposal No. 3 - Advisory Vote to Approve Executive Compensation
 Shareholder Proposals
 Shareholder Proposals
+80
 Identification of Proponents
+82
 Vote Required
+82
 Proposal No. 4 - EEO Policy Risk Report
+83
 Proposal No. 5 - Report on Ensuring Respect for Civil Liberties
 86
 Proposal No. 6 - Racial and Gender Pay Gaps
@@ -101,9 +113,13 @@ Proposal No. 8 - Congruency Report on Privacy and Human Rights
 97
 Other Matters
 100
+101
 Audit and Finance Committee Report
+102
 Security Ownership of Certain Beneficial Owners and Management
+103
 Delinquent Section 16(a) Reports
+104
 Equity Compensation Plan Information
 General Information
 Notice of 2024 Annual Meeting of Shareholders
@@ -115,6 +131,7 @@ www.virtualshareholdermeeting.com/AAPL2024
 Who Can Vote
 Shareholders of record at the close of business on January 2, 2024
 Items of Business and Board Voting Recommendation
+1
 Election of Directors: Wanda Austin, Tim Cook, Alex Gorsky, Andrea Jung, Art Levinson,
 Monica Lozano, Ron Sugar, and Sue Wagner
 FOR each of the nominees
@@ -195,8 +212,11 @@ We share progress on our values through our websites, reports, and other public 
 Proxy
 Statement
 2023 Business Highlights
+12
 Executive Compensation
+13
 Nominees to Apple’s Board of Directors
+14
 Shareholder Engagement
 Voting Matters and Vote Recommendations
 2023 Business Highlights
@@ -387,6 +407,8 @@ We are committed to nurturing a culture where every great idea can be heard and 
 ●
 Our policies, practices, and trainings already address the proposal’s concern, and a report on potential risks to the Company of omitting “viewpoint” and “ideology” from our EEO Policy would not provide material additional information to shareholders.
 AGAINST
+83
+5
 Report on Ensuring Respect for Civil Liberties
 ●
 Apple is committed to respecting human rights, including civil rights, freedom of expression, and access to information, and we review our procedures for administering the App Store for alignment with this commitment.
@@ -411,6 +433,8 @@ We are committed to responsibly advancing our products and services that use AI,
 ●
 The scope of the requested report is extremely broad and could encompass disclosure of strategic plans and initiatives harmful to our competitive position and would be premature in this developing area.
 AGAINST
+93
+8
 Congruency Report on Privacy and Human Rights
 ●
 We are deeply committed to respecting human rights and are transparent about our approach to complex situations and prioritizing engagement.
@@ -427,9 +451,13 @@ Board Independence
 Board and Committee Structure
 21
 Board Oversight
+23
 Board Meetings and Attendance
+26
 Annual Board and Committee Self-Evaluations
+26
 Related Party Policy and Transactions
+26
 Business Conduct Policy
 Communications with the Board
 Our Corporate Governance Framework
@@ -897,6 +925,7 @@ Mr. Williams, 60, oversees Apple’s entire worldwide operations, as well as cus
 Jeff joined Apple in June 1998 and assumed his current position in December 2015. Jeff’s previous positions with Apple include Senior Vice President, Operations and Head of Worldwide Procurement. Prior to joining Apple, Jeff worked in a number of operations and engineering roles at IBM from 1985 to 1998.
 Executive
 Compensation Discussion and Analysis
+46
 People and Compensation Committee Report
 Executive Compensation Tables
 “Apple’s leadership plays a key role in fostering
@@ -1353,6 +1382,7 @@ Chief Operating Officer
 4,000,000
 18,337
 27,150,352
+2021
 1,000,000
 —
 21,959,620
@@ -1989,6 +2019,9 @@ Fair Value at Vesting Date of Vested Awards Granted in Current Year
 3,585,238
 0
 0
+0
+0
+0
 Compensation Actually Paid
 106,643,588
 41,980,664
@@ -2025,6 +2058,7 @@ We determined our median compensated employee in 2022 by using base salary, bonu
 We calculated the median compensated employee’s 2023 annual total compensation using the same methodology that is used to calculate our CEO’s annual total compensation in the table entitled “Summary Compensation Table–2023, 2022, and 2021.” The 2023 annual total compensation of our CEO was $63,209,845, the 2023 annual total compensation of our median compensated employee was $94,118, and the ratio of these amounts is 672 to 1. Thus, this pay ratio reflects a reasonable estimate consistent with SEC rules based on the methodology we described above. Because SEC rules for identifying a median compensated employee allow companies to apply certain exclusions, include estimates, and adopt different methodologies that reflect their employee population and compensation practices, the ratio above may not be comparable to the CEO pay ratio reported by other companies.
 Management
 Proposal No. 1 - Election of Directors
+74
 Proposal No. 2 - Ratification of Appointment of Independent Registered Public Accounting Firm
 Proposal No. 3 - Advisory Vote to Approve Executive Compensation
 Proposal No. 1
@@ -2097,9 +2131,13 @@ Identification of Proponents
 Vote Required
 82
 Proposal No. 4 - EEO Policy Risk Report
+83
 Proposal No. 5 - Report on Ensuring Respect for Civil Liberties
+86
 Proposal No. 6 - Racial and Gender Pay Gaps
+89
 Proposal No. 7 - Report on Use of AI
+93
 Proposal No. 8 - Congruency Report on Privacy and Human Rights
 Other Matters
 Shareholder Proposals
@@ -2166,6 +2204,7 @@ Report on Use of AI
 We are committed to responsibly advancing our products and services that use AI, have a robust approach to addressing ethical considerations across our business operations, and already provide resources and transparency on our approach to artificial intelligence and machine learning.
 ●
 The scope of the requested report is extremely broad and could encompass disclosure of strategic plans and initiatives harmful to our competitive position and would be premature in this developing area.
+8
 AGAINST
 Congruency Report on Privacy and Human Rights
 ●
@@ -2487,8 +2526,11 @@ Apple knows of no other matters to be submitted to shareholders at the Annual Me
 Other
 Information
 Audit and Finance Committee Report
+102
 Security Ownership of Certain Beneficial Owners and Management
+103
 Delinquent Section 16(a) Reports
+104
 Equity Compensation Plan Information
 General Information
 Audit and Finance Committee Report

@@ -6,6 +6,7 @@ Filings are untrusted input: they are only decoded and parsed, never executed.
 import codecs
 import re
 import warnings
+from collections.abc import Callable
 
 from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
 
@@ -48,6 +49,9 @@ _EDGE_LINES = 12
 _MIN_PAGES = 3
 _MIN_PAGE_SHARE = 0.4
 _PAGE_NUMBER = re.compile(r"\d+|[ivxlc]+")
+# Page numbers sit at the very edge of a page (measured: 0-2 lines in). Bare
+# numbers further in are content: table years, vote counts, numbered badges.
+_PAGE_NUMBER_EDGE = 3
 
 
 def _declared_charset(html: bytes) -> str | None:
@@ -93,18 +97,58 @@ def decode(html: bytes) -> str:
     return html.decode("cp1252", errors="replace").removeprefix("\ufeff")
 
 
-def _furniture_key(line: str) -> str:
-    """Page numbers all share one key; any other line is its own key."""
-    return "#" if _PAGE_NUMBER.fullmatch(line) else line
+def _edges(page: list[str], depth: int) -> set[int]:
+    """Indexes of the first and last ``depth`` lines of a page."""
+    return {*range(min(depth, len(page))), *range(max(0, len(page) - depth), len(page))}
+
+
+def _drop_repeated(
+    pages: list[list[str]], key: Callable[[list[str], int], str | None]
+) -> list[list[str]]:
+    """Drop edge lines whose key repeats at the edges of enough pages.
+
+    Args:
+        pages: Lines per page.
+        key: Maps a page and an edge-line index to the line's key, or None for a
+            line that can't be furniture.
+
+    Returns:
+        The pages without the repeated edge lines.
+    """
+    keys = [{i: key(page, i) for i in _edges(page, _EDGE_LINES)} for page in pages]
+    pages_with: dict[str, int] = {}
+    for page_keys in keys:
+        for k in {k for k in page_keys.values() if k is not None}:
+            pages_with[k] = pages_with.get(k, 0) + 1
+    needed = max(_MIN_PAGES, _MIN_PAGE_SHARE * len(pages))
+    furniture = {k for k, count in pages_with.items() if count >= needed}
+    return [
+        [line for i, line in enumerate(page) if page_keys.get(i) not in furniture]
+        for page, page_keys in zip(pages, keys, strict=True)
+    ]
+
+
+def _text_key(page: list[str], index: int) -> str:
+    return page[index]
+
+
+def _page_number_key(page: list[str], index: int) -> str | None:
+    """Page numbers share one key, but only within ``_PAGE_NUMBER_EDGE`` lines of an edge."""
+    near_edge = min(index, len(page) - 1 - index) < _PAGE_NUMBER_EDGE
+    return "#" if near_edge and _PAGE_NUMBER.fullmatch(page[index]) else None
 
 
 def _drop_furniture(lines: list[str]) -> list[str]:
     """Drop running headers and footers, and the page-break markers.
 
-    A line is furniture when it is among the first or last ``_EDGE_LINES`` lines
-    of a page and its key (``_furniture_key``) appears at the edges of at least
-    ``_MIN_PAGES`` pages and ``_MIN_PAGE_SHARE`` of all pages. Lines away from
-    page edges are never dropped, and a document without page breaks loses nothing.
+    Two passes. First, a line among the first or last ``_EDGE_LINES`` lines of a
+    page is furniture when the same text sits at the edges of at least
+    ``_MIN_PAGES`` pages and ``_MIN_PAGE_SHARE`` of all pages. Then, with that
+    furniture gone, a bare number within ``_PAGE_NUMBER_EDGE`` lines of a page's
+    edge is a page number when pages carry one that often; measuring after the
+    first pass finds page numbers that a running menu follows (Apple). Lines away
+    from page edges are never dropped, and a document without page breaks loses
+    nothing.
 
     Args:
         lines: Text lines, with ``_PAGE_BREAK`` lines between pages.
@@ -118,22 +162,9 @@ def _drop_furniture(lines: list[str]) -> list[str]:
             pages.append([])
         else:
             pages[-1].append(line)
-    edges = [
-        {*range(min(_EDGE_LINES, len(page))), *range(max(0, len(page) - _EDGE_LINES), len(page))}
-        for page in pages
-    ]
-    pages_with: dict[str, int] = {}
-    for page, edge in zip(pages, edges, strict=True):
-        for key in {_furniture_key(page[i]) for i in edge}:
-            pages_with[key] = pages_with.get(key, 0) + 1
-    needed = max(_MIN_PAGES, _MIN_PAGE_SHARE * len(pages))
-    furniture = {key for key, count in pages_with.items() if count >= needed}
-    return [
-        line
-        for page, edge in zip(pages, edges, strict=True)
-        for i, line in enumerate(page)
-        if i not in edge or _furniture_key(line) not in furniture
-    ]
+    pages = _drop_repeated(pages, _text_key)
+    pages = _drop_repeated(pages, _page_number_key)
+    return [line for page in pages for line in page]
 
 
 def to_text(html: bytes) -> str:

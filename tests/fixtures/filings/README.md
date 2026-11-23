@@ -12,10 +12,10 @@ unchanged.
 
 | Fixture | Source | Accession | Raw sha256 | Text sha256 |
 |---|---|---|---|---|
-| `aapl-2023-def14a.txt` | https://www.sec.gov/Archives/edgar/data/320193/000130817923000019/laap2023_def14a.htm | 0001308179-23-000019 | `b849951eb75962fc6129a9f800262fc04c6b47f9e84cb8d813a3949dbbafd6c2` | `041e6b96c54cc869a0948a191d4c3de95b4c92dbb6aa797e391cf80e6544be01` |
-| `aapl-2024-def14a.txt` | https://www.sec.gov/Archives/edgar/data/320193/000130817924000010/laapl2024_def14a.htm | 0001308179-24-000010 | `da4a310060bedef5020d7d8cdcd52b053b29b77c6b13cf8e1b4c453f5a00f8cf` | `6ed87624fbf18a336fb39ac35b4b869e4869512e986e9502491424b38d8e4d34` |
-| `msft-2023-def14a.txt` | https://www.sec.gov/Archives/edgar/data/789019/000119312523259247/d356108ddef14a.htm | 0001193125-23-259247 | `2fbf508cd9a9c3502472d9152230acb84c19cb838f890cd83bbbca521727098d` | `2b9059c141447e1732bc2dd5a066a302a5bc54f878e9e6e1d3c1239b931c0d16` |
-| `googl-2026-def14a.txt` | https://www.sec.gov/Archives/edgar/data/1652044/000130817926000342/goog-20260424.htm | 0001308179-26-000342 | `a74eec5771ad796d7d48acb9f0acf33f002d68d7893e2291223c4d2f4e7ce030` | `766aaae18d463b12489d7765c509a94d1ba360392d1db29ae38f233ee59d0114` |
+| `aapl-2023-def14a.txt` | https://www.sec.gov/Archives/edgar/data/320193/000130817923000019/laap2023_def14a.htm | 0001308179-23-000019 | `b849951eb75962fc6129a9f800262fc04c6b47f9e84cb8d813a3949dbbafd6c2` | `7ec8db95e47fe1b5f9e1b2e9a49b2ee7960241c034b7d35d07eeb73874e4ce34` |
+| `aapl-2024-def14a.txt` | https://www.sec.gov/Archives/edgar/data/320193/000130817924000010/laapl2024_def14a.htm | 0001308179-24-000010 | `da4a310060bedef5020d7d8cdcd52b053b29b77c6b13cf8e1b4c453f5a00f8cf` | `8ec3f0b067e9a8879b1f066d78cdfbc15692af614773ac9d5af8289abf9e0c5f` |
+| `msft-2023-def14a.txt` | https://www.sec.gov/Archives/edgar/data/789019/000119312523259247/d356108ddef14a.htm | 0001193125-23-259247 | `2fbf508cd9a9c3502472d9152230acb84c19cb838f890cd83bbbca521727098d` | `89b9ab1e5894023a07d6b43c320d2990ea4ea1b00fcf23fb3967c857a537e9bf` |
+| `googl-2026-def14a.txt` | https://www.sec.gov/Archives/edgar/data/1652044/000130817926000342/goog-20260424.htm | 0001308179-26-000342 | `a74eec5771ad796d7d48acb9f0acf33f002d68d7893e2291223c4d2f4e7ce030` | `17de3c6bd19e465904b669882d7d6aa715491d8517c724cd43d34a61caf82bfc` |
 
 The Alphabet 2026 fixture was added 2026-11-23 from the local cache (fetched the same way). It
 uses "Proposal Number N" headings, which the regex pass missed before (extraction sample finding F8).

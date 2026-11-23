@@ -31,9 +31,13 @@ These materials were first sent or made available to shareholders on January 12,
 Table of Contents
 Notice of 2023 Annual Meeting of Shareholders
 Message from our Chief Executive Officer
+6
 Apple Values
+7
 Proxy Statement Summary
+9
 Our Business
+10
 Executive Compensation
 11
 Apple’s Board of Directors
@@ -75,16 +79,24 @@ Nominees for Election
 Compensation of Directors
 36
 Executive Officers
+39
 Executive Compensation
+41
 Message from our Compensation Committee
+42
 Compensation Discussion and Analysis
+43
 Compensation Committee Report
 Executive Compensation Tables
 Management Proposals
 Proposal No. 1 – Election of Directors
+70
 Proposal No. 2 – Ratification of Appointment of Independent Registered Public Accounting Firm
+71
 Proposal No. 3 – Advisory Vote to Approve Executive Compensation
+73
 Proposal No. 4 – Advisory Vote on Frequency of Say on Pay Votes
+74
 Shareholder Proposals
 75
 Shareholder Proposals
@@ -104,8 +116,12 @@ Proposal No. 8 – Racial and Gender Pay Gaps
 Proposal No. 9 – Shareholder Proxy Access Amendments
 93
 Other Matters
+96
+97
 Audit and Finance Committee Report
+98
 Security Ownership of Certain Beneficial Owners and Management
+99
 Equity Compensation Plan Information
 General Information
 Apple Inc.
@@ -118,6 +134,7 @@ www.virtualshareholdermeeting.com/AAPL2023
 Who Can Vote
 Shareholders of record at the close of business on January 9, 2023
 Items of Business and Board Voting Recommendation
+1
 Election of Directors: James Bell, Tim Cook, Al Gore, Alex Gorsky, Andrea Jung, Art Levinson, Monica Lozano, Ron Sugar, and Sue Wagner
 FOR each of the
 nominees
@@ -194,8 +211,11 @@ This year, teams across Apple pushed forward in our work to infuse technology wi
 Proxy
 Statement
 Our Business
+10
 Executive Compensation
+11
 Apple’s Board of Directors
+12
 Shareholder Engagement
 Voting Matters and Vote Recommendations
 Our Business
@@ -312,9 +332,12 @@ Former President and CEO, College Futures Foundation
 Ron Sugar
 Former Chair and CEO, Northrop Grumman Corporation
 ✓
+74
+2010
 Sue Wagner
 Co-founder and Director, BlackRock
 ✓
+61
 Chair
 Member
 Shareholder Engagement
@@ -398,6 +421,8 @@ We already provide the information requested by this proposal through our filing
 •
 Our Board is actively engaged in the oversight of significant risks affecting our business, including material risks relating to our supply chain and operations in China.
 AGAINST
+82
+7
 Board Policy
 •
 Our Board communication policy reflects a thoughtful and mainstream approach under which our directors can, and do, participate directly in discussions with shareholders, and our Board has already engaged with this proponent on their majority-supported shareholder proposal from the 2022 Annual Meeting.
@@ -415,6 +440,8 @@ We already have a comprehensive approach to pay equity and diverse representatio
 •
 We report on our progress on representation annually on our Inclusion and Diversity website, and we believe our transparency represents a more meaningful approach to pay equity and representation than the approach set forth in the proposal.
 AGAINST
+89
+9
 Shareholder Proxy Access Amendments
 •
 Our proxy access bylaws were developed giving careful consideration to the varying viewpoints offered by many of our shareholders and provide a meaningful opportunity for shareholders to nominate directors, while the newly adopted universal proxy card rules provide further options for shareholders.
@@ -433,9 +460,13 @@ Board and Committee Structure
 Board Oversight
 21
 Shareholder Engagement
+24
 Board Meetings and Attendance
+25
 Annual Board and Committee Self-Evaluations
+25
 Related Party Policy and Transactions
+25
 Business Conduct Policy
 Communications with the Board
 Our Corporate Governance Framework
@@ -562,10 +593,13 @@ In the summer of 2022, following our annual meeting, we reached out to investors
 In the late summer and fall of 2022, we then engaged with shareholders owning approximately 56% of institutional shares held to follow up on the Compensation Committee’s decisions regarding executive compensation, and have a broader conversation related to Apple’s environmental, social, and governance practices, implementation of majority-supported shareholder proposals, and the Board’s oversight role.
 Throughout calendar year 2022, we engaged with more than 60% of institutional shares held and directors participated in meetings with shareholders representing over 50% of institutional shares engaged.
 Key responsive actions
+1
 Executive Compensation
 The Compensation Committee made changes to the equity component of Mr. Cook’s 2023 total target compensation and provided additional disclosures regarding their decision-making process. For detailed information on our engagement with shareholders on our executive compensation program and actions taken in response, see the section entitled “Compensation Discussion and Analysis” beginning on page 43.
+2
 Civil Rights Audit
 Apple’s Civil Rights Audit is currently underway. We have engaged a team from Covington & Burling LLP, led by former U.S. Attorney General Eric Holder, to conduct the audit, which will examine civil rights impacts on our business in the areas of our people, our products and services, customer connections, and communities. The Covington team is assessing the Company’s policies, controls, and initiatives in these areas, and we expect to publish a report regarding their assessment in 2023.
+3
 Report on Our Commitment to an Open and Collaborative Workplace
 Under the oversight of our Nominating Committee, we prepared a report “assessing the potential risks to the company associated with its use of concealment clauses in the context of harassment, discrimination and other unlawful acts.” To assist with the preparation of the report, Apple engaged outside counsel to review and evaluate relevant Apple policies and documentation. Based on that review, we have concluded that the risks to Apple, including legal, brand, financial, and human capital risks, are low. The report has been published in the Leadership and Governance section of our investor relations website.
 Workers’ Rights Assessment
@@ -905,7 +939,9 @@ Mr. Williams, 59, oversees Apple’s entire worldwide operations, as well as cus
 Jeff joined Apple in June 1998 and assumed his current position in December 2015. Jeff’s previous positions with Apple include Senior Vice President, Operations and Head of Worldwide Procurement. Prior to joining Apple, Jeff worked in a number of operations and engineering roles at IBM from 1985 to 1998.
 Executive
 Message from our Compensation Committee
+42
 Compensation Discussion and Analysis
+43
 Compensation Committee Report
 Executive Compensation Tables
 Andrea Jung (Chair)
@@ -1409,6 +1445,7 @@ Chief Operating Officer
 4,000,000
 17,437
 26,977,057
+2020
 1,000,000
 —
 21,657,687
@@ -1914,7 +1951,9 @@ In 2022, we selected a new median employee due to changes in our employee compen
 We calculated the median compensated employee’s 2022 annual total compensation using the same methodology that is used to calculate our CEO’s annual total compensation in the table entitled “Summary Compensation Table–2022, 2021, and 2020.” The 2022 annual total compensation of our CEO was $99,420,097, the 2022 annual total compensation of our median compensated employee was $84,493, and the ratio of these amounts is 1,177 to 1. Thus, this pay ratio reflects a reasonable estimate consistent with SEC rules based on the methodology we described above. Because SEC rules for identifying a median compensated employee allow companies to apply certain exclusions, include estimates, and adopt different methodologies that reflect their employee population and compensation practices, the ratio above may not be comparable to the CEO pay ratio reported by other companies.
 Management Proposals
 Proposal No. 1 – Election of Directors
+70
 Proposal No. 2 – Ratification of Appointment of Independent Registered Public Accounting Firm
+71
 Proposal No. 3 – Advisory Vote to Approve Executive Compensation
 Proposal No. 4 – Advisory Vote on Frequency of Say on Pay Votes
 Proposal No. 1
@@ -1999,14 +2038,19 @@ The frequency for holding an advisory vote on executive compensation requires th
 If no frequency receives the foregoing vote, then we will consider the option that receives the highest number of votes cast to be the frequency recommended by shareholders.
 Shareholder Proposals
 Shareholder Proposals
+76
 Identification of Proponents
 78
 Vote Required
 78
 Proposal No. 5 – Civil Rights and Non-Discrimination Audit Proposal
+79
 Proposal No. 6 – Communist China Audit
+82
 Proposal No. 7 – Board Policy
+86
 Proposal No. 8 – Racial and Gender Pay Gaps
+89
 Proposal No. 9 – Shareholder Proxy Access Amendments
 Other Matters
 Shareholder Proposals
@@ -2034,6 +2078,7 @@ Communist China Audit
 We already provide the information requested by this proposal through our filings with the SEC and our extensive voluntary reporting relating to our international operations, including our supply chain and operations in China, and our robust risk management and reporting systems enable Apple to continually evaluate and seek to mitigate risks confronting our business.
 •
 Our Board is actively engaged in the oversight of significant risks affecting our business, including material risks relating to our supply chain and operations in China.
+7
 AGAINST
 Board Policy
 •
@@ -2052,6 +2097,7 @@ Racial and Gender Pay Gaps
 We already have a comprehensive approach to pay equity and diverse representation at every level of the Company, and since 2017 have achieved gender pay equity globally, as well as pay equity by race and ethnicity in the United States, and in 2022, we also achieved pay equity at the intersections of gender and race and ethnicity in our U.S. workforce.
 •
 We report on our progress on representation annually on our Inclusion and Diversity website, and we believe our transparency represents a more meaningful approach to pay equity and representation than the approach set forth in the proposal.
+9
 AGAINST
 Shareholder Proxy Access Amendments
 •
@@ -2352,7 +2398,9 @@ Apple knows of no other matters to be submitted to shareholders at the Annual Me
 Other
 Information
 Audit and Finance Committee Report
+98
 Security Ownership of Certain Beneficial Owners and Management
+99
 Equity Compensation Plan Information
 General Information
 Audit and Finance Committee Report

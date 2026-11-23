@@ -380,10 +380,14 @@ AGAINST
 •We actively collaborate with the broader online ecosystem to advance privacy standards and mitigate security risks
 Table of Contents
 Proxy Statement Summary & Highlights
+1
 Corporate Governance
 Directors, Executive Officers, and Corporate Governance
+16
 Directors and Executive Officers
+16
 Corporate Governance and Board Matters
+24
 Board Meetings
 24
 Board Leadership Structure
@@ -447,15 +451,24 @@ Section 5—Other Compensation Information
 Leadership Development, Inclusion and Compensation Committee Report
 49
 2025 Summary Compensation Table
+50
 Grants of Plan-Based Awards in 2025
+52
 Description of Plan-Based Awards
+52
 Outstanding Equity Awards at 2025 Fiscal Year-End
+53
 Stock Vested in Fiscal 2025
 Potential Payments Upon Termination or Change in Control
 Alphabet CEO Pay Ratio
+56
 Alphabet Pay vs. Performance
+56
 Equity Compensation Plan Information
+58
+3
 Independent Registered Public Accounting Firm
+59
 Principal Accountant Fees and Services
 59
 Auditor Independence
@@ -507,8 +520,12 @@ Proxy Materials
 Voting Information
 100
 Participating in the Annual Meeting
+103
 Shareholder Proposals, Director Nominations, and Related Bylaw Provisions
+103
+6
 Appendix A: Alphabet Inc. Amended and Restated 2021 Stock Plan
+105
 Information Concerning Alphabet’s Annual Meeting of Shareholders
 Directors, Executive Officers, and Corporate Governance
 Directors and Executive Officers
@@ -1884,6 +1901,7 @@ th
 165.17
 97.88
 76,033
+94
 th
 (1)The Non-PEO NEOs represent the following individuals for 2021, 2022, 2023, 2024, and 2025: Ruth, Philipp, and Kent. This population includes Anat in 2024 and 2025 and Prabhakhar Raghavan in 2021, 2022, 2023 and 2024.
 (2)Alphabet TSR reflects TSR for Alphabet’s Class C shares (ticker: GOOG). Peer Group TSR is calculated based on the RDG Internet Composite index, which is used for purposes of Item 201(e) of Regulation S-K under the Exchange Act. The calculation is weighted according to the constituent companies’ market capitalization at the beginning of each period for which a return is indicated.

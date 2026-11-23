@@ -109,7 +109,9 @@ Governance and
 our Board of
 Directors
 Board of Directors Oversight Roles
+9
 Our Governance Structure
+11
 Director Selection and Qualifications
 18
 Board Composition and Diversity
@@ -161,17 +163,23 @@ Equity Compensation Plan Information
 Principal Shareholders
 59
 Stock Ownership Information
+60
 Audit Committee
 Matters
 Audit Committee Report
+61
 Fees Billed by Deloitte & Touche
+63
 Policy on Audit Committee Pre-Approval of Audit and Permissible Non-Audit Services of Independent Auditor
 Proposals to be
 Voted on During
 the Meeting
 Proposal 1: Election of 12 Directors
+65
 Proposal 2: Advisory Vote to Approve Named Executive Officer Compensation
+66
 Proposal 3: Advisory Vote on Frequency of Advisory Vote on Executive Compensation
+68
 Proposal 4: Ratification of the Selection of Deloitte & Touche LLP as our Independent Auditor for Fiscal Year 2024
 68
 Shareholder Proposals
@@ -199,10 +207,15 @@ Vote Required; Effect of Abstentions and Broker
 Non-Votes
 89
 Vote Confidentiality
+90
 Tabulation of Votes
+90
 Where to Find More Proxy Voting Information
+90
 Where to Find our Corporate Governance Documents
+90
 Proposals by Shareholders for 2024 Annual Meeting
+91
 Other Business
 2023 PROXY STATEMENT iii
 Proxy Summary
@@ -264,10 +277,13 @@ AGAINST
 77
 Report on Tax Transparency
 AGAINST
+79
 Report on Data Operations in Human Rights Hotspots
 AGAINST
+81
 Mandate for Third-Party Political Reporting
 AGAINST
+83
 Report on AI Misinformation and Disinformation
 AGAINST
 Our Director Nominees
@@ -465,8 +481,11 @@ Our mission to empower every person and every organization on the planet to achi
 Our Board believes that having a diverse mix of directors with complementary qualifications, expertise, and attributes is essential to meeting its oversight responsibility. Of our 12 Board nominees, 11 are independent. Having an independent Board is a core element of our governance philosophy.
 Our Director Nominees
 Board Diversity
+8
 Financial
+6
 Global Business
+11
 Leadership
 12
 Mergers and Acquisitions
@@ -500,7 +519,6 @@ Confidential voting policy
 Our Bylaws provide for “proxy access” by shareholders
 See Part 1 – Governance and our Board of Directors and Part 5 – Information About the Meeting for more information.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -518,7 +536,6 @@ We hold ourselves accountable by publicly reporting on our policies, practices, 
 Recognizing the interest of shareholders in establishing greater transparency about corporate political contributions, we disclose our political contributions to support candidates and ballot measures and how certain of our trade association membership dues are used for political activities. As part of our commitment to transparency, we developed the Principles and Policies for Guiding Microsoft’s Participation in the Public Policy Process in the U.S., which focuses on ensuring compliance with applicable federal and state laws and goes beyond compliance to implement what we consider leading practices in corporate accountability, transparency, integrity, and responsibility. The policy is available at microsoft.com/public-policy-engagement.
 The corporate governance policies and practices described throughout this Proxy Statement and the effective, engaged Board oversight they foster provide the foundation for all of our commitments.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -539,7 +556,6 @@ Privacy and Cybersecurity
 Microsoft is committed to integrating privacy and security into product, service, and technology design. As we articulate in our Privacy Principles, we value, protect, and defend privacy and empower people and organizations to control their data and have meaningful choices in how it is used. More information is available at microsoft.com/privacy. Microsoft’s Environmental, Social, and Public Policy Committee provides oversight and guidance on Microsoft’s privacy policies and programs.
 Cybersecurity is a central challenge in the digital age and Microsoft is in the midst of a five-year public commitment to invest $20 billion to accelerate efforts to integrate cybersecurity protection by design and deliver advanced enterprise security solutions. Every service and product line at Microsoft has a dedicated security team as well as cross-company researchers, analysts, and other experts supporting our security products and services. We have established specialized groups such as the Microsoft Threat Intelligence Center focused on threat tracking, the Microsoft Digital Crimes Unit, which partners with law enforcement agencies around the world to fight cybercrime, and the Digital Threat Analysis Center, which detects, assesses, and disrupts digital threats to Microsoft, its customers, and democracies worldwide. Microsoft’s Board maintains direct oversight over cybersecurity risk. The
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -559,7 +575,6 @@ Risk Oversight
 The Board of Directors
 Effective risk management is critical to Microsoft’s ability to achieve its mission. The Board exercises direct oversight of strategic risks to the Company and other risk areas not delegated to one of the Board’s committees. For example, the Board maintains direct oversight over cybersecurity risk. The Board receives and provides feedback on regular updates from management regarding cybersecurity governance processes, the status of projects to strengthen internal cybersecurity, security features of the products and services we provide our customers, and the results of security breach simulations. The Board also discusses recent incidents throughout the industry and the emerging threat landscape.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -588,7 +603,6 @@ Culture and Workplace
 Our culture isn’t what we talk or write about; it’s what we live every day. Our senior management holds itself accountable for modeling the culture we strive for. We focus on creating a respectful, rewarding, diverse, and inclusive work environment where people can thrive, where they can do their best work, where they can proudly be their authentic selves, guided by our values, and where they know their needs can be met. Key to this environment is cultivating a growth mindset, where our workforce is focused on learning, listening, and growing.
 Our employee listening systems enable us to gather feedback directly from our workforce to inform our programs and employee needs globally. Employees participate in our Employee Signals surveys, which cover a variety of topics such as thriving, inclusion, team culture, wellbeing, and learning and development. We also collect Daily Signals employee survey responses, giving us real-time insights into ways we can support our employees. In addition to Employee Signals and Daily Signals surveys, we gain insights through onboarding, exit surveys, internal Viva Engage channels, employee Q&A sessions, and our internal AskHR Service support. The Board and the Compensation Committee engage with senior management, including Human Resources executives, across a broad range of human capital management topics. Management prepares and reviews with the Board a variety of materials including culture, succession planning and development, compensation, benefits, employee recruiting and retention, and diversity and inclusion. Additionally, each year the Compensation and Audit Committees evaluate management’s annual assessment of risk related to our compensation policies and practices, including reviewing the work of management’s Sales Incentive Compensation Governance Committee.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -629,7 +643,6 @@ Shareholders of 15% of outstanding shares have the right to call a special meeti
 •
 Proxy access bylaw allows groups of up to 20 shareholders holding 3% of shares for at least three years to nominate up to two individuals or 20% of the Board (whichever is greater) for inclusion in the proxy statement and ballot for election at an annual shareholders meeting
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -657,7 +670,6 @@ The Board’s independent directors elected Satya Nadella to the role of Chairma
 In his role, Mr. Nadella leverages his deep understanding of the business to elevate the right strategic opportunities and identify key risks and mitigation approaches for the Board’s review. As Lead Independent Director, Ms. Peterson retains significant authority including providing input on behalf of the independent directors on Board agendas and schedules, calling meetings of the independent directors, authorizing retention of outside counsel, advisors, or other consultants, setting agendas for executive sessions, leading performance evaluations of the CEO, and overseeing CEO succession planning. Additional information about the role of the Lead Independent Director is described in this Part 1 under “Board Independence” below.
 The Board does not have a policy as to whether the Chairman should be an independent director, an affiliated director, or a member of management. The independent directors annually appoint a Chairman of the Board. To ensure robust independent leadership on the Board, if the individual appointed as Chairman is not an independent director, or when the independent directors determine that it is in the best interests of the Company, the independent directors will also annually appoint a Lead Independent Director. Our Board believes its current leadership structure is appropriate because it effectively allocates authority, responsibility, and oversight between management and the independent members of our Board. It does this by giving primary responsibility for the operational leadership and strategic direction of the Company to our Chairman and Chief Executive Officer, while enabling the Lead Independent Director to facilitate our Board’s independent oversight of management, promote communication between management and our Board, and support our Board’s consideration of key governance matters. The Board believes its programs for overseeing risk, as described in this Part 1 under “Risk Oversight,” would be effective under a variety of leadership frameworks and therefore do not materially affect its choice of structure.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -681,7 +693,6 @@ Regular continuing education programs enhance the skills and knowledge directors
 Director Stock Ownership Policy
 To align the interests of our directors and shareholders, our directors are required to own Microsoft shares equal in value to at least three times the base annual retainer (cash and stock) payable to a director. Each director must retain 50% of all net shares (post-tax) from the retainer until reaching the minimum share ownership requirement. Stock deferred under the Deferred Compensation Plan for Non-Employee Directors counts toward the minimum ownership requirement. Each of our directors complied with our stock ownership policy in fiscal year 2023.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -728,7 +739,6 @@ Calls meetings of the independent directors
 •
 When requested, represents the Board with internal and external audiences including shareholders
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -803,7 +813,6 @@ The Audit Committee is responsible for the compensation, retention, and oversigh
 The Board has determined that each Audit Committee member has sufficient knowledge in financial and auditing matters to serve on the Audit Committee. All current members of the Audit Committee meet the Nasdaq listing standard of financial sophistication and three are “audit committee financial experts” under Securities and Exchange Commission (“SEC”) rules.
 As provided in our Corporate Governance Guidelines, members of the Audit Committee ordinarily may not serve on over three public company audit committees (including Microsoft’s). In calculating service on a public company board or audit committee,
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -844,7 +853,6 @@ Will not perform any work for Company management except at the request of the Co
 •
 Should not provide any unrelated services or products to the Company and its affiliates or management, except for surveys purchased from the consultant’s firm
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -882,7 +890,6 @@ Annually review the charters of Board committees and, after consultation with th
 •
 Oversee the process and review the results of investigations of any sexual harassment complaints against members of the Board and the Chief Executive Officer. The Committee will report to the full Board on the conclusions of any investigation that results in a founded determination and the disciplinary and other actions taken
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -914,13 +921,13 @@ MATTERS
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
+5
 INFORMATION
 ABOUT THE
 MEETING
 Board Composition and Diversity
 Our Board of Directors believes that having a diverse mix of directors with complementary qualifications, expertise, and attributes is essential to meeting its oversight responsibility. A mark indicates a specific area of focus or expertise on which the Board particularly relies. Not having a mark does not mean the director does not possess that qualification or skill. Our director nominees’ biographies describe each director’s background and relevant experience in more detail.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -984,7 +991,6 @@ Sales and
 Marketing
 Technology
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1044,7 +1050,6 @@ Former Public Company Directorships
 Held in the Past Five Years:
 • None
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1100,7 +1105,6 @@ Sales and
 Marketing
 Technology
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1164,7 +1168,6 @@ Held in the Past Five Years:
 Other Positions:
 • Co-founder, Pritzker Traubert Foundation
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1232,7 +1235,6 @@ Sales and
 Marketing
 Technology
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1288,7 +1290,6 @@ Former Public Company Directorships
 Held in the Past Five Years:
 • None
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1314,7 +1315,6 @@ Based on the review and recommendation by the Governance and Nominating Committe
 Certain Relationships and Related Transactions
 We are a global company with extensive operations in the U.S. and many foreign countries. Every year, we spend billions of dollars for goods and services purchased from third parties. The authority of our employees to purchase goods and services is widely dispersed. Because of these wide-ranging activities, there may be transactions, business arrangements, or relationships with businesses and other organizations in which one of our directors, executive officers, nominees for director, or an owner of 5% or more of our stock (“5% shareholders”) or their immediate families, may also be a director, executive officer, or investor, or have some other direct or indirect material interest (“related entities”). We will refer to these transactions with related entities as related-party transactions where the amount involved exceeds $120,000 and a director, executive officer, nominee for director or 5% shareholders, or immediate family member has a direct or indirect material interest.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1362,7 +1362,6 @@ Lead Independent Director Retainer (stock award in addition to other retainers)
 $40,000
 The Company reimburses reasonable expenses incurred for Board-related activities. Directors may participate in our corporate matching gift program for charitable donations.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1455,7 +1454,6 @@ Mr. Thompson stepped away from his role of Lead Independent Director and chair o
 (9)
 Ms. Warrior elected to defer a portion of her cash compensation. The compensation deferred converted into 229 shares of our common stock.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1486,7 +1484,6 @@ Authorizes retention of outside counsel, advisors, or other consultants who repo
 •
 When requested, represents the Board with internal and external audiences including shareholders
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1510,7 +1507,6 @@ Charles W. Scharf
 Emma N. Walmsley
 Padmasree Warrior
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1565,7 +1561,6 @@ Windows Commercial products and cloud services revenue increased 5%
 •
 Search and news advertising revenue excluding traffic acquisition costs increased 11%
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1590,7 +1585,6 @@ Partnering with other technology providers to remove friction and accelerate cus
 Continued Innovation and Growth
 As we move into the era of ubiquitous computing and ambient intelligence, Microsoft is committed to its mission of empowering every person and every organization on the planet to achieve more. Along with his continued focus on evolving the Company culture, Mr. Nadella and his leadership team have animated the growth of our products and services portfolio. The artificial intelligence (“AI”) moment has arrived, and under Mr. Nadella’s leadership, Microsoft is well positioned to seize the opportunity to have a positive impact for customers and partners across the globe. AI capabilities are being infused across our products and services to drive the at-scale adoption of unprecedented AI capabilities.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1610,7 +1604,6 @@ Microsoft is continually building connections between our products and services 
 Microsoft Teams. Microsoft Teams, our premier communication and collaboration application which surpassed 300 million monthly active users, is one example of how we develop these synergies. Teams itself has also become a first-class platform for application development, as the number of third-party apps with more than 10,000 users increased nearly 40 percent year-over-year. Teams Premium, which meets enterprise demand for advanced features like end-to-end encryption and AI-powered intelligent recaps, surpassed 600,000 seats within five months of being released.
 Intelligent data. A foundational element of the Microsoft Cloud is data storage and management. That is, however, only a first step toward the comprehensive digital transformation companies need to remain competitive. We designed our Intelligent Data Platform to unlock productivity, value, and insights from an enterprise’s data estate. In 2023, we introduced Microsoft Fabric, which enables the unification of data and analytics tools in one environment, establishing a single source of truth, integrated with Power
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1630,7 +1623,6 @@ These examples of innovation, synergy, and partnership are far from exhaustive. 
 Environmental and Social Leadership
 At Microsoft, we focus on four enduring commitments that are central to meeting our mission and that become even more important in the era of AI: to expand opportunity, earn trust, protect fundamental rights, and advance sustainability. As we described in Part 1 –Governance and our Board of Directors, we believe Microsoft’s public and strategic environmental and social commitments
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1664,7 +1656,6 @@ Focuses on the long-term through equity awards with multi-year vesting or perfor
 •
 Does not encourage unnecessary and excessive risk-taking, assisted by our stock ownership policy and executive compensation recovery (“clawback”) policy
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1701,7 +1692,6 @@ We carefully consider both the level of voting support from our shareholders on 
 As in prior years, in fiscal year 2023 we continued our active shareholder engagement program, discussing compensation and a broad range of ESG issues with shareholders representing approximately 50% of our outstanding shares, including participation by our Compensation Committee Chair and Lead Independent Director. The Compensation Committee Chair and Lead Independent Director joined a set of these calls with investors holding over 20% of outstanding shares to discuss a range of governance topics including the Board’s long-term approach to executive compensation.
 In evaluating our compensation practices in fiscal 2023, our Compensation Committee was mindful of the support our shareholders expressed for our philosophy and practice of linking executive compensation to operational objectives and shareholder value creation, and did not make any substantial changes to our executive compensation program.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1724,7 +1714,6 @@ Primary Peer Group of bellwether technology companies, which reflect Microsoft�
 •
 Secondary Peer Group of “large cap” general industry companies, which reflect the complexities of operating large, global, innovative businesses and Microsoft’s broader competition for executive talent
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1773,7 +1762,6 @@ Management and our Compensation Committee discussed in detail the metrics that d
 Performance stock awards include a relative TSR modifier to strengthen the alignment of the interests of our Named Executives with the long-term interests of our shareholders; in order for the TSR modifier to affect the performance stock awards positively, our relative TSR must be above the 60th percentile of the S&P 500
 Our Compensation Committee sets cash incentive and performance stock award (“PSA”) metric targets at the levels established, after review and engagement by the Board, for internal budgeting purposes. These targets are intended to be challenging but achievable. Our Compensation Committee then determines thresholds, maximums, and interim payout levels after considering historical data, upside/downside scenarios, sensitivity analysis, and year-over-year growth comparisons, to ensure rigorous alignment of payouts to performance. We set thresholds that we believe are reasonably achievable and maximums that we believe can be reached only with exceptional performance. Our Compensation Committee actively reviews the appropriateness of payout thresholds and maximums for each metric. Our Compensation Committee focuses on ensuring that our challenging goals, when achieved, will result in long-term shareholder value creation and, historically, our performance against these challenging goals has led to substantial returns to our shareholders.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1791,7 +1779,6 @@ Equity incentives under the Incentive Plan were allocated 100% to target PSAs fo
 Base Salaries
 Our Named Executives’ base salaries align with the scope and complexity of their roles, their capabilities, and competitive market conditions.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1830,7 +1817,6 @@ Input from Microsoft’s senior executives about Mr. Nadella’s leadership
 •
 Mr. Nadella’s evaluation of Microsoft’s and his individual performance over the past fiscal year
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1871,7 +1857,6 @@ Measure of member visits as a leading indicator of the overall quality of the Li
 10%
 * “Microsoft Cloud Revenue” and “Xbox Content & Services Revenue Growth”, when used as PSA metrics in this Compensation Discussion and Analysis, are non-GAAP financial measures defined on page 47.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1902,7 +1887,6 @@ Stock awards were granted under the Incentive Plan in September 2022 for shares 
 No Other Fiscal Year 2023 Compensation
 During fiscal year 2023, the Compensation Committee and independent members of our Board awarded no other compensation to our Named Executives.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -1979,7 +1963,6 @@ $91.13
 13.25%
 “Incentive Plan Revenue” and “Incentive Plan Operating Income” are non-GAAP financial measures. We calculate Incentive Plan Revenue by adjusting GAAP Revenue for (1) the net impact of revenue deferrals, (2) credits and incentives, and (3) the effect of foreign currency rate fluctuations. We exclude the effect of foreign currency rate fluctuations on a “constant dollar” basis by converting current period non-GAAP (i.e., adjusted for the items in the preceding two sentences) results for entities reporting in currencies other than U.S. dollars into U.S. dollars using constant exchange rates, which are determined at the outset of the current period, rather than the actual exchange rates in effect during the respective periods. For fiscal year 2023, we calculated Incentive Plan Operating Income by adjusting GAAP Operating Income for the effect of foreign currency rate fluctuations. These Incentive Plan financial metrics differ from the non-GAAP financial results we report in our quarterly earnings release materials. They should not be considered as a substitute for, or superior to, the measures of financial performance prepared in accordance with GAAP.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -2024,7 +2007,6 @@ Mr. Nadella navigated Microsoft through a volatile year – with many key succes
 • While Microsoft was not immune to the workforce reductions experienced by many technology organizations, Mr. Nadella’s leadership encouraged a focus on dignity and respect for impacted employees throughout the process.
 • Mr. Nadella led by example in retaining the Company’s focus on diversity and inclusion through global employee resource group (ERG) events and senior leadership support.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -2081,7 +2063,6 @@ Increased M12 Venture Fund engagements with early-stage companies.
 •
 Provided thought leadership on the importance of diversity and inclusion in the technology industry.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -2157,11 +2138,11 @@ Payout %
 95.75%
 99.65%
 113.16%
+x
 128.95%
 =
 145.92%
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -2273,7 +2254,6 @@ July 1, 2020 – June 30, 2023
 128.95%
 Based on this result, the total payment percentage for the fiscal year 2021 PSAs was increased by 28.95%, resulting in the payout to our Named Executives of 145.92% of the target fiscal 2021 PSA shares.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -2293,7 +2273,6 @@ Our Named Executives may be eligible for additional vesting of their outstanding
 In addition, our Named Executives are eligible to participate in the Microsoft Senior Executive Severance Benefit Plan (“Severance Plan”). The Severance Plan was adopted to help ensure continuity of key leaders by providing designated executives severance payments and benefits if their employment is terminated without cause. For purposes of the Severance Plan, “cause” means (i) a conviction or plea of guilty or no contest to a felony or certain misdemeanors; (ii) engaging in gross misconduct; (iii) repeated failure to substantially perform the duties of the Named Executive’s role; (iv) violation of any securities laws; or (v) violation of Microsoft’s policies designed to prevent violations of law.
 The Severance Plan payments and benefits have four components – cash, stock vesting, continued health care, and outplacement assistance – all provided by Microsoft. Cash payments consist of (i) a severance payment equal to 12 months’ base salary plus target annual cash incentive award, payable in a lump sum within 60 days after termination of employment; and (ii) a pro-rata payment of the Named Executive’s target annual cash incentive award for the partial year of work, payable in a lump sum at the same time other Incentive Plan cash awards for the year are paid. Stock vesting applies to SAs and PSAs. SAs that otherwise would vest in the 12-month period after employment terminates continue to vest. After the first year of the PSA performance period is completed, a pro-rata portion of any PSA shares will also vest, and the number of shares subject to pro-ration is the lesser of the target award shares or the shares that are otherwise earned and payable after the end of the performance period. Continued contributions to premiums for COBRA health care continuation coverage and outplacement assistance will be provided on the
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -2327,7 +2306,6 @@ Our Named Executives are subject to our Derivatives Trading, Hedging, and Pledgi
 Deductibility of Executive Compensation
 Section 162(m) of the Internal Revenue Code (“Section 162(m)”) imposes an annual deduction limit of $1 million on the amount of compensation paid to each of the CEO, the CFO, and certain other current or former named executive officers (together, “covered employees”). Compensation to our Named Executives over this limit is nondeductible.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -2359,7 +2337,6 @@ Charles W. Scharf
 Emma N. Walmsley
 Padmasree Warrior
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -2567,7 +2544,6 @@ Includes one-time paid-time off payout of vacation accrual balances available to
 (5)
 Mr. Young’s stock awards for fiscal year 2021 include an on-hire stock award with a value of $17,536,215 made in connection with the commencement of his employment.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -2748,7 +2724,6 @@ These columns represent the threshold, target, and maximum shares for the PSAs w
 (4)
 Includes the grant date fair values for SAs and PSAs calculated in accordance with FASB ASC Topic 718 based on the market price of the shares subject to the award on the date of grant. The value of SAs is reduced by the present value of estimated future dividends because dividends are not paid on SA shares until vesting. Values for PSAs in this column are calculated using a Monte Carlo simulation valuation performed as of the date of grant by an independent third party. Because the grant date for a PSA occurs when PSA performance targets are approved, the grant date fair value is calculated for the portion of the PSA for which performance targets were set in fiscal year 2023 (33.33% of each of the 2023, 2022, and 2021 PSAs).
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -2909,7 +2884,6 @@ Reflects fiscal year 2021 PSA, with 3-year performance period ending June 30, 20
 (5)
 Vests 25% on each November 11 following the award date.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -2989,7 +2963,6 @@ Of these balances, the following amounts, which were in the form of executive co
 Microsoft’s Deferred Compensation Plan is unfunded and unsecured. It allows participants to defer a specified percentage of their base salary (up to 75%) and/or eligible cash incentives (up to 100%). Participation in the Deferred Compensation Plan is limited to U.S. senior managers, including our U.S. Named Executives. Microsoft does not contribute to the Deferred Compensation Plan or guarantee any returns on participant contributions.
 When an employee elects to participate in the Deferred Compensation Plan, the employee must specify the percentage of base salary and/or cash incentive award to be deferred and the timing of distributions. No withdrawals are permitted prior to the previously elected distribution date, other than withdrawals for certain severe financial hardships as permitted by applicable law. Amounts deferred under the Deferred Compensation Plan are credited with hypothetical investment earnings based on participant investment elections made from among deemed investment options available under the plan.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3024,6 +2997,7 @@ Bradford L. Smith
 48,895,755
 Christopher D. Young
 26,087,730
+0
 38,905,333
 (1)
 Termination without cause includes incremental value associated with retirement-based stock vesting of SAs and PSAs, $1,415,625 for Mr. Nadella and $4,467,885 for Mr. Smith.
@@ -3031,7 +3005,6 @@ CEO Pay Ratio
 For fiscal year 2023, the annual total compensation for the median employee of the Company (other than our CEO) was $193,770 and the annual total compensation of our CEO was $48,512,537. Based on this information, for fiscal year 2023 the ratio of the annual total compensation of our CEO to the annual total compensation of the median employee was 250 to 1. We believe this ratio is a reasonable estimate calculated in a manner consistent with Item 402(u) of Regulation S-K under the Securities Exchange Act of 1934.
 We identified our median employee from among our employees as of June 30, 2023, the last day of our fiscal year, excluding approximately 391 employees who became Microsoft employees in fiscal year 2023 as a result of the following business acquisitions: Fungible Inc.; Lumenisity Limited; Miburo Solutions, Inc.; Excite Hungary Kft.; and EduBrite Systems, Inc. To identify our median employee, we used a “total direct compensation” measure consisting of: (i) fiscal year 2023 annual base pay (salary or gross wages for hourly employees, excluding paid leave), which we annualized for any permanent employees who commenced work during the year, (ii) target bonuses and cash incentives payable for fiscal year 2023 (excluding allowances, relocation payments, and profit-sharing), and (iii) the dollar value of SAs and target PSAs granted in fiscal year 2023. Compensation amounts were determined from our human resources and payroll systems of record. Payments not made in U.S. dollars were converted to U.S. dollars using 12-month average exchange rates for the year. To identify our median employee, we then calculated the total direct compensation for our global employee population and excluded employees at the median who had anomalous compensation characteristics.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3212,7 +3185,6 @@ Compensation Actually Paid
 139,060,569
 39,456,632
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3234,12 +3206,12 @@ MATTERS
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
+5
 INFORMATION
 ABOUT THE
 MEETING
 Compensation Actually Paid vs. Net Income vs. Incentive Plan Revenue
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3310,7 +3282,6 @@ All information about The Vanguard Group, Inc. is based on a Schedule 13G/A file
 (2)
 All information about BlackRock, Inc. is based on a Schedule 13G/A filed with the SEC on January 31, 2023. BlackRock, Inc. reported that it has sole voting power with respect to 476,570,643 shares of common stock, sole dispositive power with respect to 532,084,843 shares of common stock, and no shared voting or shared dispositive power.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3465,7 +3436,6 @@ Includes 1,500 shares held by a living trust.
 (13)
 Includes 72,063 shares credited under the Deferred Compensation Plan for Non-Employee Directors that may be distributable within 60 days of September 29, 2023. Excludes 318 shares held by new director nominee, Mr. Mason.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3496,7 +3466,6 @@ Met with the CEO and CFO to discuss the processes they have undertaken to evalua
 •
 Reviewed with management and the independent auditor the Company’s critical accounting policies, significant changes in the selection or application of accounting principles, the effect of regulatory and accounting initiatives on the Company’s consolidated financial statements, and critical audit matters addressed during the audit
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3529,7 +3498,6 @@ The quality and candor of Deloitte & Touche’s communications with the Audit Co
 •
 How effectively Deloitte & Touche maintained its independence and employed its independent judgment, objectivity, and professional skepticism
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3583,7 +3551,6 @@ These amounts represent fees of Deloitte & Touche for the audit of our annual co
 Audit-Related Fees
 Audit-related fees consist of assurance and related services that are reasonably related to the performance of the audit or review of Microsoft’s consolidated financial statements or internal control over financial reporting. This category may include fees related to the performance of audits and attest services not required by statute or regulations; audits of our employee benefit plans; due diligence related to mergers, acquisitions, and investments; additional revenue and license compliance procedures related to the performance of review or audit of Microsoft’s consolidated financial statements; third-party assurance audits for cloud services; and
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3600,7 +3567,6 @@ The Audit Committee concluded that the provision of the non-audit services liste
 Policy on Audit Committee Pre-Approval of Audit and Permissible Non-Audit Services of Independent Auditor
 The Audit Committee has a policy for pre-approval of all audit and permissible non-audit services provided by the independent auditor. Each year, the Committee approves the terms on which the independent auditor is engaged for the ensuing fiscal year. At least quarterly, the Committee reviews and, if appropriate, pre-approves services to be performed by the independent auditor, reviews a report summarizing fiscal year-to-date services provided by the independent auditor, and reviews an updated projection of the fiscal year’s estimated fees. The Committee, as permitted by its pre-approval policy, from time to time delegates the approval of certain permitted services or classes of services to a member of the Committee. The Committee then reviews the delegate’s approval decisions each quarter. Microsoft uses a centralized internal system to collect requests from Company personnel for services by the independent auditor to facilitate compliance with this pre-approval policy.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3663,7 +3629,6 @@ Age: 54
 Director Since: 2019
 Occupation: CEO and Director, GSK plc
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3694,7 +3659,6 @@ based on financial targets
 (50% for other Named Executive Officers)
 • Our performance stock awards include a relative total shareholder return modifier to reward significant positive outperformance and reduce rewards for underperformance, thereby strengthening the alignment of the interests of our executive officers with the interests of our long-term shareholders
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3731,7 +3695,6 @@ What We Don’t Do
 Our Board and Compensation Committee reviewed the prior year’s voting results and, through our regular shareholder engagement, sought to understand the factors that influenced voting decisions. In evaluating our compensation practices in fiscal year 2023, our Compensation Committee was mindful of the support our shareholders expressed for our philosophy and practice of linking executive compensation to operational objectives and shareholder value creation and did not make any substantial changes to our executive compensation program.
 The Board and the Compensation Committee will continue to consider feedback obtained through our shareholder engagement process in making future decisions about our executive compensation program.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3750,7 +3713,6 @@ The Audit Committee has selected Deloitte & Touche LLP as Microsoft’s independ
 Receipt of a majority of the votes cast is required to approve this proposal. If the selection of Deloitte & Touche is not ratified, the Audit Committee will consider the result a recommendation to consider selection of a different firm.
 The Board of Directors recommends a vote FOR the ratification of the independent auditor.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3774,7 +3736,6 @@ Whitney-Morris, Candace. “The rainbow ripple effect: how Microsoft and its LGB
 Bolar, Kelsey. “‘Detransitioners’ Are Being Abandoned By Medical Professionals Who Devastated Their Bodies And Minds,” The Federalist, Feb. 10, 2023. See https://thefederalist.com/2023/02/10/detransitioners-are-beingabandoned-by-medical-professionals-who-devastated-their-bodies-and-minds/.
 Shellenberger, Michael. “Why This Detransitioner Is Suing Her Health Care Providers,” Public.substack.com, March 22, 2023. See https://public.substack.com/p/why-this-detransitioner-is-suing.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3791,7 +3752,6 @@ In terms of the benefits we offer, we believe it’s our responsibility to creat
 Our industry-leading employee benefits include but are not limited to health care benefits that rank amongst the top in our industry. Far from the assertions raised in the proposal, Microsoft offers comprehensive health and wellbeing benefits for families such as paid vacation, paid sick leave, paid time off for new parents, fertility, adoption and surrogacy assistance, birthing, doula and postpartum support, caregiver leave, subsidized childcare, and more. Indeed, Microsoft places enough importance on the business benefits of paid parental leave that in 2018 we launched a new policy to ensure our U.S. suppliers offer their employees a minimum of 12 weeks paid parental leave for their employees doing significant work for Microsoft.
 As part of our commitment to inclusive benefits, Microsoft will continue to lawfully support our employees and their enrolled dependents in accessing critical healthcare regardless of where they live across the U.S., which includes travel expense assistance for lawful medical services where access to care is limited in availability in an employee’s home geographic region.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3823,7 +3783,6 @@ We recommend that the report evaluate risks including, but not limited to, negat
 https://judiciary.house.gov/sites/evo-subsites/republicans-judiciary.house.gov/files/legacy_files/wpcontent/uploads/2021/06/JDJ-to-Microsoft-6.21.2020.pdf
 https://judiciary.house.gov/sites/evo-subsites/republicans-judiciary.house.gov/files/legacy_files/wpcontent/uploads/2021/06/JDJ-to-Microsoft-6.21.2020.pdf
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3865,7 +3824,6 @@ Microsoft takes all employee concerns seriously. Microsoft investigates complain
 •
 In addition, Human Resources has a dedicated team, called Global Employee Relations (GER), who review and investigate employee concerns or behaviors that may fall outside Microsoft’s EEO Policy but are inconsistent with our aspire-to culture. Like all concerns of harassment or discrimination, these concerns are investigated in a fair, timely, and thorough manner. GER reviews relevant information and reaches reasonable conclusions based on the evidence. Microsoft will take appropriate disciplinary and/or other appropriate action when it determines a violation of its’ standards of business conduct has occurred.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3891,10 +3849,10 @@ https://ago.mo.gov/home/news/2023/03/06/missouri-attorney-general-andrew-bailey-
 https://www.lifesitenews.com/news/linkedin-reinstates-mrna-inventors-account-after-deleting-it-for-spreading-misinformation/
 https://www.foxnews.com/media/vivek-ramaswamy-pans-linkedins-claim-account-locked-error-calling-censorship
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
+5
 INFORMATION
 ABOUT THE
 MEETING
@@ -3906,7 +3864,6 @@ Microsoft issues a Content Removal Requests Report that covers government conten
 LinkedIn has issued reports on Government Content Removal Requests since 2018, which are updated twice yearly. Over that five-year period, the reports indicate LinkedIn received and acted on a total of two content removal requests in the U.S. The types of requests from federal officials and agencies specified in this proposal fall into the scope of this reporting. Reporting of government take down requests in the U.S. also includes requests from non-federal sources, such as state attorneys general or other state regulatory agencies seeking removal of fraudulent or illegal activities.
 LinkedIn’s approach to the review, analysis, and actioning of any such requests is materially the same as Microsoft’s described above. LinkedIn’s Government Requests Report posted at https://about.linkedin.com/transparency notes, “As part of our commitment to a safe, trusted, and professional environment, we provide as much transparency as possible about government requests for member data and content removal we receive. We believe in free expression and try to minimize the impact of laws that negatively affect constructive, relevant speech.”
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3929,7 +3886,6 @@ https://www.forbes.com/sites/jasonevangelho/2019/02/23/microsoft-employees-upset
 https://www.newsweek.com/what-hololens-microsoft-workers-call-bosses-drop-us-military-contract-we-did-1341560
 https://www.xrtoday.com/mixed-reality/microsoft-to-cut-back-us-army-ivas-staff-amid-layoffs/
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3951,7 +3907,6 @@ Second, we will not only be active but proactive in working to address the ethic
 Third, we understand that some employees may have different views. We don’t ask or expect everyone who works at Microsoft to support every position the Company takes. We also respect the fact that some employees may not wish to work on certain projects. We have an approach that ensures that people who have such concerns can raise them, and we work with them to the extent feasible to address these concerns. We’re transparent about our decision-making and will continue to have that dialogue.
 In short, Microsoft has been open about its principled approach to pursuing the military contracts cited in this proposal and our broader work with the United States military and worked to help inform discussions about ethical uses of our technologies. We do not believe the third-party assessment this proposal calls for is necessary to continue our thoughtful approach.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -3980,13 +3935,16 @@ https://www.swissre.com/media/press-release/nr-20210422-economics-of-climate-cha
 https://query.prod.cms.rt.microsoft.com/cms/api/am/binary/RW14sJN
 3
 https://investyourvalues.org/retirement-plans/microsoft
+4
 https://investyourvalues.org/retirement-plans/microsoft
+5
 https://www.law.cornell.edu/cfr/text/29/2509.75-8
+6
 https://www.federalregister.gov/documents/2022/12/01/2022-25783/prudence-and-loyalty-in-selecting-plan-investments-and-exercising-shareholder-rights
+7
 https://www.shrm.org/resourcesandtools/hr-topics/talent-acquisition/pages/climate-change-branding-can-lift-recruitment-and-retention.aspx
 https://www.cnbc.com/2019/04/09/workers-want-elusive-socially-responsible-investments-in-401k-survey.html
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -4006,7 +3964,6 @@ Recognizing the diverse interests of employees and participants in having access
 In summary, the Microsoft 401(k) plan offers participants a broad range of core investment options in accordance with prevailing ERISA fiduciary standards, and all investment managers for those offerings analyze ESG factors in their investment process and practices. The plan also allows participants to choose from a wide range of other investment alternatives, including hundreds of climate-friendly and other ESG-themed options that can be easily identified and filtered, via the self-directed brokerage window. The proposal does not account for the current operations of the Microsoft 401(k) plan or the strict fiduciary framework under ERISA. Moreover, the requested report would require an unnecessary expenditure of company resources, and would not affect the menu of funds actually available for selection in the plan.
 At least two lawsuits have been filed, in separate federal district courts, that seek to invalidate the Department of Labor’s amended final rules. See Utah, et. al. v. Walsh, No. 2:23-cv-00016-Z (N.D. Tex. filed Jan. 26, 2023); Braun and Luehrs III v. Walsh, Case No. 23-cv-234 (D. Wis. filed Feb. 21, 2023). The court in Utah, et. al. v. Walsh denied the plaintiff’s Motion for Summary Judgment, and granted the Secretary of Labor’s Cross-Motion for Summary Judgment, on September 21, 2023.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -4042,13 +3999,16 @@ https://www.internationaltaxreview.com/article/b1vf7yc65qpzcd/this-week-in-tax-e
 https://www2.deloitte.com/content/dam/Deloitte/au/Documents/tax/deloitte-au-tax-insights-7-australia-introducespublic-tax-reporting-australian-foreign -headquartered-multinationals-120423.pdf
 8
 https://www.propublica.org/article/the-irs-decided-to-get-tough-against-microsoft-microsoft-got-tougher; https://www.theguardian.com/australia-news/2015/apr/08/google-apple-and-microsoft-defend-tax-set-up-that-shiftsrevenue-offshore
+9
 https://www.theguardian.com/world/2021/jun/03/microsoft-irish-subsidiary-paid-zero-corporate-tax-on-220bn-profitlast-year
+10
 https://assets.kpmg/content/dam/kpmg/xx/pdf/2020/11/the-time-has-come.pdf
+11
 https://www.globalreporting.org/about-gri/news-center/backing-for-gri-s-tax-standard/
+12
 https://www.globalreporting.org/standards/media/2482/gri-207-tax-2019.pdf
 For example: https://www.results.philips.com/publications/ar20/downloads/pdf/en/PhilipsCountryActivityAndTaxReport2020.pdf; https://www.vodafone.com/sites/default/files/2021-10/vodafone-tax-report-19-20.pdf.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -4067,7 +4027,6 @@ Second, we support tax reform and transparency through ongoing, orderly, multila
 Detailed disclosures required by the Global Reporting Initiative Tax Standard (“GRI Tax Standard”) could result in unintended negative impacts, including the release of proprietary competitive information regarding our operations and cost structures. We believe the GRI Tax Standard’s narrow focus on corporate income taxation also oversimplifies a complex system of fiscal and public policy determinations each country makes on revenue sources, including consumption taxes, individual taxes, business taxes, etc.
 Contrary to the proponent’s assertion that its proposal would bring our Company’s disclosures in line with leading companies who already report using the GRI Tax Standard, we are not aware of any widespread adoption of the GRI Tax Standard by U.S. businesses, including by any large U.S. technology companies. We believe it would be premature to adopt this voluntary standard in advance of the forthcoming public country-by-country reporting in the European Union and emerging decisions from the OECD noted above.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -4089,7 +4048,6 @@ https://news.microsoft.com/en-xm/features/microsoft-announces-intent-to-expand-c
 https://www.state.gov/reports/2022-country-reports-on-human-rights-practices/saudi-arabia/
 https://www.nbcnews.com/tech/security/former-twitter-employee-sentenced-three-years-prison-spying-saudi-arab-rcna61384
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -4114,7 +4072,6 @@ Work with governments to ensure the free flow of data, to promote public safety,
 Work with the tech sector, public interest groups, and policymakers around the world, particularly in the countries where we operate or plan to operate datacenters and cloud infrastructure, to ensure that laws and policies are substantially in line with the Trusted Cloud Principles.
 We recognize that decisions on where and how we operate and provide our technologies can have significant impact on human rights. As we pursue our mission to empower every person and every organization on the planet to achieve more, we will continue to conduct due diligence to assess the impact of our technologies on human rights, engage and learn from stakeholders, and model responsible business practices and respect for human rights.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -4136,11 +4093,12 @@ We urge Microsoft to mandate reports from third-party groups receiving Microsoft
 https://www.lendingtree.com/credit-cards/study/boycott-product-company/
 https://www.conference-board.org/publications/Under-a-Microscope-ES
 https://query.prod.cms.rt.microsoft.com/cms/api/am/binary/RE5b2Lt#page=14
+4
 https://www.linkedin.com/posts/microsoft_microsoft-will-continue-to-do-everything-activity -6946280944945287168-M_JP?utm_source=linkedin_share&utm_medium=member_desktop_web; https://www.washingtonpost.com/video-games /2022/05/11/roe-v-wade-abortion-bungie-microsoft-activisionblizzard/
+5
 https://arstechnica.com/tech-policy/2022/08/microsoft-playing-dumb-on-anti-abortion-donations-activists-say/
 https://reproductiverights.org/maps/abortion-laws-by-state/
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -4159,7 +4117,6 @@ Our support of these organizations is evaluated annually by the Company’s U.S.
 From a governance and alignment perspective, the Environmental, Social, and Public Policy Committee of Microsoft’s Board of Directors is responsible for overseeing many of our environmental and social commitments and is also responsible for overseeing our public policy agenda, position on significant public policy matters, and the Company’s government relations activities and political activities and expenditures.
 Given our robust political disclosures and the focus on trade associations within our lobbying alignment report, we do not believe it to be practical or necessary for Microsoft to seek to impose reporting requirements on trade associations or political groups that we may work with.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -4196,13 +4153,16 @@ https://www.nytimes.com/2023/02/08/technology/ai-chatbots-disinformation.html
 https://www.eurasiagroup.net/issues/top-risks-2023
 8
 https://ballotpedia.org/United_States_Congress_elections,_2024
+9
 https://www.ft.com/content/c6972372-a02a-4b42-abba-3d98296e08f3
+10
 https://www.washingtonpost.com/politics/2023/03/17/ai-chatbots-wont-enjoy-techs-legal-shield-section-230-authors-say/
+11
 https://www.wsj.com/articles/chatgpt-libeled-me-can-i-sue-defamation-law-artificial-intelligence-cartoonist-court-lawyers-technology-14086034
+12
 https://www.technologyreview.com/2023/04/25/1072177/a-cambridge-analytica-style-scandal-for-ai-is-coming/?truid=&utm_source=the_download&utm_medium=email&utm_campaign=the_download.unpaid.engagement&utm_term=&utm_content=05-03-2023&mc_cid=1fb19f5898&mc_eid=5c3e4c2150
 https://www.theverge.com/2023/3/13/23638823/microsoft-ethics-society-team-responsible-ai-layoffs
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -4226,13 +4186,13 @@ MATTERS
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
+5
 INFORMATION
 ABOUT THE
 MEETING
 dedicated to it full time; the remainder have responsible AI responsibilities as a core part of their jobs. Our community members have positions in policy, engineering, research, sales, and other core functions, touching all aspects of our business. This number has grown since we started our responsible AI efforts in 2017 and in line with our growing focus on AI.
 Last year, we made two key changes to our responsible AI ecosystem: first, we made critical new investments in the team responsible for our Azure OpenAI Service, which includes cutting-edge technology like GPT-4; and second, we infused some of our user research and design teams with specialist expertise by moving former Ethics & Society team members into those teams. Following those changes, we made the hard decision to wind down the remainder of the Ethics & Society team, which affected seven people. No decision affecting our colleagues is easy, but it was one guided by our experience of the most effective organizational structures to ensure our responsible AI practices are adopted across the company.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -4258,7 +4218,6 @@ We will also make the Annual Meeting viewable to anyone interested in a Microsof
 Soliciting Proxies
 The Board of Directors is soliciting the proxy accompanying this Proxy Statement. Proxies may be solicited by officers, directors, and employees of Microsoft, none of whom will receive any additional compensation for their services. D.F. King & Co., Inc. may solicit proxies at a cost we anticipate will not exceed $20,000. These solicitations may be made personally or by mail, telephone, messenger, email, or other electronic transmission. Microsoft will pay persons holding shares of common stock in their names or in the names of nominees, but not owning such shares beneficially, such as brokerage houses, banks, and other fiduciaries, for the expense of forwarding solicitation materials to their principals. Microsoft will pay all proxy solicitation costs.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -4280,7 +4239,6 @@ A majority of the outstanding shares of Microsoft common stock is required to co
 Vote Required; Effect of Abstentions and Broker Non-Votes
 For each nominee and proposal submitted to the shareholders for a vote, approval requires a vote of the majority of the votes cast. A majority of votes cast means the number of shares cast “for” a nominee or proposal exceeds the number of shares cast “against” that nominee or proposal. Abstentions will not be counted as votes cast. Uninstructed shares will not be counted as votes cast except with respect to the Ratification of the Selection of our Independent Auditor, for which brokers and custodians have discretion to vote. A ballot for a nominee that is marked “withheld” will also not be counted as a vote cast.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING
@@ -4368,7 +4326,6 @@ Contact the broker or bank through which you beneficially own your shares
 Where to Find our Corporate Governance Documents
 Copies of our Board committee charters and other governance documents listed in Part 1 – Governance and our Board of Directors can be found at aka.ms/policiesandguidelines. We will provide any of the foregoing information to a shareholder without charge upon written request to MSC 123/9999, Office of the Corporate Secretary, Microsoft Corporation, One Microsoft Way, Redmond, WA 98052-6399.
 MATTERS
-4
 PROPOSALS TO
 BE VOTED ON DURING
 THE MEETING

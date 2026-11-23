@@ -235,3 +235,45 @@ def test_content_repeated_on_some_page_edges_is_kept() -> None:
         bodies[n] = b"<div>Vote Required</div>" + bodies[n]
 
     assert to_text(_pages(bodies)).count("Vote Required") == 3
+
+
+def test_bare_numbers_inside_page_edges_are_kept() -> None:
+    # Page numbers sit at the very edge; numbers a few lines in are content,
+    # such as a table's year header or an 8-K's "Broker Non-Votes: 0".
+    # Here the table is on 3 of 10 pages, every page numbered.
+    furniture = b"<div>2026 Proxy Statement</div><div>%d</div>"
+    table = (
+        b"<div>Name</div><div>Year</div><div>Salary</div><div>2025</div><div>0</div>"
+        + b"<p>More text</p>" * 4
+    )
+    html = _pages(
+        [
+            furniture % n + (table if n in (2, 5, 8) else b"") + b"<p>Body %d</p>" % n
+            for n in range(1, 11)
+        ]
+    )
+
+    text = to_text(html)
+
+    assert text.count("\n2025\n") == 3
+    assert text.count("\n0\n") == 3
+    assert "2026 Proxy Statement" not in text
+    assert "\n7\n" not in text
+
+
+def test_page_number_followed_by_running_navigation_is_dropped() -> None:
+    # Apple prints the page number, then its section menu, at the foot of each page.
+    nav = b"".join(
+        b"<div>%s</div>" % s for s in (b"Summary", b"Governance", b"Directors", b"Proposals")
+    )
+    html = _pages(
+        [
+            b"<p>Body %d</p>" % n + b"<p>More %d</p>" % n * 4 + b"<div>%d</div>" % (60 + n) + nav
+            for n in range(1, 6)
+        ]
+    )
+
+    text = to_text(html)
+
+    assert "Governance" not in text
+    assert not any(line.isdigit() for line in text.splitlines())
