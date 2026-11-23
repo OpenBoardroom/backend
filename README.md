@@ -59,7 +59,7 @@ All stages are safe to rerun: discovery skips filings it already has, fetch reus
 | `uv run obr extract --submit [--limit N]` | Scheduled runs. Sends pending filings as message batches (at half price) of up to 100 filings each; `--limit` caps the total across batches. Returns at once |
 | `uv run obr extract --collect` | Later, to apply the results of batches that have ended. Batches finish within 24 hours; one still running is left alone, so run `--collect` again |
 
-`--submit` and `--collect` can't be combined, and `--filing` works only in direct mode. A collect also retries, with one direct call, any batched filing whose result is missing or was refused.
+`--submit` and `--collect` can't be combined, and `--filing` works only in direct mode. A collect also retries, with one direct call, any batched filing whose result is missing, expired, canceled, errored, or refused. An `invalid_request_error` is not retried: the same request would fail again, so the filing stays `fetched` with the error recorded.
 
 Pass the API key per command so it is never in your shell environment (`<keychain-item>` is the name of your Keychain item):
 
@@ -67,11 +67,11 @@ Pass the API key per command so it is never in your shell environment (`<keychai
 ANTHROPIC_API_KEY="$(security find-generic-password -s <keychain-item> -w)" uv run obr extract --filing ACCESSION
 ```
 
-In `--collect` runs, the last count is batches still waiting. Each run commits filing by filing, so a crash keeps results already paid for. It prints one line of counts and one line per failure to stderr, and exits 1 if any filing failed. What a filing's stage means afterward:
+In `--collect` runs, the last count is filings still waiting on a batch that hasn't ended (or whose results couldn't be read). Each run commits filing by filing, so a crash keeps results already paid for. It prints one line of counts and one line per failure to stderr, and exits 1 if any filing failed. What a filing's stage means afterward:
 
 - `checked`: all four checks passed. It is ready for review.
 - `in_review`: a check failed, the model refused, or the output couldn't be written. A reviewer looks at the items it did produce; nothing is published.
-- `out_of_scope`: the meeting date isn't covered by any index membership, so the filing is set aside.
+- `out_of_scope`: the meeting date, confirmed by its verbatim quote, isn't covered by any index membership, so the filing is set aside. A date its quote doesn't back goes to `in_review` instead.
 - still `fetched`: the call failed (API error, truncated or unparseable output) or the text file is missing. Run extract again. After 2 billed failures a filing is capped: later runs skip it and report it as an error until someone looks at it.
 
 ### Discovery notices

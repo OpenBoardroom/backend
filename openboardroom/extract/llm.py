@@ -22,6 +22,7 @@ from anthropic.types import Message
 from anthropic.types.beta import BetaMessage
 from anthropic.types.message_create_params import MessageCreateParamsNonStreaming
 from anthropic.types.messages.batch_create_params import Request
+from anthropic.types.shared import ErrorResponse
 
 from openboardroom.extract.regex import Candidate
 from openboardroom.extract.spec import output_schema, system_prompt, user_message
@@ -29,6 +30,10 @@ from openboardroom.extract.spec import output_schema, system_prompt, user_messag
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
 # The Message Batches API's pattern for custom_id; a filing accession fits it.
 _CUSTOM_ID = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
+# A batch error a retry would only repeat: the request itself is malformed.
+_DETERMINISTIC_ERROR = "invalid_request_error"
+# Longest API error message kept in a detail; the API writes it, so cap it.
+_MAX_ERROR_MESSAGE = 300
 
 
 @dataclass(frozen=True)
@@ -70,13 +75,33 @@ class Outcome:
     detail: str | None
 
 
+@dataclass(frozen=True)
+class BatchResult:
+    """One filing's result from an ended message batch.
+
+    Attributes:
+        outcome: What the batch returned. When it returned no message (the
+            request errored, expired, or was canceled, or no readable result
+            came back), a ``failed`` outcome whose detail says why.
+        retry: True when the filing should be run again with one direct call:
+            a refusal, or no message for any reason except an
+            ``invalid_request_error``, which would fail the same way again.
+            False means ``outcome`` is final.
+    """
+
+    outcome: Outcome
+    retry: bool
+
+
 def request_params(
     settings: LlmSettings, text: str, candidates: list[Candidate]
 ) -> dict[str, object]:
     """Build the Messages API parameters for one filing.
 
-    Thinking is always on for current models, so ``thinking`` is omitted, and
-    they reject sampling parameters, so none are sent.
+    Adaptive thinking is sent explicitly: Opus 5.5 always thinks, but some
+    other models run without thinking when it is omitted, and
+    ``OBR_EXTRACT_MODEL`` can name one. Current models reject sampling
+    parameters, so none are sent.
 
     Args:
         settings: Model settings.
@@ -91,6 +116,7 @@ def request_params(
         "max_tokens": settings.max_tokens,
         "system": system_prompt(),
         "messages": [{"role": "user", "content": user_message(text, candidates)}],
+        "thinking": {"type": "adaptive"},
         "output_config": {
             "effort": settings.effort,
             "format": {"type": "json_schema", "schema": output_schema()},
@@ -245,9 +271,24 @@ def batch_status(client: anthropic.Anthropic, batch_id: str) -> Literal["in_prog
     return "ended" if status == "ended" else "in_progress"
 
 
+def _failed(detail: str, retry: bool = True) -> BatchResult:
+    return BatchResult(Outcome("failed", None, None, None, None, detail), retry)
+
+
+def _errored(error: ErrorResponse) -> BatchResult:
+    """Keep the error's type and message, never the request body or key."""
+    kind, message = error.error.type, error.error.message
+    if len(message) > _MAX_ERROR_MESSAGE:
+        message = message[:_MAX_ERROR_MESSAGE] + "..."
+    detail = f"batch errored: {kind}: {message}"
+    if error.request_id:
+        detail += f" (request {error.request_id})"
+    return _failed(detail, retry=kind != _DETERMINISTIC_ERROR)
+
+
 def batch_outcomes(
     client: anthropic.Anthropic, batch_id: str, custom_ids: list[str]
-) -> dict[str, Outcome | None]:
+) -> dict[str, BatchResult]:
     """Read an ended batch's results.
 
     Args:
@@ -256,17 +297,20 @@ def batch_outcomes(
         custom_ids: Every ``custom_id`` submitted in the batch.
 
     Returns:
-        An outcome for every submitted ``custom_id``, keyed by it (results
-        arrive in any order). ``None`` means retry it directly: the request
-        errored, expired, or was canceled, or no readable result came back for
-        it. A malformed results line ends the read, so every id not yet
-        collected is ``None``.
+        A result for every submitted ``custom_id``, keyed by it (results
+        arrive in any order); see `BatchResult` for which ones to retry. A
+        malformed results line ends the read, so every id not yet collected
+        gets a ``no batch result`` failure to retry.
     """
-    outcomes: dict[str, Outcome | None] = dict.fromkeys(custom_ids)
+    results = dict.fromkeys(custom_ids, _failed("no batch result"))
     with suppress(json.JSONDecodeError):
         for entry in client.messages.batches.results(batch_id):
             result = entry.result
-            outcomes[entry.custom_id] = (
-                outcome_from_message(result.message) if result.type == "succeeded" else None
-            )
-    return outcomes
+            if result.type == "succeeded":
+                outcome = outcome_from_message(result.message)
+                results[entry.custom_id] = BatchResult(outcome, outcome.status == "refused")
+            elif result.type == "errored":
+                results[entry.custom_id] = _errored(result.error)
+            else:
+                results[entry.custom_id] = _failed(f"batch result {result.type}")
+    return results

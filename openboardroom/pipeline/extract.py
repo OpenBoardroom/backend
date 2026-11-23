@@ -9,13 +9,14 @@ transaction stays open while waiting on the API.
 
 Direct mode (`extract_direct`) calls the model per filing. Batch mode sends
 filings in one message batch (`submit`) and applies the results once it ends
-(`collect`); a batch result that is missing or refused is retried directly.
+(`collect`); a batch result that is missing, refused, or errored (other than
+an invalid request) is retried directly.
 """
 
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from itertools import groupby
 from pathlib import Path
 from typing import Any, Literal, cast
@@ -25,8 +26,9 @@ import httpx2
 import psycopg
 
 from openboardroom.extract import store
-from openboardroom.extract.checks import run_checks
+from openboardroom.extract.checks import iso_date, meeting_date_verified, run_checks
 from openboardroom.extract.llm import (
+    BatchResult,
     LlmSettings,
     Outcome,
     batch_outcomes,
@@ -42,7 +44,7 @@ Result = Literal["checked", "in_review", "out_of_scope", "failed"]
 Recorder = Callable[[Outcome], int]
 # API errors and the raw transport errors the SDK lets through.
 _API_ERRORS = (anthropic.APIError, httpx2.HTTPError)
-_BATCH_MISSING = "no usable batch result (errored, expired, or canceled)"
+_NUL = "\u0000"
 
 
 @dataclass(frozen=True)
@@ -128,16 +130,6 @@ def _api_error(error: Exception) -> str:
     return f"{type(error).__name__}: {error}"
 
 
-def _date(value: object) -> date | None:
-    """The value as a date when it is an ISO date string; else None."""
-    if not isinstance(value, str):
-        return None
-    try:
-        return date.fromisoformat(value)
-    except ValueError:
-        return None
-
-
 def _meeting(output: dict[str, Any]) -> dict[str, Any]:
     """The meeting object, or an empty one when the model gave none (the checks flag that)."""
     meeting = output.get("meeting")
@@ -182,9 +174,14 @@ def _advance(
         return "in_review"
     output = cast(dict[str, Any], outcome.output)
     meeting = _meeting(output)
-    # A null or unparsable date skips this; the checks then fail on it.
-    day = _date(meeting.get("date"))
-    if day is not None and not store.covered_by_index(conn, filing.company_id, day):
+    day = iso_date(meeting.get("date"))
+    # Only a date its verbatim quote backs may drop the filing unreviewed (ruling
+    # R15); any other date goes through the checks, which then fail on it.
+    if (
+        day is not None
+        and meeting_date_verified(output, text)
+        and not store.covered_by_index(conn, filing.company_id, day)
+    ):
         store.set_stage(conn, filing.id, "out_of_scope")
         return "out_of_scope"
     items = _items(output)
@@ -197,7 +194,7 @@ def _advance(
         meeting_date=day,
         meeting_time=meeting.get("time"),
         format=meeting.get("format"),
-        record_date=_date(meeting.get("record_date")),
+        record_date=iso_date(meeting.get("record_date")),
         shares_outstanding=meeting.get("shares_outstanding"),
         date_quote=meeting.get("date_quote"),
     )
@@ -223,7 +220,9 @@ def _apply(
     and tokens, and the error in its detail (ruling R4), and the filing moves
     to `in_review` with no facts (ruling R10): output that can't be written
     would fail the same way again, so a person looks at it instead of the
-    model being billed for it again.
+    model being billed for it again. If even that write fails, as it does
+    when the output holds a NUL character (Postgres stores none in text or
+    jsonb), it is retried once with NULs removed from the stored output.
 
     Returns:
         What happened, and the detail when it failed or couldn't be written.
@@ -233,12 +232,32 @@ def _apply(
             run_id = record(outcome)
             result = _advance(conn, filing, text, candidates, outcome, run_id)
     except (psycopg.Error, MalformedOutputError) as error:
-        detail = f"could not write the extraction: {type(error).__name__}: {error}"
-        with conn.transaction():
-            record(replace(outcome, status="failed", detail=detail))
-            store.set_stage(conn, filing.id, "in_review")
+        detail = _strip_nul(f"could not write the extraction: {type(error).__name__}: {error}")
+        failed = replace(outcome, status="failed", detail=detail)
+        try:
+            with conn.transaction():
+                record(failed)
+                store.set_stage(conn, filing.id, "in_review")
+        except psycopg.Error:
+            # One bad response must not stall the run.
+            note = "; NUL characters removed from the stored output"
+            with conn.transaction():
+                record(replace(failed, output=_strip_nul(outcome.output), detail=detail + note))
+                store.set_stage(conn, filing.id, "in_review")
         return "in_review", detail
     return result, outcome.detail if result == "failed" else None
+
+
+def _strip_nul[T](value: T) -> T:
+    """The value with NUL characters removed from every string inside it."""
+    if isinstance(value, str):
+        return cast(T, value.replace(_NUL, ""))
+    if isinstance(value, dict):
+        items = cast(dict[object, object], value).items()
+        return cast(T, {_strip_nul(k): _strip_nul(v) for k, v in items})
+    if isinstance(value, list):
+        return cast(T, [_strip_nul(v) for v in cast(list[object], value)])
+    return value
 
 
 def _record_new(
@@ -390,20 +409,21 @@ def _collect_run(
     settings: LlmSettings,
     text_dir: Path,
     run: store.SubmittedRun,
-    batch_outcome: Outcome | None,
+    batch_result: BatchResult,
 ) -> tuple[Result, str | None]:
-    """Apply one filing's batch result, retrying it directly when needed."""
+    """Apply one filing's batch result, retrying it directly when it says to."""
     filing = run.filing
+    batch_outcome = batch_result.outcome
     text = _read_text(text_dir, filing.accession)
     if text is None:
         detail = _missing_text(text_dir, filing.accession)
-        failed = batch_outcome or Outcome("failed", None, None, None, None, None)
+        failed = replace(batch_outcome, status="failed", detail=detail)
         with conn.transaction():
-            store.finish_llm_run(conn, run.run_id, replace(failed, status="failed", detail=detail))
+            store.finish_llm_run(conn, run.run_id, failed)
         return "failed", detail
     candidates = find_candidates(text)
 
-    if batch_outcome is not None and batch_outcome.status != "refused":
+    if not batch_result.retry:
 
         def finish(outcome: Outcome) -> int:
             store.finish_llm_run(conn, run.run_id, outcome)
@@ -412,8 +432,6 @@ def _collect_run(
         return _apply(conn, filing, text, candidates, batch_outcome, finish)
 
     # The batch run keeps what the batch returned; the retry is a run of its own.
-    if batch_outcome is None:
-        batch_outcome = Outcome("failed", None, None, None, None, _BATCH_MISSING)
     batch_final = replace(batch_outcome, detail=f"{batch_outcome.detail}; retried directly")
     started_at = _now()
     outcome = run_direct(client, settings, text, candidates)
@@ -436,10 +454,14 @@ def collect(
     A batch still in progress is left alone. If a batch's status or results
     can't be read, its runs stay `submitted` and nothing changes (ruling
     R9); the next collect tries again. Otherwise each filing is applied in
-    its own transaction, as in direct mode. A result that is missing or
-    refused is retried once directly: the batch run is finished with what the
-    batch returned (detail ending "retried directly") and the direct call is
-    recorded as a new llm run, whose result is final.
+    its own transaction, as in direct mode. A result that is missing,
+    expired, canceled, refused, or errored is retried once directly: the
+    batch run is finished with what the batch returned (an error keeps its
+    type and message; the detail ends "retried directly") and the direct call
+    is recorded as a new llm run, whose result is final. An
+    `invalid_request_error` is not retried, since it would fail the same way:
+    its run is finished `failed` with the error, and the filing stays
+    `fetched`.
 
     Args:
         conn: Connection with write access.
@@ -464,7 +486,7 @@ def collect(
             tally.errors.append(f"batch {batch_id}: {_api_error(error)}")
             continue
         for run in runs:
-            outcome = outcomes.get(run.filing.accession)
+            outcome = outcomes[run.filing.accession]
             result, detail = _collect_run(conn, client, settings, text_dir, run, outcome)
             tally.add(result, run.filing.accession, detail)
     return tally.result()

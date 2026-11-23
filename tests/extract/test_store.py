@@ -435,3 +435,39 @@ def test_insert_item_without_discussion_or_co_filers(conn: psycopg.Connection) -
         (meeting_id,),
     ).fetchone()
     assert row == ([], [None, None, "S."])
+
+
+def test_blank_text_is_stored_as_null(conn: psycopg.Connection) -> None:
+    """Ruling R14: the model writes "" for "not stated"; the database keeps NULL for it."""
+    company = add_company(conn)
+    filing_id = add_filing(conn, company, "0000320193-24-000001")
+    filing = store.Filing(filing_id, "0000320193-24-000001", company)
+    run_id = store.insert_llm_run(conn, filing_id, SETTINGS, None, STARTED, batch_id="b")
+    meeting_id = store.insert_meeting(
+        conn,
+        filing,
+        kind="annual",
+        meeting_date=None,
+        meeting_time="",
+        format=None,
+        record_date=None,
+        shares_outstanding=None,
+        date_quote="  ",
+    )
+    blank = ("lead_filer", "representative", "recommendation_quote", "vote_standard_text",
+             "vote_standard_quote", "request", "title", "source_quote")  # fmt: skip
+    item: dict[str, object] = dict.fromkeys(blank, "")
+    item.update(number=1, summary=" ", discussion={"proponent": "", "board": "\n"})
+
+    store.insert_item(conn, meeting_id, run_id, item)
+
+    meeting = conn.execute(
+        "select meeting_time, date_quote from meetings where id = %s", (meeting_id,)
+    ).fetchone()
+    assert meeting == (None, None)
+    row = conn.execute(
+        f"select {', '.join(blank)} from ballot_items where meeting_id = %s", (meeting_id,)
+    ).fetchone()
+    assert row == (None,) * len(blank)
+    bodies = conn.execute("select body from item_texts").fetchall()
+    assert bodies == [(None,)] * 3

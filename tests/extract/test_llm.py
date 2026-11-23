@@ -24,6 +24,7 @@ from llm_replay import (
 
 from openboardroom.extract.llm import (
     FALLBACK_BETA,
+    BatchResult,
     LlmSettings,
     Outcome,
     batch_outcomes,
@@ -85,12 +86,14 @@ def test_request_params_shape() -> None:
         "max_tokens": 64000,
         "system": system_prompt(),
         "messages": [{"role": "user", "content": user_message(TEXT, CANDIDATES)}],
+        # Explicit, so a non-default OBR_EXTRACT_MODEL still thinks.
+        "thinking": {"type": "adaptive"},
         "output_config": {
             "effort": "high",
             "format": {"type": "json_schema", "schema": output_schema()},
         },
     }
-    for banned in ("thinking", "temperature", "top_p", "top_k", "fallbacks", "stream"):
+    for banned in ("temperature", "top_p", "top_k", "fallbacks", "stream"):
         assert banned not in params
 
 
@@ -472,12 +475,21 @@ def test_batch_status(api_status: str, status: str) -> None:
     assert recorder.requests[0].url.path == f"/v1/messages/batches/{BATCH_ID}"
 
 
+def _ended(lines: list[dict[str, Any]]) -> Recorder:
+    return Recorder(json_response(_batch("ended", f"{BATCH_URL}/results")), jsonl_response(lines))
+
+
+def _lines() -> list[dict[str, Any]]:
+    return json.loads((LLM / "batch-results.json").read_text(encoding="utf-8"))
+
+
+def _errored(custom_id: str, kind: str, message: str) -> dict[str, Any]:
+    error = {"type": "error", "error": {"type": kind, "message": message}, "request_id": "req_x"}
+    return {"custom_id": custom_id, "result": {"type": "errored", "error": error}}
+
+
 def test_batch_outcomes_maps_results_by_custom_id() -> None:
-    lines = json.loads((LLM / "batch-results.json").read_text(encoding="utf-8"))
-    recorder = Recorder(
-        json_response(_batch("ended", f"{BATCH_URL}/results")),
-        jsonl_response(lines),
-    )
+    recorder = _ended(_lines())
 
     outcomes = batch_outcomes(mock_client(recorder), BATCH_ID, IDS)
 
@@ -485,52 +497,83 @@ def test_batch_outcomes_maps_results_by_custom_id() -> None:
         f"/v1/messages/batches/{BATCH_ID}",
         f"/v1/messages/batches/{BATCH_ID}/results",
     ]
-    assert outcomes["0000000000-24-000001"] == Outcome(
-        status="succeeded",
-        output={"meeting": None, "items": []},
-        model="claude-opus-5-5",
-        input_tokens=1000,
-        output_tokens=50,
-        detail=None,
+    assert outcomes["0000000000-24-000001"] == BatchResult(
+        Outcome(
+            status="succeeded",
+            output={"meeting": None, "items": []},
+            model="claude-opus-5-5",
+            input_tokens=1000,
+            output_tokens=50,
+            detail=None,
+        ),
+        retry=False,
     )
     refused = outcomes["0000000000-24-000002"]
-    assert refused is not None
-    assert refused.status == "refused"
-    assert outcomes["0000000000-24-000003"] is None
-    assert outcomes["0000000000-24-000004"] is None
-    assert outcomes["0000000000-24-000005"] is None
+    assert (refused.outcome.status, refused.retry) == ("refused", True)
+    assert outcomes["0000000000-24-000003"] == BatchResult(
+        Outcome(
+            "failed", None, None, None, None,
+            "batch errored: api_error: Fixture internal error. (request req_fixture_errored)",
+        ),
+        retry=True,
+    )  # fmt: skip
+    assert outcomes["0000000000-24-000004"] == BatchResult(
+        Outcome("failed", None, None, None, None, "batch result expired"), retry=True
+    )
+    assert outcomes["0000000000-24-000005"] == BatchResult(
+        Outcome("failed", None, None, None, None, "batch result canceled"), retry=True
+    )
     assert len(outcomes) == 5
 
 
-def test_batch_outcomes_is_independent_of_result_order() -> None:
-    lines = json.loads((LLM / "batch-results.json").read_text(encoding="utf-8"))
+def test_batch_outcomes_does_not_retry_an_invalid_request() -> None:
+    """A malformed request fails the same way every time, so it isn't billed again."""
+    line = _errored(IDS[0], "invalid_request_error", "output_config.format: too many unions")
 
-    def outcomes_for(order: list[dict[str, Any]]) -> dict[str, Outcome | None]:
-        recorder = Recorder(
-            json_response(_batch("ended", f"{BATCH_URL}/results")),
-            jsonl_response(order),
-        )
-        return batch_outcomes(mock_client(recorder), BATCH_ID, IDS)
+    outcomes = batch_outcomes(mock_client(_ended([line])), BATCH_ID, IDS[:1])
+
+    assert outcomes[IDS[0]] == BatchResult(
+        Outcome(
+            "failed", None, None, None, None,
+            "batch errored: invalid_request_error: output_config.format: too many unions "
+            "(request req_x)",
+        ),
+        retry=False,
+    )  # fmt: skip
+
+
+def test_batch_outcomes_caps_a_long_error_message() -> None:
+    line = _errored(IDS[0], "api_error", "x" * 5000)
+
+    detail = batch_outcomes(mock_client(_ended([line])), BATCH_ID, IDS[:1])[IDS[0]].outcome.detail
+
+    assert detail is not None and len(detail) < 400
+
+
+def test_batch_outcomes_is_independent_of_result_order() -> None:
+    lines = _lines()
+
+    def outcomes_for(order: list[dict[str, Any]]) -> dict[str, BatchResult]:
+        return batch_outcomes(mock_client(_ended(order)), BATCH_ID, IDS)
 
     assert outcomes_for(lines) == outcomes_for(list(reversed(copy.deepcopy(lines))))
 
 
-def test_batch_outcomes_includes_every_submitted_id() -> None:
-    lines = json.loads((LLM / "batch-results.json").read_text(encoding="utf-8"))
-    ok = next(line for line in lines if line["custom_id"] == IDS[0])
-    recorder = Recorder(
-        json_response(_batch("ended", f"{BATCH_URL}/results")), jsonl_response([ok])
-    )
+_NO_RESULT = BatchResult(Outcome("failed", None, None, None, None, "no batch result"), retry=True)
 
-    outcomes = batch_outcomes(mock_client(recorder), BATCH_ID, IDS)
+
+def test_batch_outcomes_includes_every_submitted_id() -> None:
+    ok = next(line for line in _lines() if line["custom_id"] == IDS[0])
+
+    outcomes = batch_outcomes(mock_client(_ended([ok])), BATCH_ID, IDS)
 
     assert set(outcomes) == set(IDS)
-    assert outcomes[IDS[0]] is not None
-    assert [outcomes[i] for i in IDS[1:]] == [None] * 4
+    assert outcomes[IDS[0]].outcome.status == "succeeded"
+    assert [outcomes[i] for i in IDS[1:]] == [_NO_RESULT] * 4
 
 
 def test_batch_outcomes_survives_a_malformed_results_line() -> None:
-    lines = json.loads((LLM / "batch-results.json").read_text(encoding="utf-8"))
+    lines = _lines()
     ok = next(line for line in lines if line["custom_id"] == IDS[0])
     body = (json.dumps(ok) + "\n{not json\n" + json.dumps(lines[0]) + "\n").encode()
     results = httpx2.Response(
@@ -543,7 +586,6 @@ def test_batch_outcomes_survives_a_malformed_results_line() -> None:
     outcomes = batch_outcomes(mock_client(recorder), BATCH_ID, IDS)
 
     first = outcomes[IDS[0]]
-    assert first is not None
-    assert first.status == "succeeded"
+    assert (first.outcome.status, first.retry) == ("succeeded", False)
     # Everything not yet collected is retried directly.
-    assert [outcomes[i] for i in IDS[1:]] == [None] * 4
+    assert [outcomes[i] for i in IDS[1:]] == [_NO_RESULT] * 4

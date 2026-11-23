@@ -259,9 +259,18 @@ def test_direct_out_of_scope(conn: psycopg.Connection, tmp_path: Path) -> None:
     }  # fmt: skip
 
 
-@pytest.mark.parametrize("date", [None, "February 28, 2024"], ids=["null", "unparsable"])
+@pytest.mark.parametrize(
+    ("date", "failing"),
+    [
+        (None, {"schema", "consistency"}),
+        ("", {"consistency"}),
+        ("February 28, 2024", {"consistency"}),
+        ("20240228", {"consistency"}),
+    ],
+    ids=["null", "blank", "unparsable", "not-iso"],
+)
 def test_direct_without_a_usable_date_skips_membership_and_fails_a_check(
-    conn: psycopg.Connection, tmp_path: Path, date: str | None
+    conn: psycopg.Connection, tmp_path: Path, date: str | None, failing: set[str]
 ) -> None:
     # Out of the index on any date: a usable date would make this out_of_scope.
     setup(conn, tmp_path, membership_end="2001-01-01")
@@ -277,7 +286,85 @@ def test_direct_without_a_usable_date_skips_membership_and_fails_a_check(
     row = conn.execute("select meeting_date from meetings").fetchone()
     assert row == (None,)
     failed = {name for name, passed, _ in checks(conn) if not passed}
-    assert failed == ({"consistency"} if date is None else {"schema"})
+    assert failed == failing
+
+
+def test_direct_unverified_date_goes_to_review_not_out_of_scope(
+    conn: psycopg.Connection, tmp_path: Path
+) -> None:
+    """Ruling R15: a date its quote doesn't back can't decide scope."""
+    # In the index through 2024; the model's wrong date (2025) is outside it.
+    setup(conn, tmp_path, membership_end="2024-12-31")
+
+    def wrong_year(output: dict[str, Any]) -> None:
+        output["meeting"]["date"] = "2025-02-28"
+
+    result, _ = direct(conn, tmp_path, stream(aapl(wrong_year)))
+
+    assert result == ExtractResult(checked=0, in_review=1, out_of_scope=0, failed=0, submitted=0)
+    assert stage(conn) == "in_review"
+    assert counts(conn)["items"] == 8
+    consistency = next(row for row in checks(conn) if row[0] == "consistency")
+    assert consistency[1:] == (False, "meeting.date 2025-02-28 does not appear in date_quote")
+
+
+def test_direct_date_with_an_invented_quote_goes_to_review(
+    conn: psycopg.Connection, tmp_path: Path
+) -> None:
+    setup(conn, tmp_path, membership_end="2023-12-31")
+
+    def invent(output: dict[str, Any]) -> None:
+        output["meeting"]["date_quote"] = "The meeting is to be held on February 28, 2024 online"
+
+    result, _ = direct(conn, tmp_path, stream(aapl(invent)))
+
+    assert result.in_review == 1
+    assert stage(conn) == "in_review"
+    failed = {name for name, passed, _ in checks(conn) if not passed}
+    assert failed == {"quotes"}
+
+
+def test_direct_stores_blank_text_as_null(conn: psycopg.Connection, tmp_path: Path) -> None:
+    setup(conn, tmp_path)
+
+    direct(conn, tmp_path, stream(aapl()))
+
+    row = conn.execute(
+        "select lead_filer, representative, request from ballot_items where number = '1'"
+    ).fetchone()
+    assert row == (None, None, None)
+    blank = conn.execute(
+        "select count(*) from ballot_items where lead_filer = '' or representative = '' "
+        "or request = '' or recommendation_quote = '' or vote_standard_quote = ''"
+    ).fetchone()
+    assert blank == (0,)
+
+
+def test_direct_survives_a_nul_in_the_output(conn: psycopg.Connection, tmp_path: Path) -> None:
+    """Postgres can't store NUL in text or jsonb; one such response must not stall the run."""
+    setup(conn, tmp_path, (ACCESSION, SECOND))
+
+    def nul(output: dict[str, Any]) -> None:
+        output["items"][0]["summary"] = "A vote\u0000 on directors."
+
+    result, _ = direct(conn, tmp_path, stream(aapl(nul)), stream(aapl()))
+
+    assert result == ExtractResult(
+        checked=1, in_review=1, out_of_scope=0, failed=0, submitted=0, errors=result.errors
+    )
+    assert len(result.errors) == 1 and result.errors[0].startswith(f"{ACCESSION}: ")
+    assert (stage(conn), stage(conn, SECOND)) == ("in_review", "checked")
+    row = conn.execute(
+        "select status, detail, output->'items'->0->>'summary' from extraction_runs "
+        "where kind = 'llm' and filing_id = (select id from filings where accession = %s)",
+        (ACCESSION,),
+    ).fetchone()
+    assert row is not None
+    status, detail, summary = row
+    assert status == "failed"
+    assert detail.startswith("could not write the extraction: ")
+    assert detail.endswith("; NUL characters removed from the stored output")
+    assert summary == "A vote on directors."
 
 
 def test_direct_with_a_null_meeting_writes_an_empty_meeting(
@@ -536,9 +623,11 @@ def batch(status: str) -> httpx2.Response:
     )
 
 
-def result_line(accession: str, message: dict[str, Any] | None) -> dict[str, Any]:
+def result_line(
+    accession: str, message: dict[str, Any] | None, error_type: str = "api_error"
+) -> dict[str, Any]:
     if message is None:
-        error = {"type": "error", "error": {"type": "api_error", "message": "Fixture error."}}
+        error = {"type": "error", "error": {"type": error_type, "message": "Fixture error."}}
         return {"custom_id": accession, "result": {"type": "errored", "error": error}}
     return {"custom_id": accession, "result": {"type": "succeeded", "message": message}}
 
@@ -702,8 +791,8 @@ def test_collect_applies_results_and_retries_directly(
         ("llm", "failed", BATCH_ID),
         ("llm", "succeeded", None),
     ]
-    missing = "no usable batch result (errored, expired, or canceled)"
-    assert second[1][3] == f"{missing}; retried directly"
+    errored = "batch errored: api_error: Fixture error."
+    assert second[1][3] == f"{errored}; retried directly"
     assert counts(conn, SECOND) == {
         "runs": 3, "checks": 4, "meetings": 1, "items": 8, "nominees": 8, "texts": 24,
     }  # fmt: skip
@@ -729,6 +818,23 @@ def test_collect_applies_results_and_retries_directly(
     again, recorder = do_collect(conn, tmp_path)
     assert again == ExtractResult(checked=0, in_review=0, out_of_scope=0, failed=0, submitted=0)
     assert recorder.requests == []
+
+
+def test_collect_does_not_retry_an_invalid_request(
+    conn: psycopg.Connection, tmp_path: Path
+) -> None:
+    setup(conn, tmp_path)
+    submit_all(conn, tmp_path)
+    results = jsonl_response([result_line(ACCESSION, None, "invalid_request_error")])
+
+    result, recorder = do_collect(conn, tmp_path, batch("ended"), batch("ended"), results)
+
+    assert result.failed == 1
+    assert len(recorder.requests) == 3  # no direct retry
+    detail = "batch errored: invalid_request_error: Fixture error."
+    assert result.errors == [f"{ACCESSION}: {detail}"]
+    assert runs(conn)[1] == ("llm", "failed", BATCH_ID, detail)
+    assert stage(conn) == "fetched"
 
 
 def test_collect_keeps_a_failed_batch_result_final(

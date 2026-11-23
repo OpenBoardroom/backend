@@ -64,6 +64,63 @@ def test_every_object_forbids_extra_properties_and_requires_all():
         assert sorted(obj["required"]) == sorted(obj["properties"])
 
 
+# Text fields the filing may not state: a plain string, where "" means "not stated"
+# (ruling R14), so they don't count toward the structured-output union limit.
+_PLAIN_TEXT = {
+    "meeting": ("date", "time", "record_date", "date_quote"),
+    "item": (
+        "lead_filer", "representative", "recommendation_quote",
+        "vote_standard_text", "vote_standard_quote", "request",
+    ),
+    "discussion": ("proponent", "board"),
+}  # fmt: skip
+# The Claude structured-outputs limits on one request's schema.
+MAX_UNION_PARAMETERS = 16
+MAX_OPTIONAL_PARAMETERS = 24
+
+
+def _parameters(node: object) -> list[dict[str, Any]]:
+    """Every property schema of every object in the schema, $defs included."""
+    return [
+        cast(dict[str, Any], prop)
+        for obj in _objects(node)
+        for prop in cast(dict[str, Any], obj["properties"]).values()
+    ]
+
+
+def _is_union(prop: dict[str, Any]) -> bool:
+    return "anyOf" in prop or isinstance(prop.get("type"), list)
+
+
+def test_schema_fits_the_structured_output_limits():
+    schema = output_schema()
+    unions = [p for p in _parameters(schema) if _is_union(p)]
+    assert len(unions) <= MAX_UNION_PARAMETERS
+    assert len(unions) <= 10  # ruling R14's target, leaving room to grow
+    optional = sum(len(set(o["properties"]) - set(o["required"])) for o in _objects(schema))
+    assert optional == 0 <= MAX_OPTIONAL_PARAMETERS
+
+
+def test_text_fields_are_plain_strings():
+    defs = output_schema()["$defs"]
+    assert isinstance(defs, dict)
+    for name, fields in _PLAIN_TEXT.items():
+        properties = cast(dict[str, Any], defs)[name]["properties"]
+        for field in fields:
+            assert properties[field]["type"] == "string", f"{name}.{field}"
+            assert "anyOf" not in properties[field]
+            assert "format" not in properties[field]
+
+
+def test_fixture_uses_empty_strings_not_null_for_text():
+    output = _fixture_output()
+    for field in _PLAIN_TEXT["meeting"]:
+        assert isinstance(output["meeting"][field], str)
+    for item in output["items"]:
+        for field in _PLAIN_TEXT["item"]:
+            assert isinstance(item[field], str), (item["number"], field)
+
+
 def test_schema_avoids_unsupported_keywords():
     unsupported = {"minimum", "maximum", "multipleOf", "minLength", "maxLength", "minItems"}
     text = json.dumps(output_schema())
@@ -102,10 +159,15 @@ def test_validate_output_reports_paths():
     assert errors[0].startswith("items/0/effect: ")
 
 
-def test_validate_output_reports_root_and_format_errors():
+def test_validate_output_reports_root_errors():
     assert validate_output([]) == ["<root>: [] is not of type 'object'"]
+
+
+def test_schema_leaves_the_date_format_to_the_checks():
     output = copy.deepcopy(_fixture_output())
     output["meeting"]["date"] = "28 February 2024"
+    assert validate_output(output) == []
+    output["meeting"]["date"] = None
     assert [e.split(":")[0] for e in validate_output(output)] == ["meeting/date"]
 
 
@@ -115,6 +177,9 @@ def test_prompt_rules():
     assert "The board argues" in prompt
     assert "says" not in prompt
     assert "null" in prompt
+    assert 'empty string `""`' in prompt
+    assert "use null" not in prompt.lower().replace("use `null`", "")
+    assert "Never guess" in prompt
     assert "may be wrong or incomplete" in prompt
     assert "8 to 40 consecutive words" in prompt
 
@@ -153,9 +218,24 @@ def test_meeting_kind_may_be_null():
 
 def test_prompt_neutrality_rules():
     prompt = system_prompt()
-    assert "null if the filing states neither" in prompt
+    assert "`null` if the filing states neither" in prompt
     assert "whatever its subject, its proponent, or which side it favors" in prompt
     assert "self-descriptive or evaluative adjectives" in prompt
+    assert "what shareholders are asked to vote on" in prompt
+    assert "what a vote" not in prompt
+
+
+def test_prompt_adjective_examples_cover_one_side_each():
+    prompt = system_prompt()
+    assert "a company-side" in prompt and "a proponent-side" in prompt
+    assert '"deeply committed"' in prompt and '"reckless"' in prompt
+
+
+def test_prompt_type_and_category_rules_match_the_checks():
+    prompt = system_prompt()
+    assert "never `advisory`" in prompt
+    assert "binding shareholder bylaw amendment" in prompt
+    assert "`charter_bylaw_amendment`: a management proposal" in prompt
 
 
 def test_fixture_arguments_carry_no_evaluative_adjectives():

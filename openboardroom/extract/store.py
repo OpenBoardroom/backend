@@ -19,6 +19,14 @@ from openboardroom.extract.spec import PROMPT_VERSION, SCHEMA_VERSION
 
 # One model-written text per kind, from these keys of an output item.
 _TEXT_KINDS = ("summary", "proponent_argument", "board_argument")
+# The output item's keys written to ballot_items as given, in column order around
+# co_filers (after the first six), which is written separately.
+_ITEM_COLUMNS = (
+    "title", "type", "category", "effect", "lead_filer", "representative",
+    "board_recommendation", "recommendation_quote", "vote_base", "vote_threshold_pct",
+    "abstentions_count_against", "vote_standard_text", "vote_standard_quote", "request",
+    "source_quote",
+)  # fmt: skip
 # Billed failures (ones with token counts) at the current prompt and schema
 # after which a filing is no longer sent to the model (ruling R10): the same
 # input at the same settings tends to fail the same way, and each try is billed.
@@ -145,6 +153,11 @@ def submitted_runs(conn: psycopg.Connection) -> list[SubmittedRun]:
         """
     ).fetchall()
     return [SubmittedRun(run_id, batch_id, Filing(*filing)) for run_id, batch_id, *filing in rows]
+
+
+def _value(value: object) -> object:
+    """A blank string as None: the model writes "" for "not stated" (ruling R14), the rows NULL."""
+    return None if isinstance(value, str) and not value.strip() else value
 
 
 def _id(cursor: psycopg.Cursor[Any]) -> int:
@@ -327,8 +340,9 @@ def insert_meeting(
 ) -> int:
     """Record the meeting a proxy filing describes.
 
-    Values other than the dates are written as the model gave them; a value
-    the columns reject raises, and the caller rolls the filing back.
+    Values other than the dates are written as the model gave them, except
+    that a blank string is written as NULL; a value the columns reject
+    raises, and the caller rolls the filing back.
 
     Args:
         conn: Database connection.
@@ -357,13 +371,13 @@ def insert_meeting(
             (
                 filing.company_id,
                 filing.id,
-                kind,
+                _value(kind),
                 meeting_date,
-                meeting_time,
-                format,
+                _value(meeting_time),
+                _value(format),
                 record_date,
                 shares_outstanding,
-                date_quote,
+                _value(date_quote),
             ),
         )
     )
@@ -376,8 +390,9 @@ def insert_item(
 
     `item` is one entry of the model's `items`, already known to be an object
     whose `nominees` is a list and whose `discussion` is an object or null.
-    The item number is stored as text. Texts are version 1, origin `model`,
-    review status `pending`, with a null body when the model gave none.
+    The item number is stored as text, and blank strings as NULL. Texts are
+    version 1, origin `model`, review status `pending`, with a null body when
+    the model gave none or a blank one.
 
     Args:
         conn: Database connection.
@@ -401,23 +416,10 @@ def insert_item(
             (
                 meeting_id,
                 None if number is None else str(number),
-                item.get("title"),
-                item.get("type"),
-                item.get("category"),
-                item.get("effect"),
-                item.get("lead_filer"),
-                item.get("representative"),
+                *(_value(item.get(column)) for column in _ITEM_COLUMNS[:6]),
                 # The column is not null; a missing list means no co-filers.
                 item.get("co_filers") or [],
-                item.get("board_recommendation"),
-                item.get("recommendation_quote"),
-                item.get("vote_base"),
-                item.get("vote_threshold_pct"),
-                item.get("abstentions_count_against"),
-                item.get("vote_standard_text"),
-                item.get("vote_standard_quote"),
-                item.get("request"),
-                item.get("source_quote"),
+                *(_value(item.get(column)) for column in _ITEM_COLUMNS[6:]),
                 run_id,
             ),
         )
@@ -429,7 +431,10 @@ def insert_item(
             [(item_id, name, position) for position, name in enumerate(nominees, 1)],
         )
         discussion: Mapping[str, Any] = item.get("discussion") or {}
-        bodies = (item.get("summary"), discussion.get("proponent"), discussion.get("board"))
+        bodies = [
+            _value(text)
+            for text in (item.get("summary"), discussion.get("proponent"), discussion.get("board"))
+        ]
         cursor.executemany(
             "insert into item_texts (ballot_item_id, kind, version, body, origin, "
             "extraction_run_id, review_status) values (%s, %s, 1, %s, 'model', %s, 'pending')",

@@ -7,7 +7,12 @@ from typing import Any
 
 import pytest
 
-from openboardroom.extract.checks import CheckResult, normalize, run_checks
+from openboardroom.extract.checks import (
+    CheckResult,
+    meeting_date_verified,
+    normalize,
+    run_checks,
+)
 from openboardroom.extract.regex import Candidate, find_candidates
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
@@ -82,7 +87,7 @@ def test_other_item_quotes_are_checked(field: str) -> None:
 
 def test_meeting_date_quote_is_checked() -> None:
     out = _output()
-    out["meeting"]["date_quote"] = "invented words that appear nowhere in the document"
+    out["meeting"]["date_quote"] = "invented words that appear nowhere on February 28, 2024"
     results = _run(out)
     assert _failed(results) == ["quotes"]
     assert results[1].detail is not None and "meeting: date_quote" in results[1].detail
@@ -93,7 +98,7 @@ def test_meeting_date_quote_is_checked() -> None:
     [
         ("the board’s view of the matter is final", "the board's view of the matter is final"),
         ("the board's view of the matter is final", "the board’s view of the matter is final"),
-        ("one — two – three − four", "one - two - three - four"),
+        ("one — two – three − four five", "one - two - three - four five"),
         ("a quote with a non-breaking space", "a quote with a non-breaking space"),
         ("a quote split\nacross  a line\n break", "a quote split across a line break"),
     ],
@@ -157,7 +162,7 @@ def test_missing_meeting_does_not_crash() -> None:
 def test_shareholder_without_lead_filer_fails_consistency() -> None:
     out = _output()
     item = _item(out, "shareholder_proposal")
-    item["lead_filer"] = None
+    item["lead_filer"] = ""
     results = _run(out)
     assert _failed(results) == ["consistency"]
     assert f"item {item['number']}: lead_filer" in (results[3].detail or "")
@@ -191,32 +196,143 @@ def test_equity_plan_advisory_fails() -> None:
     assert _failed(_run(out)) == ["consistency"]
 
 
-def test_shareholder_binding_fails_unless_charter_amendment() -> None:
+def test_shareholder_binding_passes_for_a_binding_bylaw_amendment() -> None:
     out = _output()
-    item = _item(out, "shareholder_proposal")
-    item["effect"] = "binding"
-    assert _failed(_run(out)) == ["consistency"]
-    item["category"] = "charter_bylaw_amendment"
+    _item(out, "shareholder_proposal")["effect"] = "binding"
     assert _run(out)[3].passed
 
 
 def test_shareholder_advisory_fails() -> None:
     out = _output()
     _item(out, "shareholder_proposal")["effect"] = "advisory"
-    assert _failed(_run(out)) == ["consistency"]
+    results = _run(out)
+    assert _failed(results) == ["consistency"]
+    assert "item 4: effect is 'advisory'" in (results[3].detail or "")
+
+
+@pytest.mark.parametrize(
+    "category", ["charter_bylaw_amendment", "say_on_pay", "other", "director_election"]
+)
+def test_shareholder_item_needs_the_shareholder_proposal_category(category: str) -> None:
+    out = _output()
+    _item(out, "shareholder_proposal")["category"] = category
+    results = _run(out)
+    assert _failed(results) == ["consistency"]
+    assert "item 4: a shareholder item needs category 'shareholder_proposal'" in (
+        results[3].detail or ""
+    )
+
+
+def test_management_item_cannot_be_a_shareholder_proposal() -> None:
+    out = _output()
+    item = out["items"][1]
+    item["category"] = "shareholder_proposal"
+    item["effect"] = "precatory"
+    results = _run(out)
+    assert _failed(results) == ["consistency"]
+    assert "item 2: category 'shareholder_proposal' needs type 'shareholder'" in (
+        results[3].detail or ""
+    )
+
+
+def test_relabelled_shareholder_proposal_fails() -> None:
+    """The reviewer's probe: a shareholder proposal passed off as a management item."""
+    out = _output()
+    item = out["items"][3]  # NCPPR's proposal; no representative named
+    item.update(type="management", effect="advisory", lead_filer="", representative="")
+    results = _run(out)
+    assert _failed(results) == ["consistency"]
+    assert "item 4: category 'shareholder_proposal' needs type 'shareholder'" in (
+        results[3].detail or ""
+    )
+
+
+@pytest.mark.parametrize("field", ["request", "lead_filer"])
+@pytest.mark.parametrize("blank", ["", "  "])
+def test_shareholder_item_needs_request_and_lead_filer(field: str, blank: str) -> None:
+    out = _output()
+    out["items"][3][field] = blank
+    results = _run(out)
+    assert _failed(results) == ["consistency"]
+    assert f"item 4: {field} is required for a shareholder proposal" in (results[3].detail or "")
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [("lead_filer", "Some Fund"), ("representative", "Some Advisor"), ("co_filers", ["A"])],
+)
+def test_management_item_has_no_proponent(field: str, value: object) -> None:
+    out = _output()
+    out["items"][0][field] = value
+    results = _run(out)
+    assert _failed(results) == ["consistency"]
+    assert f"item 1: {field} must be empty for a management item" in (results[3].detail or "")
+
+
+@pytest.mark.parametrize("date", ["28 February 2024", "2024-02-30", "2024-2-28"])
+def test_meeting_date_must_be_an_iso_date(date: str) -> None:
+    out = _output()
+    out["meeting"]["date"] = date
+    results = _run(out)
+    assert _failed(results) == ["consistency"]
+    assert "meeting.date is not a YYYY-MM-DD date" in (results[3].detail or "")
+
+
+def test_meeting_date_must_appear_in_the_date_quote() -> None:
+    out = _output()
+    out["meeting"]["date"] = "2024-02-27"
+    results = _run(out)
+    assert _failed(results) == ["consistency"]
+    assert "meeting.date 2024-02-27 does not appear in date_quote" in (results[3].detail or "")
+
+
+@pytest.mark.parametrize("written", ["March 8, 2024", "March 08, 2024", "MARCH 8, 2024"])
+def test_meeting_date_matches_the_quote_with_or_without_zero_pad(written: str) -> None:
+    quote = f"The annual meeting will be held virtually on {written}, at 9:00 a.m."
+    out = _output()
+    out["meeting"]["date"] = "2024-03-08"
+    out["meeting"]["date_quote"] = quote
+    assert _run(out, text=quote + "\n" + FILING)[3].passed
+
+
+@pytest.mark.parametrize(
+    ("date", "quote", "expected"),
+    [
+        ("2024-02-28", None, True),
+        ("2024-02-27", None, False),
+        (
+            "2024-02-28",
+            "invented words that appear nowhere in the document February 28, 2024",
+            False,
+        ),
+        ("", None, False),
+        ("not a date", None, False),
+    ],
+)
+def test_meeting_date_verified(date: str, quote: str | None, expected: bool) -> None:
+    out = _output()
+    out["meeting"]["date"] = date
+    if quote is not None:
+        out["meeting"]["date_quote"] = quote
+    assert meeting_date_verified(out, FILING) is expected
+
+
+@pytest.mark.parametrize("output", [[], {"meeting": None}, {"meeting": {"date": 5}}])
+def test_meeting_date_verified_tolerates_malformed_output(output: object) -> None:
+    assert meeting_date_verified(output, FILING) is False
 
 
 def test_missing_date_quote_fails_consistency() -> None:
     out = _output()
-    out["meeting"]["date_quote"] = None
+    out["meeting"]["date_quote"] = ""
     results = _run(out)
-    assert _failed(results) == ["consistency"]
+    assert _failed(results) == ["quotes", "consistency"]
     assert "meeting.date_quote" in (results[3].detail or "")
 
 
 def test_missing_meeting_date_fails_consistency() -> None:
     out = _output()
-    out["meeting"]["date"] = None
+    out["meeting"]["date"] = ""
     assert _failed(_run(out)) == ["consistency"]
 
 
@@ -233,7 +349,7 @@ def test_required_item_fields_non_null() -> None:
 def test_recommendation_quote_required_unless_none() -> None:
     out = _output()
     item = out["items"][1]
-    item["recommendation_quote"] = None
+    item["recommendation_quote"] = ""
     assert "recommendation_quote" in (_run(out)[3].detail or "")
     item["board_recommendation"] = "none"
     assert _run(out)[3].passed
@@ -242,11 +358,11 @@ def test_recommendation_quote_required_unless_none() -> None:
 def test_vote_standard_quote_required_with_text() -> None:
     out = _output()
     item = copy.deepcopy(out["items"][1])
-    out["items"][1]["vote_standard_quote"] = None
+    out["items"][1]["vote_standard_quote"] = ""
     assert "vote_standard_quote" in (_run(out)[3].detail or "")
-    out["items"][1]["vote_standard_text"] = None
+    out["items"][1]["vote_standard_text"] = ""
     assert _run(out)[3].passed
-    assert item["vote_standard_text"] is not None
+    assert item["vote_standard_text"]
 
 
 @pytest.mark.parametrize("field", ["category", "type", "effect", "board_recommendation"])
@@ -278,6 +394,31 @@ def test_non_string_quote_fails_quotes_itself(value: object) -> None:
     results = _run(out)
     assert not results[1].passed
     assert "item 1: source_quote is not a string" in (results[1].detail or "")
+
+
+@pytest.mark.parametrize("quote", ["- - - - -", "— – - . ,", "1 2 3 4 - - -"])
+def test_punctuation_does_not_count_as_words(quote: str) -> None:
+    out = _output()
+    out["items"][0]["source_quote"] = quote
+    results = _run(out, text=quote + "\n" + FILING)
+    assert "item 1: source_quote has fewer than 5 words" in (results[1].detail or "")
+
+
+def test_blank_optional_quotes_are_skipped_where_the_fact_is_absent() -> None:
+    out = _output()
+    item = out["items"][1]
+    item.update(board_recommendation="none", recommendation_quote="")
+    item.update(vote_standard_text="", vote_standard_quote="")
+    assert all(r.passed for r in _run(out))
+
+
+@pytest.mark.parametrize("field", ["recommendation_quote", "vote_standard_quote"])
+def test_blank_required_quote_fails_quotes_and_consistency(field: str) -> None:
+    out = _output()
+    out["items"][1][field] = ""
+    results = _run(out)
+    assert _failed(results) == ["quotes", "consistency"]
+    assert f"item 2: {field} has fewer than 5 words" in (results[1].detail or "")
 
 
 def test_short_quote_fails_even_when_present_in_text() -> None:
