@@ -13,6 +13,7 @@ Prompt version 1 (version 2 from 2026-11-23, marked in the table), schema versio
 | GOOGL 2026 | `0001308179-26-000342` | in_review | 142,235 | 17,348 | 120 s | 14 | Facts correct; sent to review only by F8; F9–F11 |
 | AAPL 2026 (prompt v2) | `0001308179-26-000008` | checked | 98,106 | 6,946 | 52 s | 5 | Facts correct; F2 and F9 rules applied. See below |
 | XOM 2026 (prompt v2) | `0001193125-26-147614` | checked | 282,722 | 8,764 | 68 s | 6 | Facts correct; F2, F3 fixed; F12–F14 |
+| GOOGL 2026 (prompt v2) | `0001308179-26-000342` | in_review | 133,322 | 21,003 | 175 s | 14 | Facts correct; F8 fixed; sent to review by F15; F16 |
 
 Planned next: JPM `0000019617-26-000096`, ACN `0001308179-25-000651`, MSFT `0001193125-25-245150` (expected `out_of_scope`), NOW `0001373715-25-000312` (possibly a special meeting **(verify)**).
 
@@ -31,9 +32,11 @@ Planned next: JPM `0000019617-26-000096`, ACN `0001308179-25-000651`, MSFT `0001
 | F9 | GOOGL | Texts (neutrality) | High | Two summaries state a proponent's framing in our own voice. Rule set in prompt v2. See below |
 | F10 | GOOGL | Vote standard | Low | The standard is a majority of *voting power* (Class B carries 10 votes per share); `vote_base = shares_present` loses that |
 | F11 | GOOGL | Co-filers | Low | Items 11 and 12 say other co-filers exist but aren't named. `co_filers` is empty, which follows the spec, but the fact that there are co-filers is lost |
-| F12 | XOM v2 | Arguments (neutrality) | Medium | The two sides' claims are reported at different levels of detail. See below |
+| F12 | XOM v2 | Arguments (neutrality) | Medium | The two sides' claims are reported at different levels of detail. Declined: no prompt rule. See below |
 | F13 | XOM v2 | Quotes | Low | `recommendation_quote` picked the board's framed sentence ("For the 17th time, the Board recommends a vote AGAINST this proposal.") when a plain one exists |
 | F14 | XOM v2 | Quotes | Low | Items 2–6 share one vote-standard sentence, and the 40-word cap makes the quote start mid-sentence ("and the shareholder proposals require…"), so it doesn't name the item it covers |
+| F15 | GOOGL v2 | Consistency check | Medium | The check requires a lead filer on every shareholder proposal, but item 6's filing names only the representative ("Inspire Investing, LLC, on behalf of its client"). The model correctly left `lead_filer` empty, so the check sent a correct extraction to review. v1 had listed the representative as the lead filer, which was wrong |
+| F16 | GOOGL v2 | Arguments (accuracy) | Low | Item 7's proponent argument says "98% of unaffiliated Class A votes"; the filing says "Outside shareholders overwhelmingly support this proposal, with 98% backing in 2025". "Class A" is not in the filing. Arguments aren't quote-checked; review catches this |
 
 ### F1. Compound vote standards (AAPL, all five items)
 
@@ -161,4 +164,13 @@ Text from the block-level converter with page furniture removed (`fef44ea`), pro
 ### F12. Unequal detail between sides (XOM item 6)
 
 The board's charge is kept specific and close to its wording: "describes the proposal as part of a political campaign by a frequent submitter" (the filing says "long-standing political campaign by a serial submitter"). The proponent's charges are flattened to "points to the Company's past shareholder relations". The filing says Exxon "has a history of being unresponsive to shareholders", lost a 2021 proxy contest to Engine No. 1, and in 2024 sued investors over a shareholder proposal. Both are attributed, but one side's claim is concrete and the other's is vague, which conflicts with the handbook's equal-treatment rule. **Fix:** add a rule to the prompt that each side's main claims are reported at the same level of detail, then confirm in review. The review CLI's word-count check can't catch this, because the lengths match.
+
+**Declined 2026-11-23 [Quinn]:** no prompt rule. Shareholder proposals often carry more specific detail than the board's response by nature, and a rule forcing equal detail would tend to trim the proponent's specifics to match the board, which would build in a bias toward the company. Unequal detail is left to review.
+
+**GOOGL** (`in_review`, $0.95; input down 6%, output up 21%):
+- **F8 fixed.** The count check passed: 14 candidates for 14 items.
+- **F2 applied.** All 14 titles are neutral, for example "Report on Risks of Diagnostic Tools from Corporate Partners" and "Recapitalization to One Vote per Share".
+- **F9 applied.** Item 8 keeps "an apparent lack of viewpoint diversity". Item 9 reads "what the proposal calls \"politicized corporate partners.\"" Items 6, 11, 12, and 14 quote and attribute the proponents' own wording ("activist-driven", "accountability gap", "suspect record on data ethics").
+- **Arguments.** 41–51 words each, with balanced pairs. The figures trace to the filing: 51% over 2019, $100,000 H-1B fee, $425 million verdict, the Gemma removal from AI Studio, and October 2025 charter changes. Exception: F16.
+- **Representatives** are correct for items 6, 9, 11, and 12. Item 6 has no lead filer, which is correct (F15).
 
