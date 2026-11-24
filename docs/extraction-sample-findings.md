@@ -46,6 +46,9 @@ Not run: NOW `0001373715-25-000312` (possibly a special meeting **(verify)**).
 | F19 | ACN v2 | Effect | Low | Item 4 bundles a non-binding auditor ratification with a binding authorization to set the auditor's pay. `effect = advisory` describes only the first part. The summary states both. Same shape as F1: one structured field for a two-part item |
 | F20 | ACN v2 | Category | Medium | Fixed in prompt v3 and schema v2: new category `share_capital_authority` (`binding`). Items 5–7 (authority to issue shares, opt-out of pre-emption rights, treasury re-allotment price range) are `other`. These are routine yearly items for every Irish-incorporated company, and many S&P 500 companies are Irish plcs **(verify the count)**, so `other` would fill with them. Needs a schema decision: a `share_capital_authority` category, or accept `other`. Related to F6 |
 | F21 | MSFT 2025 v2 | Cost | Info | Scope is decided after a full extraction, so an out-of-scope filing costs as much as an in-scope one ($0.79 here). Four more queued proxies are for 2025 meetings, before the S&P 100 memberships start (2026-01-01). Their cached texts give the dates: SNDK `0001628280-25-044481` (2025-11-18), CSCO `0000858877-25-000150` (2025-12-16), PANW `0001308179-25-000624` (2025-12-09), and NOW `0001373715-25-000312` (2025-12-05). Together about $1.50 batched |
+| F22 | Batch v3 | Missing items | High | The model dropped real shareholder proposals at the end of two ballots: GE item 7 (Presbyterian Foundation, defense-related products) and Intel items 7–8 (human rights due diligence; separating chair and CEO). The candidate hint listed all of them. The count check caught both. Where the regex pass finds no labels (BRK-B, TXN, IBM, V, PEP), a drop like this would not be caught |
+| F23 | Batch v3 | Consistency check | Medium | NextEra items 4 and 5 name no proponent ("a shareholder of the Company intends to present a proposal"; the name is furnished on request). Leaving `lead_filer` and `representative` empty is correct, but the check requires one of them. Same shape as F15, and needs a spec decision |
+| F24 | Batch v3 | Item numbers | Medium | Linde numbers two separate votes "Proposal 2a" and "2b" (auditor ratification, auditor remuneration). The schema's integer `number` can't hold "2a", so the model returned two items numbered 2. The count check would have failed, but the write failed first on the unique (meeting, number) key, so no items or check results were stored. The filing is `in_review` with the output only in `extraction_runs.output`. Needs a spec decision |
 
 ### F1. Compound vote standards (AAPL, all five items)
 
@@ -211,3 +214,21 @@ The board's charge is kept specific and close to its wording: "describes the pro
 **ACN under prompt v3** (`checked`, $0.61; 2026-11-24). The v2 run was deleted first, as with the earlier resets; its results are recorded above:
 - **F20 fixed.** Items 5–7 are `share_capital_authority`, effect `binding`. Thresholds are unchanged: item 5 at 50%, items 6–7 at 75%.
 - **Unchanged from v2:** the meeting, the other four items, the 10 nominees, the vote standards, and the summaries. Item 4's title now names KPMG. F18 and F19 remain.
+
+## First batch (2026-11-24)
+
+`msgbatch_01VUUQgyiVWYxVKvsxgeyJqR`, prompt v3, schema v2: 99 proxies, 12,766,088 input and 602,335 output tokens, **$31.56** at batch rates (estimate: about $38). Result: 86 `checked`, 9 `in_review`, 4 `out_of_scope` (the four F21 filings, as predicted).
+
+| Filing | Accession | Why in review |
+|---|---|---|
+| BRK-B | `0001193125-26-106253` | Expected: no labeled items (0 candidates). Model: 4 items; 3 resolutions plus the election, consistent |
+| TXN | `0000097476-26-000078` | Expected: 0 candidates. Model: 4 items |
+| IBM | `0000051143-26-000025` | Expected: items 1–4 unlabeled. Model: 8 items |
+| V | `0001308179-25-000635` | Expected: items 1–4 unlabeled. Model: 8 items |
+| PEP | `0001308179-26-000169` | Expected: items 2–3 unlabeled. Model: 6 items |
+| GE | `0000040545-26-000018` | F22: item 7 dropped |
+| INTC | `0000050863-26-000061` | F22: items 7–8 dropped |
+| NEE | `0001104659-26-038551` | F23: proponents not named |
+| LIN | `0001193125-26-192209` | F24: items 2a and 2b |
+
+GOOGL (`0001308179-26-000342`) is still `in_review` from its v2 sample run (F15, since fixed).
