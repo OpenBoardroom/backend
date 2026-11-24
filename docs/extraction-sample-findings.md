@@ -14,8 +14,9 @@ Prompt version 1 (version 2 from 2026-11-23, marked in the table), schema versio
 | AAPL 2026 (prompt v2) | `0001308179-26-000008` | checked | 98,106 | 6,946 | 52 s | 5 | Facts correct; F2 and F9 rules applied. See below |
 | XOM 2026 (prompt v2) | `0001193125-26-147614` | checked | 282,722 | 8,764 | 68 s | 6 | Facts correct; F2, F3 fixed; F12–F14 |
 | GOOGL 2026 (prompt v2) | `0001308179-26-000342` | in_review | 133,322 | 21,003 | 175 s | 14 | Facts correct; F8 fixed; sent to review by F15; F16 |
+| JPM 2026 (prompt v2) | `0000019617-26-000096` | checked | 125,379 | 8,688 | 68 s | 7 | Facts correct; F17. See below |
 
-Planned next: JPM `0000019617-26-000096`, ACN `0001308179-25-000651`, MSFT `0001193125-25-245150` (expected `out_of_scope`), NOW `0001373715-25-000312` (possibly a special meeting **(verify)**).
+Planned next: ACN `0001308179-25-000651`, MSFT `0001193125-25-245150` (expected `out_of_scope`), NOW `0001373715-25-000312` (possibly a special meeting **(verify)**).
 
 ## Findings
 
@@ -37,6 +38,7 @@ Planned next: JPM `0000019617-26-000096`, ACN `0001308179-25-000651`, MSFT `0001
 | F14 | XOM v2 | Quotes | Low | Items 2–6 share one vote-standard sentence, and the 40-word cap makes the quote start mid-sentence ("and the shareholder proposals require…"), so it doesn't name the item it covers |
 | F15 | GOOGL v2 | Consistency check | Medium | Fixed: the check now needs a lead filer **or** a representative. It required a lead filer on every shareholder proposal, but item 6's filing names only the representative ("Inspire Investing, LLC, on behalf of its client"). The model correctly left `lead_filer` empty, so the check sent a correct extraction to review. v1 had listed the representative as the lead filer, which was wrong |
 | F16 | GOOGL v2 | Arguments (accuracy) | Low | Item 7's proponent argument says "98% of unaffiliated Class A votes"; the filing says "Outside shareholders overwhelmingly support this proposal, with 98% backing in 2025". "Class A" is not in the filing. Arguments aren't quote-checked; review catches this |
+| F17 | JPM v2 | Arguments (accuracy) | Low | Item 5's proponent argument softens two of the proponent's claims. "Instances of apparent fraud in secured lending" became "collateral irregularities in secured lending". "A former executive who was convicted of defrauding JPM" in the Frank acquisition became "an acquisition-related fraud conviction", which drops that JPM was the one defrauded. Same kind of drift as the board's softened wording in GOOGL v1. Left to review, like F16 |
 
 ### F1. Compound vote standards (AAPL, all five items)
 
@@ -174,3 +176,11 @@ The board's charge is kept specific and close to its wording: "describes the pro
 - **Arguments.** 41–51 words each, with balanced pairs. The figures trace to the filing: 51% over 2019, $100,000 H-1B fee, $425 million verdict, the Gemma removal from AI Studio, and October 2025 charter changes. Exception: F16.
 - **Representatives** are correct for items 6, 9, 11, and 12. Item 6 has no lead filer, which is correct (F15).
 
+
+**JPM** (`checked`, $0.68 at standard rates; first run, prompt v2):
+- **Meeting:** 2026-05-19, 10:00 a.m. Eastern, virtual, record date 2026-03-20. The 2,682,219,629 share count is stated at the record date, so F4 doesn't recur here.
+- **Items:** 7 items in the filing's order, with their types and recommendations (FOR 1–3, AGAINST 4–7). The 11 nominees are correct.
+- **Vote standards** match the filing's table and footnote. Item 1 is a majority of votes cast, with abstentions having no effect. Items 2–7 count abstentions as votes against ("votes FOR divided by the sum of votes FOR plus votes AGAINST plus votes ABSTAINING"). Item 3 is `advisory`, the same as the auditor ratification at AAPL, XOM, and GOOGL.
+- **Filers:** each lead filer matches its "has advised us that it intends to introduce" line. Co-sponsors are disclosed only on request (footnote), so `co_filers` is correctly empty.
+- **F2 applied.** The titles follow the filing's plain headings. "Lobbying alignment" and "Sustainability ROI report" became "Lobbying Alignment Report" and "Report on Return on Investment of Sustainability Investments".
+- **Arguments.** All are attributed and parallel. The board's own characterizations ("misrepresents", "incorrectly suggesting", "unsupported link") stay inside "The board argues…". The prompt's quote rule covers only `title`, `summary`, and `request`, so this follows it. The proponent's figures trace to the filing: $1.5 trillion SRI, IEA Net Zero basis, $2.5 trillion target, $129 billion, $1 trillion green target, and the Epstein reports. Exception: F17.
