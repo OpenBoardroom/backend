@@ -15,8 +15,9 @@ Prompt version 1 (version 2 from 2026-11-23, marked in the table), schema versio
 | XOM 2026 (prompt v2) | `0001193125-26-147614` | checked | 282,722 | 8,764 | 68 s | 6 | Facts correct; F2, F3 fixed; F12–F14 |
 | GOOGL 2026 (prompt v2) | `0001308179-26-000342` | in_review | 133,322 | 21,003 | 175 s | 14 | Facts correct; F8 fixed; sent to review by F15; F16 |
 | JPM 2026 (prompt v2) | `0000019617-26-000096` | checked | 125,379 | 8,688 | 68 s | 7 | Facts correct; F17. See below |
+| ACN 2026 (prompt v2) | `0001308179-25-000651` | checked | 126,776 | 5,166 | 37 s | 7 | Facts correct; F18–F20. See below |
 
-Planned next: ACN `0001308179-25-000651`, MSFT `0001193125-25-245150` (expected `out_of_scope`), NOW `0001373715-25-000312` (possibly a special meeting **(verify)**).
+Planned next: MSFT `0001193125-25-245150` (expected `out_of_scope`), NOW `0001373715-25-000312` (possibly a special meeting **(verify)**).
 
 ## Findings
 
@@ -39,6 +40,9 @@ Planned next: ACN `0001308179-25-000651`, MSFT `0001193125-25-245150` (expected 
 | F15 | GOOGL v2 | Consistency check | Medium | Fixed: the check now needs a lead filer **or** a representative. It required a lead filer on every shareholder proposal, but item 6's filing names only the representative ("Inspire Investing, LLC, on behalf of its client"). The model correctly left `lead_filer` empty, so the check sent a correct extraction to review. v1 had listed the representative as the lead filer, which was wrong |
 | F16 | GOOGL v2 | Arguments (accuracy) | Low | Item 7's proponent argument says "98% of unaffiliated Class A votes"; the filing says "Outside shareholders overwhelmingly support this proposal, with 98% backing in 2025". "Class A" is not in the filing. Arguments aren't quote-checked; review catches this |
 | F17 | JPM v2 | Arguments (accuracy) | Low | Item 5's proponent argument softens two of the proponent's claims. "Instances of apparent fraud in secured lending" became "collateral irregularities in secured lending". "A former executive who was convicted of defrauding JPM" in the Frank acquisition became "an acquisition-related fraud conviction", which drops that JPM was the one defrauded. Same kind of drift as the board's softened wording in GOOGL v1. Left to review, like F16 |
+| F18 | ACN v2 | Meeting | Low | `shares_outstanding` is null, but the filing states the record-date count: "660,352,923 Class A ordinary shares outstanding (which includes 44,997,383 shares held by Accenture) and 302,358 Class X ordinary shares outstanding". Treasury shares can't vote, so the voting count is 615,658,498 Class A plus 302,358 Class X **(verify the arithmetic in review)**. One integer field can't hold two classes and a treasury carve-out; null is the safe answer, but the fact is lost. Same field as F4 |
+| F19 | ACN v2 | Effect | Low | Item 4 bundles a non-binding auditor ratification with a binding authorization to set the auditor's pay. `effect = advisory` describes only the first part. The summary states both. Same shape as F1: one structured field for a two-part item |
+| F20 | ACN v2 | Category | Medium | Items 5–7 (authority to issue shares, opt-out of pre-emption rights, treasury re-allotment price range) are `other`. These are routine yearly items for every Irish-incorporated company, and many S&P 500 companies are Irish plcs **(verify the count)**, so `other` would fill with them. Needs a schema decision: a `share_capital_authority` category, or accept `other`. Related to F6 |
 
 ### F1. Compound vote standards (AAPL, all five items)
 
@@ -184,3 +188,14 @@ The board's charge is kept specific and close to its wording: "describes the pro
 - **Filers:** each lead filer matches its "has advised us that it intends to introduce" line. Co-sponsors are disclosed only on request (footnote), so `co_filers` is correctly empty.
 - **F2 applied.** The titles follow the filing's plain headings. "Lobbying alignment" and "Sustainability ROI report" became "Lobbying Alignment Report" and "Report on Return on Investment of Sustainability Investments".
 - **Arguments.** All are attributed and parallel. The board's own characterizations ("misrepresents", "incorrectly suggesting", "unsupported link") stay inside "The board argues…". The prompt's quote rule covers only `title`, `summary`, and `request`, so this follows it. The proponent's figures trace to the filing: $1.5 trillion SRI, IEA Net Zero basis, $2.5 trillion target, $129 billion, $1 trillion green target, and the Epstein reports. Exception: F17.
+
+**ACN** (`checked`, $0.61 at standard rates; first run, prompt v2; an Irish plc with no shareholder proposals):
+- **Meeting:** 2026-01-28, 12:00 pm local time, in person at The Dock, Dublin, record date 2025-12-01. Exception: F18.
+- **Items:** 7 items in the filing's order, all management and all recommended FOR. The 10 nominees are correct.
+- **Vote standards** match the filing's chart. Every item is decided by votes cast, and abstentions have no effect. Items 6 and 7 are Irish special resolutions at 75%, and the rest are ordinary resolutions at a simple majority.
+- **Summaries match the filing:**
+  - Item 3: an additional 7 million shares, with the term extended to December 12, 2035.
+  - Items 5 and 6: about 20% of issued share capital for 18 months.
+  - Item 6: the rights-issue carve-out.
+  - Item 4: names both the non-binding and the binding part. Exception: F19.
+- **Quotes:** items 1 and 6 start their `vote_standard_quote` mid-sentence ("the resolution in respect of…"), as in F14.
