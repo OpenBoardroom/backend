@@ -16,8 +16,9 @@ Prompt version 1 (version 2 from 2026-11-23, marked in the table), schema versio
 | GOOGL 2026 (prompt v2) | `0001308179-26-000342` | in_review | 133,322 | 21,003 | 175 s | 14 | Facts correct; F8 fixed; sent to review by F15; F16 |
 | JPM 2026 (prompt v2) | `0000019617-26-000096` | checked | 125,379 | 8,688 | 68 s | 7 | Facts correct; F17. See below |
 | ACN 2026 (prompt v2) | `0001308179-25-000651` | checked | 126,776 | 5,166 | 37 s | 7 | Facts correct; F18–F20. See below |
+| MSFT 2025 (prompt v2) | `0001193125-25-245150` | out_of_scope | 143,630 | 10,529 | 80 s | 10 (not stored) | Correct: meeting 2025-12-05, before any index membership; F21 |
 
-Planned next: MSFT `0001193125-25-245150` (expected `out_of_scope`), NOW `0001373715-25-000312` (possibly a special meeting **(verify)**).
+Not run: NOW `0001373715-25-000312` (possibly a special meeting **(verify)**).
 
 ## Findings
 
@@ -43,6 +44,7 @@ Planned next: MSFT `0001193125-25-245150` (expected `out_of_scope`), NOW `000137
 | F18 | ACN v2 | Meeting | Low | `shares_outstanding` is null, but the filing states the record-date count: "660,352,923 Class A ordinary shares outstanding (which includes 44,997,383 shares held by Accenture) and 302,358 Class X ordinary shares outstanding". Treasury shares can't vote, so the voting count is 615,355,540 Class A plus 302,358 Class X, 615,657,898 in all. One integer field can't hold two classes and a treasury carve-out; null is the safe answer, but the fact is lost. Same field as F4 |
 | F19 | ACN v2 | Effect | Low | Item 4 bundles a non-binding auditor ratification with a binding authorization to set the auditor's pay. `effect = advisory` describes only the first part. The summary states both. Same shape as F1: one structured field for a two-part item |
 | F20 | ACN v2 | Category | Medium | Items 5–7 (authority to issue shares, opt-out of pre-emption rights, treasury re-allotment price range) are `other`. These are routine yearly items for every Irish-incorporated company, and many S&P 500 companies are Irish plcs **(verify the count)**, so `other` would fill with them. Needs a schema decision: a `share_capital_authority` category, or accept `other`. Related to F6 |
+| F21 | MSFT 2025 v2 | Cost | Info | Scope is decided after a full extraction, so an out-of-scope filing costs as much as an in-scope one ($0.79 here). Four more queued proxies are for 2025 meetings, before the S&P 100 memberships start (2026-01-01). Their cached texts give the dates: SNDK `0001628280-25-044481` (2025-11-18), CSCO `0000858877-25-000150` (2025-12-16), PANW `0001308179-25-000624` (2025-12-09), and NOW `0001373715-25-000312` (2025-12-05). Together about $1.50 batched |
 
 ### F1. Compound vote standards (AAPL, all five items)
 
@@ -199,3 +201,8 @@ The board's charge is kept specific and close to its wording: "describes the pro
   - Item 6: the rights-issue carve-out.
   - Item 4: names both the non-binding and the binding part. Exception: F19.
 - **Quotes:** items 1 and 6 start their `vote_standard_quote` mid-sentence ("the resolution in respect of…"), as in F14.
+
+**MSFT 2025** (`out_of_scope`, $0.79 at standard rates):
+- **Scope:** the run read the meeting as 2025-12-05, backed by the quote "Annual Meeting to be held on December 5, 2025". No S&P 100 membership covers that date (all start 2026-01-01), so the filing was set aside and nothing was written. That is the designed outcome.
+- **Output:** the run's stored output still holds the meeting (record date 2025-09-30, 7,433,087,554 shares, virtual) and 10 items, for audit.
+- **Cost:** see F21.
