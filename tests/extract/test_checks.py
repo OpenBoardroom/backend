@@ -196,6 +196,23 @@ def test_equity_plan_advisory_fails() -> None:
     assert _failed(_run(out)) == ["consistency"]
 
 
+def test_share_capital_authority_binding_passes() -> None:
+    # Irish and UK share-capital authorities (finding F20); the resolution grants the authority.
+    out = _output()
+    item = _item(out, "auditor_ratification")
+    item["category"], item["effect"] = "share_capital_authority", "binding"
+    assert _failed(_run(out)) == []
+
+
+def test_share_capital_authority_advisory_fails() -> None:
+    out = _output()
+    item = _item(out, "auditor_ratification")
+    item["category"] = "share_capital_authority"
+    results = _run(out)
+    assert _failed(results) == ["consistency"]
+    assert "requires 'binding'" in (results[3].detail or "")
+
+
 def test_shareholder_binding_passes_for_a_binding_bylaw_amendment() -> None:
     out = _output()
     _item(out, "shareholder_proposal")["effect"] = "binding"

@@ -47,7 +47,7 @@ CREATE TABLE public.ballot_items (
     extraction_run_id bigint NOT NULL,
     published_at timestamp with time zone,
     CONSTRAINT ballot_items_board_recommendation_check CHECK ((board_recommendation = ANY (ARRAY['for'::text, 'against'::text, 'abstain'::text, 'none'::text, 'for_each_nominee'::text, 'one_year'::text, 'two_years'::text, 'three_years'::text]))),
-    CONSTRAINT ballot_items_category_check CHECK ((category = ANY (ARRAY['director_election'::text, 'say_on_pay'::text, 'say_on_pay_frequency'::text, 'auditor_ratification'::text, 'equity_plan'::text, 'charter_bylaw_amendment'::text, 'shareholder_proposal'::text, 'other'::text]))),
+    CONSTRAINT ballot_items_category_check CHECK ((category = ANY (ARRAY['director_election'::text, 'say_on_pay'::text, 'say_on_pay_frequency'::text, 'auditor_ratification'::text, 'equity_plan'::text, 'charter_bylaw_amendment'::text, 'share_capital_authority'::text, 'shareholder_proposal'::text, 'other'::text]))),
     CONSTRAINT ballot_items_effect_check CHECK ((effect = ANY (ARRAY['binding'::text, 'advisory'::text, 'precatory'::text]))),
     CONSTRAINT ballot_items_status_check CHECK ((status = ANY (ARRAY['active'::text, 'withdrawn'::text]))),
     CONSTRAINT ballot_items_type_check CHECK ((type = ANY (ARRAY['management'::text, 'shareholder'::text]))),
@@ -1143,4 +1143,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261121000004'),
     ('20261121000005'),
     ('20261121000006'),
-    ('20261122000001');
+    ('20261122000001'),
+    ('20261124000001');

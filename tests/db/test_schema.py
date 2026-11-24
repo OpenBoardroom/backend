@@ -76,6 +76,10 @@ def test_category_rejects_unknown_value(conn: psycopg.Connection) -> None:
         _insert_item(conn, meeting_id, "1", "merger")
 
 
+def test_category_accepts_share_capital_authority(conn: psycopg.Connection) -> None:
+    _insert_item(conn, _meeting(conn), "5", "share_capital_authority")
+
+
 def test_accession_is_unique(conn: psycopg.Connection) -> None:
     company_id = _company(conn)
     _filing(conn, company_id, "0001308179-26-000008")

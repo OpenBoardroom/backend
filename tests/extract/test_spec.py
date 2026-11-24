@@ -50,7 +50,7 @@ def _objects(node: object) -> list[dict[str, Any]]:
 
 
 def test_versions():
-    assert (PROMPT_VERSION, SCHEMA_VERSION) == ("2", "1")
+    assert (PROMPT_VERSION, SCHEMA_VERSION) == ("3", "2")
 
 
 def test_schema_is_valid_json_schema():
@@ -280,4 +280,17 @@ def test_prompt_hedge_and_attribution_rule():
 
 def test_earlier_prompt_versions_stay_readable():
     # Runs record the prompt version that produced them; the old text stays auditable.
-    assert (files("openboardroom.extract") / "prompts" / "system-v1.md").is_file()
+    prompts = files("openboardroom.extract") / "prompts"
+    for name in ("system-v1.md", "system-v2.md", "output-schema-v1.json"):
+        assert (prompts / name).is_file()
+
+
+def test_share_capital_authority_category():
+    # Finding F20: Irish and UK companies put share-capital authorities on every ballot.
+    schema = cast(dict[str, Any], output_schema())
+    category = schema["$defs"]["item"]["properties"]["category"]
+    assert "share_capital_authority" in category["enum"]
+    prompt = system_prompt()
+    assert "`share_capital_authority`: a management proposal" in prompt
+    assert "pre-emption rights" in prompt
+    assert "stays `charter_bylaw_amendment`" in prompt

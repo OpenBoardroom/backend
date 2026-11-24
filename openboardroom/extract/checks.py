@@ -20,7 +20,12 @@ _QUOTE_FIELDS = ("source_quote", "recommendation_quote", "vote_standard_quote")
 _ALWAYS_REQUIRED = (
     "number", "title", "type", "category", "effect", "board_recommendation", "source_quote",
 )  # fmt: skip
-_BINDING = {"director_election", "equity_plan", "charter_bylaw_amendment"}
+_BINDING = {
+    "director_election",
+    "equity_plan",
+    "charter_bylaw_amendment",
+    "share_capital_authority",
+}
 _ADVISORY = {"say_on_pay", "say_on_pay_frequency", "auditor_ratification"}
 _TRANSLATE = str.maketrans(
     {
