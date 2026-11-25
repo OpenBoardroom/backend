@@ -17,6 +17,8 @@ from openboardroom.extract.regex import Candidate, candidates_hint
 
 PROMPT_VERSION = "4"
 SCHEMA_VERSION = "3"
+# Text-only regeneration after a review rejection (spec §7.2); prompt and schema share it.
+TEXTS_PROMPT_VERSION = "1"
 
 _PROMPTS = files("openboardroom.extract") / "prompts"
 # A closing tag inside the untrusted filing text would end the data block early.
@@ -45,6 +47,66 @@ def output_schema() -> dict[str, object]:
 @cache
 def _validator() -> Draft202012Validator:
     return Draft202012Validator(output_schema(), format_checker=FormatChecker())
+
+
+def texts_prompt() -> str:
+    """Return the system prompt for regenerating rejected texts.
+
+    Returns:
+        The contents of ``prompts/texts-v{TEXTS_PROMPT_VERSION}.md``.
+    """
+    return (_PROMPTS / f"texts-v{TEXTS_PROMPT_VERSION}.md").read_text(encoding="utf-8")
+
+
+def texts_schema() -> dict[str, object]:
+    """Return the JSON Schema for regenerated texts.
+
+    Returns:
+        A fresh copy of ``prompts/texts-schema-v{TEXTS_PROMPT_VERSION}.json``.
+    """
+    path = _PROMPTS / f"texts-schema-v{TEXTS_PROMPT_VERSION}.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+@cache
+def _texts_validator() -> Draft202012Validator:
+    return Draft202012Validator(texts_schema())
+
+
+def texts_user_message(text: str, items: list[dict[str, object]]) -> str:
+    r"""Build the user message for regenerating one filing's rejected texts.
+
+    Args:
+        text: Plain text of the filing.
+        items: One object per item: its settled facts, its current texts, and
+            ``rewrite``, the texts to write with the reviewer's reason for each.
+
+    Returns:
+        The items as JSON, then the filing text last inside ``<filing>`` tags,
+        with ``</filing`` escaped as in ``user_message``.
+    """
+    filing = _CLOSING_TAG.sub(r"<\\/\1", text)
+    return (
+        "Items whose texts were rejected in review. The facts are settled.\n"
+        f"{json.dumps(items, indent=2, ensure_ascii=False)}\n\n"
+        f"<filing>\n{filing}\n</filing>"
+    )
+
+
+def validate_texts(output: object) -> list[str]:
+    """Check regenerated texts against their schema.
+
+    Args:
+        output: Parsed JSON from the model.
+
+    Returns:
+        One ``path: message`` string per schema error; empty when valid.
+    """
+    found: list[ValidationError] = list(_texts_validator().iter_errors(cast(Any, output)))  # pyright: ignore[reportUnknownMemberType]
+    return [
+        f"{'/'.join(str(part) for part in error.path) or '<root>'}: {error.message}"
+        for error in sorted(found, key=lambda e: [str(part) for part in e.path])
+    ]
 
 
 def user_message(text: str, candidates: list[Candidate]) -> str:

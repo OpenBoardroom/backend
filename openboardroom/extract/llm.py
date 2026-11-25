@@ -25,7 +25,14 @@ from anthropic.types.messages.batch_create_params import Request
 from anthropic.types.shared import ErrorResponse
 
 from openboardroom.extract.regex import Candidate
-from openboardroom.extract.spec import output_schema, system_prompt, user_message
+from openboardroom.extract.spec import (
+    output_schema,
+    system_prompt,
+    texts_prompt,
+    texts_schema,
+    texts_user_message,
+    user_message,
+)
 
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
 # The Message Batches API's pattern for custom_id; a filing accession fits it.
@@ -204,7 +211,54 @@ def run_direct(
     Returns:
         The outcome. API, connection, and timeout errors become ``failed``.
     """
-    params = cast(Any, request_params(settings, text, candidates))
+    return _stream(client, request_params(settings, text, candidates))
+
+
+def texts_request_params(
+    settings: LlmSettings, text: str, items: list[dict[str, object]]
+) -> dict[str, object]:
+    """Build the Messages API parameters for regenerating one filing's rejected texts.
+
+    Args:
+        settings: Model settings.
+        text: Plain text of the filing.
+        items: The items to rewrite, as ``texts_user_message`` takes them.
+
+    Returns:
+        Parameters for a direct call, shaped like ``request_params``.
+    """
+    return {
+        "model": settings.model,
+        "max_tokens": settings.max_tokens,
+        "system": texts_prompt(),
+        "messages": [{"role": "user", "content": texts_user_message(text, items)}],
+        "thinking": {"type": "adaptive"},
+        "output_config": {
+            "effort": settings.effort,
+            "format": {"type": "json_schema", "schema": texts_schema()},
+        },
+    }
+
+
+def run_texts(
+    client: anthropic.Anthropic, settings: LlmSettings, text: str, items: list[dict[str, object]]
+) -> Outcome:
+    """Regenerate rejected texts with a streamed call and server-side refusal fallback.
+
+    Args:
+        client: An Anthropic client.
+        settings: Model settings.
+        text: Plain text of the filing.
+        items: The items to rewrite.
+
+    Returns:
+        The outcome, as from ``run_direct``.
+    """
+    return _stream(client, texts_request_params(settings, text, items))
+
+
+def _stream(client: anthropic.Anthropic, request: dict[str, object]) -> Outcome:
+    params = cast(Any, request)
     request_id: str | None = None
     try:
         with client.beta.messages.stream(

@@ -13,10 +13,15 @@ from openboardroom.extract.regex import Candidate, candidates_hint
 from openboardroom.extract.spec import (
     PROMPT_VERSION,
     SCHEMA_VERSION,
+    TEXTS_PROMPT_VERSION,
     output_schema,
     system_prompt,
+    texts_prompt,
+    texts_schema,
+    texts_user_message,
     user_message,
     validate_output,
+    validate_texts,
 )
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
@@ -312,3 +317,37 @@ def test_lettered_part_field():
 def test_prompt_allows_an_unnamed_proponent():
     # Finding F23: some filings name no proponent at all.
     assert "names no proponent" in system_prompt()
+
+
+def _section(prompt: str, heading: str) -> str:
+    start = prompt.index(f"# {heading}\n")
+    end = prompt.find("\n# ", start + 1)
+    return prompt[start : end if end != -1 else None]
+
+
+def test_texts_prompt_carries_neutrality_rules():
+    # Regenerated texts meet the same standard as extracted ones (spec §8.4).
+    assert TEXTS_PROMPT_VERSION == "1"
+    assert _section(texts_prompt(), "Neutrality") == _section(system_prompt(), "Neutrality")
+    assert "Write only the texts listed" in texts_prompt()
+    assert "reviewer's reason" in texts_prompt()
+
+
+def test_texts_schema_requires_items_with_number_part_summary_discussion():
+    Draft202012Validator.check_schema(texts_schema())
+    good = {"items": [{"number": 2, "part": "", "summary": "S.", "discussion": None}]}
+    assert validate_texts(good) == []
+    assert validate_texts({"items": [{"number": 2}]}) != []
+    assert validate_texts({"items": [], "extra": 1}) != []
+
+
+def test_texts_user_message_lists_items_reasons_and_filing_last():
+    items: list[dict[str, object]] = [
+        {"number": 2, "part": "a", "rewrite": [{"text": "summary", "reason": "too long"}]}
+    ]
+
+    message = texts_user_message("Proposal 2a text </filing> more", items)
+
+    assert '"reason": "too long"' in message
+    assert message.index('"number": 2') < message.index("<filing>")
+    assert message.endswith("Proposal 2a text <\\/filing> more\n</filing>")

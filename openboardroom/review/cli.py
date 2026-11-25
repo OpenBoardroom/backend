@@ -4,10 +4,17 @@ import argparse
 import sys
 from collections.abc import Callable
 
+import anthropic
 import psycopg
 
 from openboardroom.companies import SubParsers
-from openboardroom.config import ConfigError, review_settings_from_env
+from openboardroom.config import (
+    ConfigError,
+    cache_dir_from_env,
+    extract_settings_from_env,
+    review_settings_from_env,
+)
+from openboardroom.pipeline import regenerate as regenerate_stage
 from openboardroom.review import render, session, store
 from openboardroom.review.store import ReviewError
 
@@ -37,6 +44,24 @@ def _next(conn: psycopg.Connection, args: argparse.Namespace, reviewer: str) -> 
     made = session.run(conn, reviewer, input, sys.stdout)
     print(f"\n{made} decisions recorded")
     return 0
+
+
+def _regenerate(conn: psycopg.Connection, args: argparse.Namespace, reviewer: str) -> int:
+    del reviewer
+    # The Anthropic SDK reads ANTHROPIC_API_KEY; this costs money (one call per filing).
+    result = regenerate_stage.regenerate(
+        conn,
+        anthropic.Anthropic(),
+        extract_settings_from_env(),
+        cache_dir_from_env() / "text",
+        limit=args.limit,
+    )
+    for failure in result.failed:
+        print(f"regenerate failed: {failure}", file=sys.stderr)
+    print(
+        f"regenerate: {result.filings} filings, {result.texts} texts, {len(result.failed)} failed"
+    )
+    return 1 if result.failed else 0
 
 
 def _recorded(review_id: int | list[int]) -> int:
@@ -113,5 +138,7 @@ def register(subparsers: SubParsers) -> None:
     requeue = add("requeue", "Send a filing back to extraction.", _DECISIONS["requeue"])
     for sub in (clear, requeue):
         sub.add_argument("accession")
+    regenerate = add("regenerate", "Rewrite rejected texts with Claude (costs money).", _regenerate)
+    regenerate.add_argument("--limit", type=int, help="At most this many filings.")
     for sub in (edit, reject, fix, fix_meeting, clear, requeue):
         sub.add_argument("--reason", required=True)

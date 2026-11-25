@@ -1,0 +1,68 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "items"
+  ],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/item"
+      }
+    }
+  },
+  "$defs": {
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "number",
+        "part",
+        "summary",
+        "discussion"
+      ],
+      "properties": {
+        "number": {
+          "type": "integer"
+        },
+        "part": {
+          "type": "string",
+          "description": "\"\" unless the item is a lettered vote"
+        },
+        "summary": {
+          "type": "string",
+          "description": "One neutral sentence on what shareholders are asked to vote on"
+        },
+        "discussion": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/discussion"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "discussion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "proponent",
+        "board"
+      ],
+      "properties": {
+        "proponent": {
+          "type": "string",
+          "description": "Begins \"The proponent argues\""
+        },
+        "board": {
+          "type": "string",
+          "description": "Begins \"The board argues\""
+        }
+      }
+    }
+  }
+}
