@@ -5,11 +5,16 @@ keeps what they decided.
 """
 
 from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 import psycopg
+from psycopg import sql
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
+
+from openboardroom.extract.store import set_stage
 
 ITEM_COLUMNS = (
     "title", "type", "category", "effect", "lead_filer", "representative", "co_filers",
@@ -20,6 +25,15 @@ ITEM_COLUMNS = (
 MEETING_COLUMNS = (
     "kind", "meeting_date", "meeting_time", "format", "record_date", "shares_outstanding",
     "date_quote",
+)  # fmt: skip
+
+FIXABLE_ITEM_FIELDS = (
+    "title", "type", "category", "effect", "lead_filer", "representative", "co_filers",
+    "board_recommendation", "vote_base", "vote_threshold_pct", "abstentions_count_against",
+    "vote_standard_text", "request", "status",
+)  # fmt: skip
+FIXABLE_MEETING_FIELDS = (
+    "kind", "meeting_date", "meeting_time", "format", "record_date", "shares_outstanding",
 )  # fmt: skip
 
 # The latest version of each text kind per item.
@@ -433,3 +447,257 @@ def reject_text(conn: psycopg.Connection, text_id: int, reviewer: str, reason: s
         conn.execute("update item_texts set review_status = %s where id = %s", (status, text_id))
         return _record(conn, text.filing_id, "reject", reviewer, item_id=text.item_id,
                        text_id=text_id, reason=reason)  # fmt: skip
+
+
+def _parse(field: str, value: str) -> object:
+    """Parse a reviewer's value for ``field``; ``""`` means null (an empty list for co-filers)."""
+    value = value.strip()
+    if field == "co_filers":
+        return [name.strip() for name in value.split(";") if name.strip()]
+    if not value:
+        return None
+    if field == "vote_threshold_pct":
+        try:
+            return Decimal(value)
+        except InvalidOperation:
+            raise ReviewError(f"{field}: {value!r} is not a number") from None
+    if field == "abstentions_count_against":
+        if value.lower() not in ("true", "false"):
+            raise ReviewError(f"{field}: give true or false, not {value!r}")
+        return value.lower() == "true"
+    if field in ("meeting_date", "record_date"):
+        try:
+            return date.fromisoformat(value)
+        except ValueError:
+            raise ReviewError(f"{field}: {value!r} is not a date (YYYY-MM-DD)") from None
+    if field == "shares_outstanding":
+        if not value.isdigit():
+            raise ReviewError(f"{field}: {value!r} is not a whole number")
+        return int(value)
+    return value
+
+
+def _json(value: object) -> object:
+    """A column value as JSON: dates as ISO strings, decimals as numbers."""
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return float(value)
+    return value
+
+
+def _update(conn: psycopg.Connection, table: str, field: str, value: object, row_id: int) -> None:
+    query = sql.SQL("update {} set {} = %s where id = %s").format(
+        sql.Identifier(table), sql.Identifier(field)
+    )
+    try:
+        with conn.transaction():
+            conn.execute(query, (value, row_id))
+    except psycopg.errors.CheckViolation:
+        raise ReviewError(f"{field}: {value!r} is not allowed") from None
+
+
+def fix_item(
+    conn: psycopg.Connection, item_id: int, field: str, value: str, reviewer: str, reason: str
+) -> int:
+    """Change one fact of a ballot item.
+
+    Args:
+        conn: Database connection.
+        item_id: The ballot item.
+        field: One of ``FIXABLE_ITEM_FIELDS``.
+        value: The new value as typed: ``""`` for null, ``;`` between co-filers,
+            ``true`` or ``false`` for abstentions.
+        reviewer: Who decided.
+        reason: Why.
+
+    Returns:
+        The review id. A correction is also written when the item is public.
+
+    Raises:
+        ReviewError: For an unknown item or field, a value the column rejects,
+            or a blank reason. Nothing is written.
+    """
+    if field not in FIXABLE_ITEM_FIELDS:
+        raise ReviewError(f"{field} can't be fixed; fixable: {', '.join(FIXABLE_ITEM_FIELDS)}")
+    reason, parsed = _required_text(reason, "reason"), _parse(field, value)
+    with conn.transaction():
+        row = conn.execute(
+            f"select m.proxy_filing_id, bi.published_at is not null, bi.{field} "
+            "from ballot_items bi join meetings m on m.id = bi.meeting_id where bi.id = %s "
+            "for update of bi",
+            (item_id,),
+        ).fetchone()
+        if row is None:
+            raise ReviewError(f"no item with id {item_id}")
+        filing_id, published, old = row
+        _update(conn, "ballot_items", field, parsed, item_id)
+        before, after = _json(old), _json(parsed)
+        review_id = _record(
+            conn, filing_id, "fix", reviewer, item_id=item_id, reason=reason,
+            before={"field": field, "value": before}, after={"field": field, "value": after},
+        )  # fmt: skip
+        if published:
+            _correct(conn, item_id, field, before, after, reason, review_id)
+        return review_id
+
+
+def fix_meeting(
+    conn: psycopg.Connection, accession: str, field: str, value: str, reviewer: str, reason: str
+) -> int:
+    """Change one fact of a filing's meeting.
+
+    A public meeting fact belongs to every public item of the meeting, so a
+    correction is written for each one, with field ``meeting.<field>``.
+
+    Args:
+        conn: Database connection.
+        accession: The proxy filing.
+        field: One of ``FIXABLE_MEETING_FIELDS``.
+        value: The new value as typed: ``""`` for null, dates as ``YYYY-MM-DD``.
+        reviewer: Who decided.
+        reason: Why.
+
+    Returns:
+        The review id.
+
+    Raises:
+        ReviewError: For an unknown filing or field, a bad value, or a blank reason.
+    """
+    if field not in FIXABLE_MEETING_FIELDS:
+        raise ReviewError(f"{field} can't be fixed; fixable: {', '.join(FIXABLE_MEETING_FIELDS)}")
+    reason, parsed = _required_text(reason, "reason"), _parse(field, value)
+    with conn.transaction():
+        row = conn.execute(
+            f"select m.id, f.id, m.{field} from meetings m "
+            "join filings f on f.id = m.proxy_filing_id where f.accession = %s for update of m",
+            (accession,),
+        ).fetchone()
+        if row is None:
+            raise ReviewError(f"no meeting for filing {accession}")
+        meeting_id, filing_id, old = row
+        _update(conn, "meetings", field, parsed, meeting_id)
+        before, after = _json(old), _json(parsed)
+        review_id = _record(
+            conn, filing_id, "fix", reviewer, reason=reason,
+            before={"field": f"meeting.{field}", "value": before},
+            after={"field": f"meeting.{field}", "value": after},
+        )  # fmt: skip
+        published = conn.execute(
+            "select id from ballot_items where meeting_id = %s and published_at is not null "
+            "order by id",
+            (meeting_id,),
+        ).fetchall()
+        for (item_id,) in published:
+            _correct(conn, item_id, f"meeting.{field}", before, after, reason, review_id)
+        return review_id
+
+
+def _filing(conn: psycopg.Connection, accession: str) -> tuple[int, str]:
+    row = conn.execute(
+        "select id, stage from filings where accession = %s for update", (accession,)
+    ).fetchone()
+    if row is None:
+        raise ReviewError(f"no filing {accession}")
+    return row[0], row[1]
+
+
+def _item_count(conn: psycopg.Connection, filing_id: int, published_only: bool = False) -> int:
+    row = conn.execute(
+        "select count(*) from ballot_items bi join meetings m on m.id = bi.meeting_id "
+        "where m.proxy_filing_id = %s and (not %s or bi.published_at is not null)",
+        (filing_id, published_only),
+    ).fetchone()
+    assert row is not None
+    return row[0]
+
+
+def clear(conn: psycopg.Connection, accession: str, reviewer: str, reason: str) -> int:
+    """Clear a filing from review once its facts are right, moving it to ``checked``.
+
+    Args:
+        conn: Database connection.
+        accession: The filing, at ``in_review``.
+        reviewer: Who decided.
+        reason: What the reviewer confirmed.
+
+    Returns:
+        The review id.
+
+    Raises:
+        ReviewError: For an unknown filing, one not in review, one with no
+            items (requeue it instead), or a blank reason.
+    """
+    reason = _required_text(reason, "reason")
+    with conn.transaction():
+        filing_id, stage = _filing(conn, accession)
+        if stage != "in_review":
+            raise ReviewError(f"{accession} is {stage}, not in_review")
+        if _item_count(conn, filing_id) == 0:
+            raise ReviewError(f"{accession} has no items; requeue it to extract again")
+        set_stage(conn, filing_id, "checked")
+        return _record(conn, filing_id, "clear", reviewer, reason=reason)
+
+
+# Child rows first; the 2026-11-24 reset deleted in this order.
+_REQUEUE_DELETES = (
+    "delete from item_texts where ballot_item_id in (select id from _items) "
+    "or extraction_run_id in (select id from _runs)",
+    "delete from nominees where ballot_item_id in (select id from _items)",
+    "delete from ballot_items where id in (select id from _items)",
+    "delete from meetings where proxy_filing_id = %(filing)s",
+    "delete from check_results where extraction_run_id in (select id from _runs)",
+    "delete from extraction_runs where id in (select id from _runs)",
+)
+
+
+def requeue(conn: psycopg.Connection, accession: str, reviewer: str, reason: str) -> int:
+    """Send a filing back to extraction: delete its extraction rows and set it to ``fetched``.
+
+    Reviews are kept; their links to deleted texts and items become null.
+
+    Args:
+        conn: Database connection.
+        accession: The filing.
+        reviewer: Who decided.
+        reason: Why it must be extracted again.
+
+    Returns:
+        The review id.
+
+    Raises:
+        ReviewError: For an unknown filing, a blank reason, or a filing with a
+            published item, vote results, or pending changes. Nothing is deleted.
+    """
+    reason = _required_text(reason, "reason")
+    with conn.transaction():
+        filing_id, _ = _filing(conn, accession)
+        if _item_count(conn, filing_id, published_only=True):
+            raise ReviewError(f"{accession} has published items; it can't be requeued")
+        params = {"filing": filing_id}
+        conn.execute(
+            "create temp table _items on commit drop as select bi.id from ballot_items bi "
+            "join meetings m on m.id = bi.meeting_id where m.proxy_filing_id = %(filing)s",
+            params,
+        )
+        conn.execute(
+            "create temp table _runs on commit drop as "
+            "select id from extraction_runs where filing_id = %(filing)s",
+            params,
+        )
+        for table, what in (
+            ("vote_results", "vote results"),
+            ("pending_changes", "pending changes"),
+        ):
+            query = sql.SQL(
+                "select exists (select 1 from {} where ballot_item_id in (select id from _items))"
+            ).format(sql.Identifier(table))
+            row = conn.execute(query).fetchone()
+            if row is not None and row[0]:
+                raise ReviewError(f"{accession} has {what}; it can't be requeued")
+        review_id = _record(conn, filing_id, "requeue", reviewer, reason=reason)
+        for statement in _REQUEUE_DELETES:
+            conn.execute(statement, params)  # pyright: ignore[reportArgumentType]
+        conn.execute("drop table _items, _runs")
+        set_stage(conn, filing_id, "fetched")
+        return review_id
