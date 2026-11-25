@@ -6,9 +6,12 @@ supplement, or nothing from that supplement is written.
 """
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, cast
 
 import psycopg
+from psycopg import sql
+from psycopg.types.json import Jsonb
 
 from openboardroom.extract.checks import quote_problem
 from openboardroom.extract.spec import validate_supplement
@@ -158,3 +161,127 @@ def problems(output: object, text: str, items: list[dict[str, object]]) -> list[
         if quote:
             found.append(f"{label}: {quote}")
     return found
+
+
+@dataclass(frozen=True)
+class ChangeCounts:
+    """What writing one supplement's changes did.
+
+    Attributes:
+        applied: Automatic changes recorded as applied (withdrawals and
+            recommendation changes), including ones that were already true.
+        pending: Changes waiting for a reviewer.
+        skipped: Changes already recorded by an earlier run.
+    """
+
+    applied: int
+    pending: int
+    skipped: int
+
+
+# Changes that apply without review when their quote verifies (spec §7.1).
+_AUTOMATIC = {"withdraw": "status", "change_recommendation": "board_recommendation"}
+
+
+def _target(change: dict[str, Any]) -> tuple[str, object]:
+    """The pending change's field and proposed value."""
+    kind = change["type"]
+    if kind == "withdraw":
+        return "status", "withdrawn"
+    if kind == "change_recommendation":
+        return "board_recommendation", change["recommendation"]
+    if kind == "change_nominees":
+        return "nominees", change["nominees"]
+    if kind == "amend_text":
+        return change["field"], change["value"]
+    return "item", {"number": change["number"], "part": change["part"], **change["item"]}
+
+
+def _recorded(
+    conn: psycopg.Connection, meeting_id: int, item_id: int | None, field: str, proposed: object
+) -> bool:
+    row = conn.execute(
+        """
+        select exists (
+            select 1 from pending_changes
+            where meeting_id = %s and ballot_item_id is not distinct from %s and field = %s
+              and proposed = %s and status in ('pending', 'applied')
+        )
+        """,
+        (meeting_id, item_id, field, Jsonb(proposed)),
+    ).fetchone()
+    return bool(row and row[0])
+
+
+def write_changes(
+    conn: psycopg.Connection,
+    supplement: Supplement,
+    run_id: int,
+    changes: list[dict[str, Any]],
+    now: datetime,
+) -> ChangeCounts:
+    """Record a supplement's checked changes, applying the automatic ones.
+
+    Runs inside the caller's transaction. Withdrawals and recommendation
+    changes update the item at once; when the item is public, a correction
+    with no review is written. Other changes wait for a reviewer. A change
+    already recorded (pending or applied) by an earlier run is skipped, so a
+    supplement processed twice changes nothing twice.
+
+    Args:
+        conn: Database connection.
+        supplement: The supplement, linked to a meeting.
+        run_id: Its supplement run.
+        changes: Its changes, already passed by ``problems``.
+        now: When automatic changes are recorded as decided.
+
+    Returns:
+        The counts.
+    """
+    assert supplement.meeting_id is not None
+    rows = conn.execute(
+        "select number, id, published_at is not null, status, board_recommendation "
+        "from ballot_items where meeting_id = %s",
+        (supplement.meeting_id,),
+    ).fetchall()
+    items = {row[0]: row[1:] for row in rows}
+    applied = pending = skipped = 0
+    for change in changes:
+        field, proposed = _target(change)
+        label = f"{change['number']}{change['part']}"
+        item_id = None if change["type"] == "add_item" else items[label][0]
+        if _recorded(conn, supplement.meeting_id, item_id, field, proposed):
+            skipped += 1
+            continue
+        automatic = change["type"] in _AUTOMATIC
+        if automatic:
+            _, published, status, recommendation = items[label]
+            current = status if field == "status" else recommendation
+            if current != proposed:
+                conn.execute(
+                    sql.SQL("update ballot_items set {} = %s where id = %s").format(
+                        sql.Identifier(field)
+                    ),
+                    (proposed, item_id),
+                )
+                if published:
+                    conn.execute(
+                        "insert into corrections (ballot_item_id, field, before, after, reason) "
+                        "values (%s, %s, %s, %s, %s)",
+                        (item_id, field, Jsonb(current), Jsonb(proposed),
+                         f"supplement {supplement.accession}"),
+                    )  # fmt: skip
+            applied += 1
+        else:
+            pending += 1
+        conn.execute(
+            """
+            insert into pending_changes (meeting_id, ballot_item_id, field, proposed,
+                                         source_quote, extraction_run_id, reason, status,
+                                         decided_at)
+            values (%s, %s, %s, %s, %s, %s, 'supplement', %s, %s)
+            """,
+            (supplement.meeting_id, item_id, field, Jsonb(proposed), change["source_quote"],
+             run_id, "applied" if automatic else "pending", now if automatic else None),
+        )  # fmt: skip
+    return ChangeCounts(applied, pending, skipped)
