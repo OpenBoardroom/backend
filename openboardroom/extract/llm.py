@@ -27,6 +27,9 @@ from anthropic.types.shared import ErrorResponse
 from openboardroom.extract.regex import Candidate
 from openboardroom.extract.spec import (
     output_schema,
+    supplement_prompt,
+    supplement_schema,
+    supplement_user_message,
     system_prompt,
     texts_prompt,
     texts_schema,
@@ -257,6 +260,49 @@ def run_texts(
     return _stream(client, texts_request_params(settings, text, items))
 
 
+def supplement_request_params(
+    settings: LlmSettings, text: str, items: list[dict[str, object]]
+) -> dict[str, object]:
+    """Build the Messages API parameters for reading one supplement's ballot changes.
+
+    Args:
+        settings: Model settings.
+        text: Plain text of the supplement.
+        items: The meeting's current items.
+
+    Returns:
+        Parameters shaped like ``request_params``, for direct and batch calls.
+    """
+    return {
+        "model": settings.model,
+        "max_tokens": settings.max_tokens,
+        "system": supplement_prompt(),
+        "messages": [{"role": "user", "content": supplement_user_message(text, items)}],
+        "thinking": {"type": "adaptive"},
+        "output_config": {
+            "effort": settings.effort,
+            "format": {"type": "json_schema", "schema": supplement_schema()},
+        },
+    }
+
+
+def run_supplement(
+    client: anthropic.Anthropic, settings: LlmSettings, text: str, items: list[dict[str, object]]
+) -> Outcome:
+    """Read one supplement with a streamed call and server-side refusal fallback.
+
+    Args:
+        client: An Anthropic client.
+        settings: Model settings.
+        text: Plain text of the supplement.
+        items: The meeting's current items.
+
+    Returns:
+        The outcome, as from ``run_direct``.
+    """
+    return _stream(client, supplement_request_params(settings, text, items))
+
+
 def _stream(client: anthropic.Anthropic, request: dict[str, object]) -> Outcome:
     params = cast(Any, request)
     request_id: str | None = None
@@ -301,12 +347,38 @@ def submit_batch(
     Raises:
         ValueError: A ``custom_id`` doesn't fit the batch API's pattern.
     """
+    return submit_requests(
+        client,
+        [
+            (custom_id, request_params(settings, text, candidates))
+            for custom_id, text, candidates in requests
+        ],
+    )
+
+
+def submit_requests(
+    client: anthropic.Anthropic, requests: list[tuple[str, dict[str, object]]]
+) -> str:
+    """Submit prepared requests as one message batch.
+
+    Args:
+        client: An Anthropic client.
+        requests: ``(custom_id, params)`` per filing, where ``custom_id`` is
+            the filing accession and ``params`` a request built for a direct call.
+
+    Returns:
+        The batch id.
+
+    Raises:
+        ValueError: A ``custom_id`` doesn't fit the batch API's pattern.
+    """
     batch: list[Request] = []
-    for custom_id, text, candidates in requests:
+    for custom_id, params in requests:
         if not _CUSTOM_ID.match(custom_id):
             raise ValueError(f"invalid batch custom_id: {custom_id!r}")
-        params = cast(MessageCreateParamsNonStreaming, request_params(settings, text, candidates))
-        batch.append(Request(custom_id=custom_id, params=params))
+        batch.append(
+            Request(custom_id=custom_id, params=cast(MessageCreateParamsNonStreaming, params))
+        )
     return client.messages.batches.create(requests=batch).id
 
 

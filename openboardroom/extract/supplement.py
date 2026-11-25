@@ -53,9 +53,9 @@ _LINKS = """
     ) p on true
     where s.form = 'DEFA14A' and s.stage = 'fetched'
       and (%(accession)s::text is null or s.accession = %(accession)s)
-      and not exists (
+      and (%(submitted)s or not exists (
           select 1 from extraction_runs r where r.filing_id = s.id and r.status = 'submitted'
-      )
+      ))
     order by s.id
 """
 
@@ -79,7 +79,7 @@ def pending_supplements(
     """
     ready: list[Supplement] = []
     for filing_id, number, proxy_id, meeting_id, items in conn.execute(
-        _LINKS, {"accession": accession}
+        _LINKS, {"accession": accession, "submitted": False}
     ).fetchall():
         if proxy_id is not None and (meeting_id is None or not items):
             continue
@@ -87,6 +87,26 @@ def pending_supplements(
         if limit is not None and len(ready) == limit:
             break
     return ready
+
+
+def linked(conn: psycopg.Connection, accession: str) -> Supplement | None:
+    """Link one fetched supplement, including one waiting on a batch, for collect.
+
+    Args:
+        conn: Database connection.
+        accession: The supplement.
+
+    Returns:
+        The supplement as ``pending_supplements`` would return it, or None
+        when it now waits (its proxy was requeued, or has no items).
+    """
+    row = conn.execute(_LINKS, {"accession": accession, "submitted": True}).fetchone()
+    if row is None:
+        return None
+    filing_id, number, proxy_id, meeting_id, items = row
+    if proxy_id is not None and (meeting_id is None or not items):
+        return None
+    return Supplement(filing_id, number, meeting_id)
 
 
 def meeting_items(conn: psycopg.Connection, meeting_id: int) -> list[dict[str, object]]:

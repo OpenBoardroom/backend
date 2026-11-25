@@ -135,11 +135,12 @@ def capped_filings(conn: psycopg.Connection, accession: str | None = None) -> li
     return [Filing(*row) for row in rows]
 
 
-def submitted_runs(conn: psycopg.Connection) -> list[SubmittedRun]:
-    """Return every llm run still waiting on a batch, by batch id, then run id.
+def submitted_runs(conn: psycopg.Connection, kind: str = "llm") -> list[SubmittedRun]:
+    """Return every run of ``kind`` still waiting on a batch, by batch id, then run id.
 
     Args:
         conn: Database connection.
+        kind: ``llm`` for proxy extractions, ``supplement`` for supplement passes.
 
     Returns:
         The runs, so each batch's runs are adjacent.
@@ -148,9 +149,10 @@ def submitted_runs(conn: psycopg.Connection) -> list[SubmittedRun]:
         """
         select r.id, r.batch_id, f.id, f.accession, f.company_id
         from extraction_runs r join filings f on f.id = r.filing_id
-        where r.kind = 'llm' and r.status = 'submitted'
+        where r.kind = %s and r.status = 'submitted'
         order by r.batch_id, r.id
-        """
+        """,
+        (kind,),
     ).fetchall()
     return [SubmittedRun(run_id, batch_id, Filing(*filing)) for run_id, batch_id, *filing in rows]
 
@@ -194,6 +196,10 @@ def insert_llm_run(
     outcome: Outcome | None,
     started_at: datetime,
     batch_id: str | None = None,
+    *,
+    kind: str = "llm",
+    prompt_version: str = PROMPT_VERSION,
+    schema_version: str = SCHEMA_VERSION,
 ) -> int:
     """Record a model call.
 
@@ -205,6 +211,9 @@ def insert_llm_run(
             which is recorded as `submitted` and finished later.
         started_at: When the request was sent.
         batch_id: The batch, for a batch request.
+        kind: ``llm`` for a proxy extraction, ``supplement`` for a supplement pass.
+        prompt_version: The prompt version the request used.
+        schema_version: The output schema version the request used.
 
     Returns:
         The run id. The model is the one that answered, or the requested one
@@ -220,16 +229,17 @@ def insert_llm_run(
                 input_tokens, output_tokens, output, status, batch_id, detail,
                 started_at, finished_at
             )
-            values (%s, 'llm', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+            values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                     case when %s = 'submitted' then null else now() end)
             returning id
             """,
             (
                 filing_id,
+                kind,
                 model,
                 settings.effort,
-                PROMPT_VERSION,
-                SCHEMA_VERSION,
+                prompt_version,
+                schema_version,
                 outcome.input_tokens if outcome else None,
                 outcome.output_tokens if outcome else None,
                 Jsonb(outcome.output) if outcome and outcome.output is not None else None,
