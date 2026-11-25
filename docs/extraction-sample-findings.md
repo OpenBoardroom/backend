@@ -1,6 +1,6 @@
 # Extraction sample: findings
 
-A hand check of single-filing extractions (`obr extract --filing`) before any batch run. Each filing is compared against its cached text (`cache/text/<accession>.txt`) and the EDGAR document. The four checks only confirm that quotes are verbatim; this log records what they can't catch. Findings feed the eval set (Plan 5) and the review CLI (Plan 3).
+A hand check of single-filing extractions (`obr extract --filing`) before any batch run. Each filing is compared against its cached text (`cache/text/<accession>.txt`) and the EDGAR document. The four checks only confirm that quotes are verbatim; this log records what they can't catch. Findings feed the eval set (Plan 5) and the review CLI (Plan 3, `docs/plans/2026-11-24-review-and-publication.md`).
 
 Prompt version 1 (version 2 from 2026-11-23, marked in the table; version 3 and schema version 2 from 2026-11-24, which add `share_capital_authority`; version 4 and schema version 3 later the same day, for F23 and F24), schema version as of BR-15 Plan 2, model `claude-opus-5-5`, effort `high`. The v1 rows were deleted from the local database before the v2 re-runs; this log is their record.
 

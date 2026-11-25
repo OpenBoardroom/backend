@@ -91,3 +91,20 @@ def test_render_filing_without_meeting_or_items() -> None:
     view = FilingView(1, "0000320193-26-000001", "AAPL", "in_review", URL, None, [], [])
     text = render.filing(view)
     assert "no meeting" in text and "no items" in text
+
+
+def test_render_unstated_values_read_plainly() -> None:
+    # Dry run on Berkshire 2026: a plurality vote has no threshold, and the
+    # share count can be unstated (finding F18); neither should print "None".
+    item = _proposal("a", "b")
+    item.fields.update(vote_base="plurality", vote_threshold_pct=None,
+                       abstentions_count_against=None)  # fmt: skip
+    view = _view(item)
+    assert view.meeting is not None
+    view.meeting["shares_outstanding"] = None
+
+    text = render.filing(view)
+
+    assert "vote: plurality, abstentions count against: not stated" in text
+    assert "shares not stated" in text
+    assert "None" not in text

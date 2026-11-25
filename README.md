@@ -26,6 +26,7 @@ Set these environment variables (`.env.example` lists them):
 | `OBR_EXTRACT_MODEL` | no | Claude model that extracts ballot items; default `claude-opus-5-5` |
 | `OBR_EXTRACT_EFFORT` | no | Output effort: `low`, `medium`, `high`, `xhigh`, or `max`; default `high` |
 | `OBR_EXTRACT_MAX_TOKENS` | no | Output token ceiling per filing, thinking included; a positive integer, default `64000` |
+| `OBR_REVIEWER` | for `review` | Your name, recorded on every review decision |
 | `ANTHROPIC_API_KEY` | for `extract` | Anthropic API key. The Anthropic SDK reads it; `obr` never does. Don't keep it in your shell environment or a file; pass it per command (see [Extract](#extract)) |
 
 ### Database
@@ -82,8 +83,9 @@ Run them in order:
 3. `uv run obr fetch` downloads each discovered filing's primary document into the cache, converts it to plain text, and advances it to `fetched`. It prints each failed filing as it goes and exits non-zero if any failed. If EDGAR refuses requests (HTTP 403 or 429) or can't be reached, it stops the whole run early and says why; the remaining filings stay `discovered`, so run it again later.
 
 4. `uv run obr extract` reads each fetched proxy statement with Claude, checks the result, and advances the filing to `checked`, `in_review`, or `out_of_scope` (see [Extract](#extract)).
+5. `uv run obr publish` makes the facts of every `checked` filing public and advances it to `published`. Texts become public only once a reviewer approves them (see [Review](#review)).
 
-All stages are safe to rerun: discovery skips filings it already has, fetch reuses cached documents, and extract only takes filings still at `fetched`.
+All stages are safe to rerun: discovery skips filings it already has, fetch reuses cached documents, extract only takes filings still at `fetched`, and publish only takes filings at `checked`.
 
 After a change to text conversion, run `uv run obr fetch --reconvert` to rebuild every cached text from its raw document (no downloads). Stages don't change; a filing whose cached document is missing or doesn't match its recorded hash is reported and left as it was.
 
@@ -112,6 +114,26 @@ In `--collect` runs, the last count is filings still waiting on a batch that has
 - `in_review`: a check failed, the model refused, or the output couldn't be written. A reviewer looks at the items it did produce; nothing is published.
 - `out_of_scope`: the meeting date, confirmed by its verbatim quote, isn't covered by any index membership, so the filing is set aside. A date its quote doesn't back goes to `in_review` instead.
 - still `fetched`: the call failed (API error, truncated or unparseable output) or the text file is missing. Run extract again. After 2 billed failures a filing is capped: later runs skip it and report it as an error until someone looks at it.
+
+### Review
+
+A person reviews every filing before its texts are public. Facts publish on passing checks; a filing that failed a check stays `in_review` until a reviewer clears it. Set `OBR_REVIEWER` to your name for these commands. They need the database URL but not the EDGAR User-Agent.
+
+| Command | What it does |
+|---|---|
+| `uv run obr review queue` | List filings waiting for review: `in_review` filings and filings with pending texts, oldest filing first |
+| `uv run obr review next` | Walk the queue. Per item: approve all its texts, approve, edit, or reject one, skip, or quit. Per `in_review` filing: clear, requeue, or keep. Every decision is saved as you make it |
+| `uv run obr review show ACCESSION` | Print one filing: facts, failed checks, quotes with links to the EDGAR document, texts with their ids, and argument lengths (flagged `UNEVEN` when they differ by more than a quarter) |
+| `uv run obr review approve TEXT_ID` / `approve-item ITEM_ID` | Approve one text, or all of an item's pending texts |
+| `uv run obr review edit TEXT_ID --body TEXT --reason R` | Replace a text with your own, which is approved. The model's text is kept |
+| `uv run obr review reject TEXT_ID --reason R` | Reject a text so it is rewritten. A second rejection in a row marks it for writing by hand (use `edit`) |
+| `uv run obr review fix ITEM_ID FIELD VALUE --reason R` | Change one fact of an item. `""` means none; separate co-filers with `;` |
+| `uv run obr review fix-meeting ACCESSION FIELD VALUE --reason R` | Change one fact of a meeting. Dates are `YYYY-MM-DD` |
+| `uv run obr review clear ACCESSION --reason R` | Move an `in_review` filing to `checked` once its facts are right |
+| `uv run obr review requeue ACCESSION --reason R` | Send a filing back to extraction (for a missing or extra item). Deletes its extraction rows and keeps the review record. Refused once any of its items is published |
+| `uv run obr review regenerate [--limit N]` | Rewrite rejected texts with Claude, one call per filing. **Costs money**; pass the API key as for `extract` |
+
+A change to a public value (a fact fix, or an edit of an approved text on a published item) also writes a correction record, which the public correction log shows.
 
 ### Discovery notices
 

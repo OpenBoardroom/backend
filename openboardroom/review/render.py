@@ -75,9 +75,11 @@ def item(view: ItemView, source_url: str) -> str:
         if f["co_filers"]:
             filers.append(f"co-filers: {'; '.join(f['co_filers'])}")
         lines += [f"  {' · '.join(filers)}", f"  request: {f['request'] or '(none)'}"]
+    threshold = "" if f["vote_threshold_pct"] is None else f" {f['vote_threshold_pct']}%,"
+    against = f["abstentions_count_against"]
     lines.append(
-        f"  vote: {f['vote_base']}, {f['vote_threshold_pct']}%, "
-        f"abstentions count against: {f['abstentions_count_against']}"
+        f"  vote: {f['vote_base']},{threshold} abstentions count against: "
+        f"{'not stated' if against is None else against}"
     )
     if f["vote_standard_text"]:
         lines.append(f"  vote standard as written: {f['vote_standard_text']}")
@@ -112,7 +114,12 @@ def filing(view: FilingView) -> str:
     else:
         lines.append(
             f"{m['kind']} meeting {m['meeting_date']} {m['meeting_time']}, {m['format']}; "
-            f"record date {m['record_date']}; {m['shares_outstanding']} shares"
+            f"record date {m['record_date'] or 'not stated'}; "
+            + (
+                "shares not stated"
+                if m["shares_outstanding"] is None
+                else f"{m['shares_outstanding']} shares"
+            )
         )
         lines += _quote("date", m["date_quote"], view.source_url)
     if not view.items:
