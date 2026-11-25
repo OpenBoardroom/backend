@@ -4,10 +4,10 @@ Every decision runs in its own transaction, so a reviewer who quits halfway
 keeps what they decided.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, cast
 
 import psycopg
 from psycopg import sql
@@ -43,6 +43,11 @@ _LATEST_TEXTS = """
     order by t.ballot_item_id, t.kind, t.version desc
 """
 _KIND_ORDER = {"summary": 0, "proponent_argument": 1, "board_argument": 2}
+# Pending changes on the meeting of filing ``f`` (spec §7.1).
+_PENDING_CHANGES = """
+    select count(*) from pending_changes pc join meetings pm on pm.id = pc.meeting_id
+    where pm.proxy_filing_id = f.id and pc.status = 'pending'
+"""
 
 
 class ReviewError(Exception):
@@ -60,6 +65,7 @@ class QueuedFiling:
         stage: ``in_review``, ``checked``, or ``published``.
         pending_texts: Latest-version texts still pending.
         needs_manual: Latest-version texts rejected twice, waiting to be written by hand.
+        pending_changes: Changes from supplements waiting for a decision.
     """
 
     filing_id: int
@@ -68,6 +74,7 @@ class QueuedFiling:
     stage: str
     pending_texts: int
     needs_manual: int
+    pending_changes: int = 0
 
 
 @dataclass(frozen=True)
@@ -104,6 +111,34 @@ class ItemView:
 
 
 @dataclass(frozen=True)
+class ChangeView:
+    """A pending change to a meeting's ballot, from a supplement.
+
+    Attributes:
+        id: The pending change.
+        item_id: The item it changes; None for an added item.
+        item_number: That item's number as printed; None for an added item.
+        field: ``status``, ``board_recommendation``, ``nominees``, an amended
+            field, or ``item`` for an added item.
+        proposed: The proposed value: a nominee list, a value, or the added item.
+        source_quote: The supplement's words stating the change.
+        supplement_accession: The supplement.
+        supplement_url: Its EDGAR document, for quote links.
+        status: ``pending``, ``applied``, or ``rejected``.
+    """
+
+    id: int
+    item_id: int | None
+    item_number: str | None
+    field: str
+    proposed: Any
+    source_quote: str | None
+    supplement_accession: str
+    supplement_url: str
+    status: str
+
+
+@dataclass(frozen=True)
 class FilingView:
     """A filing with everything a reviewer needs.
 
@@ -115,7 +150,9 @@ class FilingView:
         source_url: The EDGAR document.
         meeting: The meeting's columns named in ``MEETING_COLUMNS``, or None.
         items: Its ballot items, in id order (the ballot's order).
-        failed_checks: ``(check, detail)`` for each check the latest llm run failed.
+        failed_checks: ``(check, detail)`` for each check the latest llm or
+            supplement run failed.
+        changes: Pending changes to the meeting's ballot, oldest first.
     """
 
     filing_id: int
@@ -126,6 +163,7 @@ class FilingView:
     meeting: dict[str, Any] | None
     items: list[ItemView]
     failed_checks: list[tuple[str, str]]
+    changes: list[ChangeView] = field(default_factory=lambda: [])
 
 
 def queue(conn: psycopg.Connection) -> list[QueuedFiling]:
@@ -144,7 +182,8 @@ def queue(conn: psycopg.Connection) -> list[QueuedFiling]:
         f"""
         select f.id, f.accession, c.ticker, f.stage,
                count(t.id) filter (where t.review_status = 'pending') as pending,
-               count(t.id) filter (where t.review_status = 'needs_manual') as manual
+               count(t.id) filter (where t.review_status = 'needs_manual') as manual,
+               ({_PENDING_CHANGES}) as changes
         from filings f
         join companies c on c.id = f.company_id
         left join meetings m on m.proxy_filing_id = f.id
@@ -154,6 +193,7 @@ def queue(conn: psycopg.Connection) -> list[QueuedFiling]:
         group by f.id, c.ticker
         having f.stage = 'in_review'
             or count(t.id) filter (where t.review_status in ('pending', 'needs_manual')) > 0
+            or ({_PENDING_CHANGES}) > 0
         order by f.filed_at, f.id
         """
     ).fetchall()
@@ -195,13 +235,31 @@ def load(conn: psycopg.Connection, accession: str) -> FilingView | None:
             """
             select cr.check_name, cr.detail from check_results cr
             where cr.extraction_run_id = (
-                select max(id) from extraction_runs where filing_id = %s and kind = 'llm'
+                select max(id) from extraction_runs
+                where filing_id = %s and kind in ('llm', 'supplement')
             ) and not cr.passed
             order by cr.id
             """,
             (filing["id"],),
         ).fetchall()
         views = [_item_view(cursor, row) for row in items]
+        changes = (
+            cursor.execute(
+                """
+                select pc.id, pc.ballot_item_id, bi.number, pc.field, pc.proposed,
+                       pc.source_quote, s.accession, s.source_url, pc.status
+                from pending_changes pc
+                left join ballot_items bi on bi.id = pc.ballot_item_id
+                join extraction_runs r on r.id = pc.extraction_run_id
+                join filings s on s.id = r.filing_id
+                where pc.meeting_id = %s and pc.status = 'pending'
+                order by pc.id
+                """,
+                (meeting["id"],),
+            ).fetchall()
+            if meeting
+            else []
+        )
     if meeting is not None:
         del meeting["id"]
     return FilingView(
@@ -213,6 +271,7 @@ def load(conn: psycopg.Connection, accession: str) -> FilingView | None:
         meeting,
         views,
         [(row["check_name"], row["detail"] or "") for row in failed],
+        [ChangeView(*row.values()) for row in changes],
     )
 
 
@@ -616,6 +675,12 @@ def _filing(conn: psycopg.Connection, accession: str) -> tuple[int, str]:
     return row[0], row[1]
 
 
+def _form(conn: psycopg.Connection, filing_id: int) -> str:
+    row = conn.execute("select form from filings where id = %s", (filing_id,)).fetchone()
+    assert row is not None
+    return row[0]
+
+
 def _item_count(conn: psycopg.Connection, filing_id: int, published_only: bool = False) -> int:
     row = conn.execute(
         "select count(*) from ballot_items bi join meetings m on m.id = bi.meeting_id "
@@ -647,7 +712,8 @@ def clear(conn: psycopg.Connection, accession: str, reviewer: str, reason: str) 
         filing_id, stage = _filing(conn, accession)
         if stage != "in_review":
             raise ReviewError(f"{accession} is {stage}, not in_review")
-        if _item_count(conn, filing_id) == 0:
+        # A supplement has no items of its own; a proxy without items needs requeueing.
+        if _form(conn, filing_id) == "DEF 14A" and _item_count(conn, filing_id) == 0:
             raise ReviewError(f"{accession} has no items; requeue it to extract again")
         set_stage(conn, filing_id, "checked")
         return _record(conn, filing_id, "clear", reviewer, reason=reason)
@@ -720,4 +786,180 @@ def requeue(conn: psycopg.Connection, accession: str, reviewer: str, reason: str
             conn.execute(statement, params)  # pyright: ignore[reportArgumentType]
         conn.execute("drop table _items, _runs")
         set_stage(conn, filing_id, "fetched")
+        return review_id
+
+
+@dataclass(frozen=True)
+class _Change:
+    id: int
+    meeting_id: int
+    item_id: int | None
+    field: str
+    proposed: Any
+    status: str
+    run_id: int
+    filing_id: int
+    filing_stage: str
+
+
+def _change(conn: psycopg.Connection, change_id: int) -> _Change:
+    row = conn.execute(
+        """
+        select pc.id, pc.meeting_id, pc.ballot_item_id, pc.field, pc.proposed, pc.status,
+               pc.extraction_run_id, f.id, f.stage
+        from pending_changes pc
+        join meetings m on m.id = pc.meeting_id
+        join filings f on f.id = m.proxy_filing_id
+        where pc.id = %s
+        for update of pc
+        """,
+        (change_id,),
+    ).fetchone()
+    if row is None:
+        raise ReviewError(f"no change with id {change_id}")
+    change = _Change(*row)
+    if change.status != "pending":
+        raise ReviewError(f"change {change_id} is not pending ({change.status})")
+    return change
+
+
+def _decide(conn: psycopg.Connection, change: _Change, status: str, review_id: int) -> None:
+    conn.execute(
+        "update pending_changes set status = %s, decided_at = now(), review_id = %s where id = %s",
+        (status, review_id, change.id),
+    )
+
+
+def _apply_nominees(conn: psycopg.Connection, item_id: int, names: list[str]) -> list[str]:
+    before = [n for (n,) in conn.execute(
+        "select name from nominees where ballot_item_id = %s order by position", (item_id,)
+    ).fetchall()]  # fmt: skip
+    conn.execute("delete from nominees where ballot_item_id = %s", (item_id,))
+    with conn.cursor() as cursor:
+        cursor.executemany(
+            "insert into nominees (ballot_item_id, name, position) values (%s, %s, %s)",
+            [(item_id, name, position) for position, name in enumerate(names, 1)],
+        )
+    return before
+
+
+def _add_item(conn: psycopg.Connection, change: _Change) -> int:
+    item: dict[str, Any] = change.proposed
+    columns = ("title", "type", "category", "effect", "board_recommendation", "lead_filer",
+               "representative", "request")  # fmt: skip
+    values = [item[c] if item[c] != "" else None for c in columns]
+    row = conn.execute(
+        """
+        insert into ballot_items (meeting_id, number, title, type, category, effect,
+                                  board_recommendation, lead_filer, representative, request,
+                                  extraction_run_id)
+        values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        returning id
+        """,
+        (change.meeting_id, f"{item['number']}{item['part']}", *values, change.run_id),
+    ).fetchone()
+    assert row is not None
+    conn.execute(
+        "insert into item_texts (ballot_item_id, kind, version, body, origin, extraction_run_id) "
+        "values (%s, 'summary', 1, %s, 'model', %s)",
+        (row[0], item["summary"].strip() or None, change.run_id),
+    )
+    if change.filing_stage == "published":
+        # Publish only takes checked filings: this lets it publish the new item.
+        set_stage(conn, change.filing_id, "checked")
+    return row[0]
+
+
+def apply_change(conn: psycopg.Connection, change_id: int, reviewer: str, reason: str) -> int:
+    """Apply a pending change from a supplement.
+
+    Nominee changes replace the item's nominees. An amended field goes through
+    the same parsing and checks as ``fix_item``. An added item is created
+    unpublished with a pending summary, and its filing returns to ``checked``
+    so ``obr publish`` publishes it. A change to a public item writes a correction.
+
+    Args:
+        conn: Database connection.
+        change_id: The pending change.
+        reviewer: Who decided.
+        reason: Why it is right.
+
+    Returns:
+        The review id.
+
+    Raises:
+        ReviewError: For an unknown or decided change, a value the item rejects,
+            or a blank reason. Nothing is written.
+    """
+    reason = _required_text(reason, "reason")
+    with conn.transaction():
+        change = _change(conn, change_id)
+        published = False
+        if change.item_id is not None:
+            row = conn.execute(
+                "select published_at is not null from ballot_items where id = %s",
+                (change.item_id,),
+            ).fetchone()
+            published = bool(row and row[0])
+        if change.field == "item":
+            item_id = _add_item(conn, change)
+            before, after = None, change.proposed
+        elif change.field == "nominees":
+            item_id = change.item_id
+            assert item_id is not None
+            before = _apply_nominees(conn, item_id, change.proposed)
+            after = change.proposed
+        else:
+            item_id = change.item_id
+            assert item_id is not None
+            old = conn.execute(
+                sql.SQL("select {} from ballot_items where id = %s").format(
+                    sql.Identifier(change.field)
+                ),
+                (item_id,),
+            ).fetchone()
+            assert old is not None
+            proposed: object = change.proposed
+            text = (
+                "; ".join(str(name) for name in cast(list[object], proposed))
+                if isinstance(proposed, list)
+                else str(proposed)
+            )
+            parsed = _parse(change.field, text)
+            _update(conn, "ballot_items", change.field, parsed, item_id)
+            before, after = _json(old[0]), _json(parsed)
+        review_id = _record(
+            conn, change.filing_id, "apply_change", reviewer, item_id=item_id, reason=reason,
+            before={"field": change.field, "value": before},
+            after={"field": change.field, "value": after},
+        )  # fmt: skip
+        if published:
+            _correct(conn, item_id, change.field, before, after, reason, review_id)
+        _decide(conn, change, "applied", review_id)
+        return review_id
+
+
+def reject_change(conn: psycopg.Connection, change_id: int, reviewer: str, reason: str) -> int:
+    """Reject a pending change from a supplement; nothing on the ballot changes.
+
+    Args:
+        conn: Database connection.
+        change_id: The pending change.
+        reviewer: Who decided.
+        reason: Why it is wrong.
+
+    Returns:
+        The review id.
+
+    Raises:
+        ReviewError: For an unknown or decided change, or a blank reason.
+    """
+    reason = _required_text(reason, "reason")
+    with conn.transaction():
+        change = _change(conn, change_id)
+        review_id = _record(
+            conn, change.filing_id, "reject_change", reviewer, item_id=change.item_id,
+            reason=reason, before={"field": change.field, "value": change.proposed},
+        )  # fmt: skip
+        _decide(conn, change, "rejected", review_id)
         return review_id

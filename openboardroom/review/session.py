@@ -10,6 +10,7 @@ from openboardroom.review.store import ItemView, ReviewError
 
 ITEM_PROMPT = "[a]pprove item, approve [t]ext ID, [e]dit ID, [r]eject ID, [s]kip, [q]uit > "
 FILING_PROMPT = "[c]lear, [r]equeue, [k]eep in review, [q]uit > "
+CHANGE_PROMPT = "[y] apply, [n] reject, [s]kip, [q]uit > "
 
 
 class _Quit(Exception):
@@ -116,6 +117,33 @@ def _review_item(
         item = _reload(conn, accession, item.id)
 
 
+def _decide_change(
+    conn: psycopg.Connection,
+    reviewer: str,
+    ask: Callable[[str], str],
+    out: TextIO,
+    change: store.ChangeView,
+) -> int:
+    """Apply, reject, or skip one pending change from a supplement."""
+    out.write("\n" + render.change(change) + "\n")
+    while True:
+        choice = _ask(ask, CHANGE_PROMPT)
+        try:
+            if choice == "q":
+                raise _Quit
+            if choice == "s":
+                return 0
+            if choice == "y":
+                store.apply_change(conn, change.id, reviewer, _ask(ask, "reason > "))
+                return 1
+            if choice == "n":
+                store.reject_change(conn, change.id, reviewer, _ask(ask, "reason > "))
+                return 1
+            out.write(f"unknown choice {choice!r}\n")
+        except ReviewError as error:
+            out.write(f"error: {error}\n")
+
+
 def _decide_filing(
     conn: psycopg.Connection, reviewer: str, ask: Callable[[str], str], out: TextIO, accession: str
 ) -> int:
@@ -164,6 +192,8 @@ def run(conn: psycopg.Connection, reviewer: str, ask: Callable[[str], str], out:
                 _review_item(
                     conn, reviewer, ask, out, (view.accession, view.source_url), item, tally
                 )
+            for change in view.changes:
+                tally.made += _decide_change(conn, reviewer, ask, out, change)
             if view.stage == "in_review":
                 out.write(
                     f"{view.accession} is in review. Fix facts with "

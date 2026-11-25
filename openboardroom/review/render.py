@@ -1,8 +1,9 @@
 """Plain-text rendering of a filing for review in a terminal."""
 
+import json
 from urllib.parse import quote
 
-from openboardroom.review.store import FilingView, ItemView
+from openboardroom.review.store import ChangeView, FilingView, ItemView
 
 # Spec §8.4: the two arguments stay within a quarter of each other's length.
 _UNEVEN_SHARE = 0.25
@@ -99,6 +100,23 @@ def item(view: ItemView, source_url: str) -> str:
     return "\n".join(lines)
 
 
+def change(view: ChangeView) -> str:
+    """Render one pending change, with its quote linked into the supplement.
+
+    Args:
+        view: The change.
+
+    Returns:
+        Lines of text joined by newlines.
+    """
+    target = f"item {view.item_number}" if view.item_number else "new item"
+    proposed = json.dumps(view.proposed, ensure_ascii=False)
+    lines = [f"[change {view.id}] supplement {view.supplement_accession}: "
+             f"{target}: {view.field} → {proposed}"]  # fmt: skip
+    lines += _quote("quote", view.source_quote, view.supplement_url)
+    return "\n".join(lines)
+
+
 def filing(view: FilingView) -> str:
     """Render a whole filing: header, failed checks, meeting, and every item.
 
@@ -128,4 +146,7 @@ def filing(view: FilingView) -> str:
         lines.append("no items")
     for each in view.items:
         lines += ["", item(each, view.source_url)]
+    if view.changes:
+        lines += ["", "Pending changes from supplements:"]
+        lines += [change(each) for each in view.changes]
     return "\n".join(lines) + "\n"

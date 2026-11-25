@@ -67,6 +67,8 @@ def test_cli_queue_lists_oldest_first(
          ("0000000001-26-000001", "quinn", "r")),
         (["requeue", "0000000001-26-000001", "--reason", "r"], "requeue",
          ("0000000001-26-000001", "quinn", "r")),
+        (["apply-change", "5", "--reason", "r"], "apply_change", (5, "quinn", "r")),
+        (["reject-change", "5", "--reason", "r"], "reject_change", (5, "quinn", "r")),
     ],
 )  # fmt: skip
 def test_cli_decisions_call_the_store(

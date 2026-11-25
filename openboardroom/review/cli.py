@@ -82,6 +82,8 @@ _DECISIONS: dict[str, Action] = {
     ),
     "clear": lambda c, a, r: _recorded(store.clear(c, a.accession, r, a.reason)),
     "requeue": lambda c, a, r: _recorded(store.requeue(c, a.accession, r, a.reason)),
+    "apply-change": lambda c, a, r: _recorded(store.apply_change(c, a.change_id, r, a.reason)),
+    "reject-change": lambda c, a, r: _recorded(store.reject_change(c, a.change_id, r, a.reason)),
 }
 
 
@@ -141,5 +143,13 @@ def register(subparsers: SubParsers) -> None:
         sub.add_argument("accession")
     regenerate = add("regenerate", "Rewrite rejected texts with Claude (costs money).", _regenerate)
     regenerate.add_argument("--limit", type=int, help="At most this many filings.")
-    for sub in (edit, reject, fix, fix_meeting, clear, requeue):
+    apply_change = add(
+        "apply-change", "Apply a pending change from a supplement.", _DECISIONS["apply-change"]
+    )
+    reject_change = add(
+        "reject-change", "Reject a pending change from a supplement.", _DECISIONS["reject-change"]
+    )
+    for sub in (apply_change, reject_change):
+        sub.add_argument("change_id", type=int)
+    for sub in (edit, reject, fix, fix_meeting, clear, requeue, apply_change, reject_change):
         sub.add_argument("--reason", required=True)
