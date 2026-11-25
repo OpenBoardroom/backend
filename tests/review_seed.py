@@ -61,6 +61,7 @@ def seed_filing(
     *,
     stage: str = "checked",
     filed_at: str = "2026-01-10",
+    meeting_date: date | None = date(2026, 3, 1),
     cik: str = "0000320193",
     ticker: str = "AAPL",
     item_list: Sequence[dict[str, Any]] | None = None,
@@ -94,7 +95,7 @@ def seed_filing(
         conn,
         store.Filing(filing_id, accession, company_id),
         kind="annual",
-        meeting_date=date(2026, 3, 1),
+        meeting_date=meeting_date,
         meeting_time="9:00 a.m. Pacific Time",
         format="virtual",
         record_date=date(2026, 1, 2),
@@ -107,3 +108,22 @@ def seed_filing(
         "select id from ballot_items where meeting_id = %s order by id", (meeting_id,)
     ).fetchall()
     return Seeded(filing_id, run_id, [i for (i,) in ids])
+
+
+def add_supplement(
+    conn: psycopg.Connection,
+    accession: str,
+    filed_at: str,
+    *,
+    cik: str = "0000320193",
+    stage: str = "fetched",
+) -> int:
+    """Insert a DEFA14A for the company with ``cik`` (which must exist); return its id."""
+    row = conn.execute(
+        "insert into filings (accession, company_id, cik, form, filed_at, source_url, stage) "
+        "select %s, id, cik, 'DEFA14A', %s, 'https://www.sec.gov/Archives/s.htm', %s "
+        "from companies where cik = %s returning id",
+        (accession, filed_at, stage, cik),
+    ).fetchone()
+    assert row is not None
+    return row[0]
