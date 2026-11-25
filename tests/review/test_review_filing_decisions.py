@@ -197,7 +197,8 @@ def test_requeue_after_text_decisions_keeps_those_reviews(conn: psycopg.Connecti
 
 
 def test_requeue_refuses_published_filing(conn: psycopg.Connection) -> None:
-    seeded = seed_filing(conn, stage="published")
+    # A published filing reopened for review (reconciliation, Plan 4) is back in_review.
+    seeded = seed_filing(conn, stage="in_review")
     _publish(conn, seeded.item_ids[0])
 
     with pytest.raises(ReviewError, match="published"):
@@ -226,3 +227,34 @@ def test_requeue_refuses_when_vote_results_or_pending_changes_exist(
     with pytest.raises(ReviewError, match="pending changes"):
         store.requeue(conn, ACCESSION, "quinn", "r")
     assert _count(conn, "ballot_items") == 2
+
+
+@pytest.mark.parametrize("stage", ["fetched", "discovered", "published"])
+def test_requeue_refuses_other_stages(conn: psycopg.Connection, stage: str) -> None:
+    # Final review #5: a fetched filing may be waiting on a batch; requeue would bill it twice.
+    seed_filing(conn, stage=stage)
+    with pytest.raises(ReviewError, match=f"is {stage}"):
+        store.requeue(conn, ACCESSION, "quinn", "r")
+    assert _count(conn, "ballot_items") == 2
+
+
+def test_requeue_allows_out_of_scope(conn: psycopg.Connection) -> None:
+    seed_filing(conn, stage="out_of_scope")
+    store.requeue(conn, ACCESSION, "quinn", "membership dates fixed")
+    assert _count(conn, "ballot_items") == 0
+
+
+@pytest.mark.parametrize(
+    ("field", "value"), [("status", ""), ("shares_outstanding", "99999999999999999999")]
+)
+def test_fix_database_errors_become_review_errors(
+    conn: psycopg.Connection, field: str, value: str
+) -> None:
+    # Final review (promoted minor): any value the database refuses is a ReviewError.
+    seeded = seed_filing(conn, stage="in_review")
+    with pytest.raises(ReviewError, match="not allowed"):
+        if field == "status":
+            store.fix_item(conn, seeded.item_ids[0], field, value, "quinn", "r")
+        else:
+            store.fix_meeting(conn, ACCESSION, field, value, "quinn", "r")
+    assert _count(conn, "reviews") == 0

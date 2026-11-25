@@ -177,3 +177,27 @@ def test_blank_edit_raises(conn: psycopg.Connection) -> None:
         store.edit_text(conn, text["id"], "  ", "quinn", "blank")
     with pytest.raises(ReviewError, match="reason"):
         store.edit_text(conn, text["id"], "Fine.", "quinn", "")
+
+
+def test_approving_a_replacement_of_a_public_text_writes_correction(
+    conn: psycopg.Connection,
+) -> None:
+    # Final review #1, defence in depth: any approval that replaces a public text is a correction.
+    seeded = seed_filing(conn)
+    item_id = seeded.item_ids[1]
+    store.approve_text(conn, _text(conn, item_id)["id"], "quinn")
+    _publish(conn, item_id)
+    conn.execute(
+        "insert into item_texts (ballot_item_id, kind, version, body, origin) "
+        "values (%s, 'summary', 2, 'Replacement.', 'model')",
+        (item_id,),
+    )
+
+    review_id = store.approve_text(conn, _text(conn, item_id)["id"], "quinn")
+
+    assert conn.execute(
+        "select field, before, after, reason, review_id from corrections"
+    ).fetchall() == [
+        ("summary", "A request for a report on water use.", "Replacement.",
+         "approved a new version", review_id),
+    ]  # fmt: skip

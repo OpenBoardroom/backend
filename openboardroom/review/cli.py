@@ -25,7 +25,8 @@ def _queue(conn: psycopg.Connection, args: argparse.Namespace, reviewer: str) ->
     del args, reviewer
     queued = store.queue(conn)
     for q in queued:
-        print(f"{q.accession}  {q.ticker:6} {q.stage:9} {q.pending_texts:3} pending")
+        manual = f", {q.needs_manual} to write by hand" if q.needs_manual else ""
+        print(f"{q.accession}  {q.ticker:6} {q.stage:9} {q.pending_texts:3} pending{manual}")
     print(f"{len(queued)} filings in the queue")
     return 0
 

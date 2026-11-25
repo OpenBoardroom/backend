@@ -70,7 +70,7 @@ def test_session_edit_and_bad_input(conn: psycopg.Connection) -> None:
     ).fetchone()
     assert summary is not None
 
-    answers = ["x", "t 999999", f"e {summary[0]}", "Elect directors.", "shorter", "q"]
+    answers = ["x", "t 999999", f"e {summary[0]}", "Elect directors.", ".", "shorter", "y", "q"]
     made = session.run(conn, "quinn", _asker(answers), out)
 
     assert made == 1
@@ -150,3 +150,73 @@ def test_session_approves_one_text(conn: psycopg.Connection) -> None:
 
     assert session.run(conn, "quinn", _asker([f"t {summary[0]}", "q"]), io.StringIO()) == 1
     assert ("summary", "approved") in _statuses(conn, seeded.item_ids[0])
+
+
+def _text_id(conn: psycopg.Connection, item_id: int, kind: str) -> int:
+    row = conn.execute(
+        "select id from item_texts where ballot_item_id = %s and kind = %s "
+        "order by version desc limit 1",
+        (item_id, kind),
+    ).fetchone()
+    assert row is not None
+    return row[0]
+
+
+def test_session_offers_edit_for_needs_manual(conn: psycopg.Connection) -> None:
+    # Final review #3: a text marked for writing by hand can be written in the session.
+    seeded = seed_filing(conn)
+    store_ids = seeded.item_ids
+    conn.execute(
+        "update item_texts set review_status = 'approved' where ballot_item_id = %s",
+        (store_ids[0],),
+    )
+    text_id = _text_id(conn, store_ids[1], "summary")
+    conn.execute("update item_texts set review_status = 'needs_manual' where id = %s", (text_id,))
+    conn.execute(
+        "update item_texts set review_status = 'approved' where ballot_item_id = %s "
+        "and kind <> 'summary'",
+        (store_ids[1],),
+    )
+
+    answers = [f"e {text_id}", "A request for a water report.", ".", "written by hand", "y"]
+    made = session.run(conn, "quinn", _asker(answers), io.StringIO())
+
+    assert made == 1
+    assert ("summary", "approved") in [
+        row for row in conn.execute(
+            "select kind, review_status from item_texts where ballot_item_id = %s "
+            "and version = 2",
+            (store_ids[1],),
+        ).fetchall()
+    ]  # fmt: skip
+
+
+def test_session_edit_reads_until_dot_and_confirms(conn: psycopg.Connection) -> None:
+    # Final review #4: a pasted multi-line text must not spill into later prompts.
+    seeded = seed_filing(conn)
+    summary = _text_id(conn, seeded.item_ids[0], "summary")
+    out = io.StringIO()
+
+    answers = [f"e {summary}", "Line one.", "a", ".", "joined", "n",
+               f"e {summary}", "Line one.", "Line two.", ".", "two lines", "y", "q"]  # fmt: skip
+    made = session.run(conn, "quinn", _asker(answers), out)
+
+    assert made == 1
+    body = conn.execute(
+        "select body from item_texts where ballot_item_id = %s and kind = 'summary' "
+        "order by version desc limit 1",
+        (seeded.item_ids[0],),
+    ).fetchone()
+    assert body == ("Line one.\nLine two.",)
+    assert "discarded" in out.getvalue()
+
+
+def test_session_shows_item_before_each_prompt(conn: psycopg.Connection) -> None:
+    # Final review #6: the item's current state is shown again before every prompt.
+    seeded = seed_filing(conn)
+    proponent = _text_id(conn, seeded.item_ids[1], "proponent_argument")
+    out = io.StringIO()
+
+    session.run(conn, "quinn", _asker(["s", f"r {proponent}", "missing figure", "q"]), out)
+
+    assert f"[{proponent}] proponent_argument v1 model rejected" in out.getvalue()

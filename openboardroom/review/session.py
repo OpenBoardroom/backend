@@ -27,6 +27,11 @@ def _pending(item: ItemView) -> set[int]:
     return {t.id for t in item.texts if t.review_status == "pending"}
 
 
+def _open(item: ItemView) -> set[int]:
+    """Texts that still need a decision: pending, or rejected twice and waiting to be written."""
+    return {t.id for t in item.texts if t.review_status in ("pending", "needs_manual")}
+
+
 def _reload(conn: psycopg.Connection, accession: str, item_id: int) -> ItemView | None:
     view = store.load(conn, accession)
     return next((i for i in view.items if i.id == item_id), None) if view else None
@@ -39,18 +44,45 @@ def _ask(ask: Callable[[str], str], prompt: str) -> str:
         raise _Quit from None
 
 
+def _read_body(ask: Callable[[str], str]) -> str:
+    """Read a text of one or more lines, ended by a line holding only "."."""
+    lines: list[str] = []
+    while (line := _ask(ask, "text (end with a line holding only '.') > ")) != ".":
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def _edit(
+    conn: psycopg.Connection, reviewer: str, ask: Callable[[str], str], out: TextIO, text_id: int
+) -> bool:
+    """Read a new text and a reason, show them, and save only on confirmation."""
+    body = _read_body(ask)
+    reason = _ask(ask, "reason > ")
+    out.write(f"new text:\n{body}\n")
+    if _ask(ask, "save? [y/n] > ").lower() != "y":
+        out.write("discarded\n")
+        return False
+    store.edit_text(conn, text_id, body, reviewer, reason)
+    return True
+
+
 def _review_item(
     conn: psycopg.Connection,
     reviewer: str,
     ask: Callable[[str], str],
     out: TextIO,
-    accession: str,
+    view: tuple[str, str],
     item: ItemView | None,
     tally: _Tally,
 ) -> None:
-    """Take decisions on one item until none of its texts is pending, or the reviewer skips."""
-    while item is not None and _pending(item):
-        out.write(f"Item {item.number}: pending texts {sorted(_pending(item))}\n")
+    """Take decisions on one item until none of its texts is open, or the reviewer skips.
+
+    ``view`` is the filing's ``(accession, source_url)``. The item is shown
+    again before every prompt, so its current state is always on screen.
+    """
+    accession, source_url = view
+    while item is not None and _open(item):
+        out.write("\n" + render.item(item, source_url) + "\n")
         choice, _, arg = _ask(ask, ITEM_PROMPT).partition(" ")
         try:
             if choice == "q":
@@ -61,17 +93,18 @@ def _review_item(
                 tally.made += len(store.approve_item(conn, item.id, reviewer))
             elif choice in ("t", "e", "r"):
                 text_id = int(arg) if arg.strip().isdigit() else -1
-                if text_id not in _pending(item):
+                allowed = _open(item) if choice == "e" else _pending(item)
+                if text_id not in allowed:
                     out.write(f"{arg.strip() or '?'} is not a pending text of this item\n")
                     continue
                 if choice == "t":
                     store.approve_text(conn, text_id, reviewer)
+                    tally.made += 1
                 elif choice == "e":
-                    body = _ask(ask, "new text > ")
-                    store.edit_text(conn, text_id, body, reviewer, _ask(ask, "reason > "))
+                    tally.made += _edit(conn, reviewer, ask, out, text_id)
                 else:
                     store.reject_text(conn, text_id, reviewer, _ask(ask, "reason > "))
-                tally.made += 1
+                    tally.made += 1
             else:
                 out.write(f"unknown choice {choice!r}\n")
                 continue
@@ -125,7 +158,9 @@ def run(conn: psycopg.Connection, reviewer: str, ask: Callable[[str], str], out:
                 continue
             out.write(render.filing(view))
             for item in view.items:
-                _review_item(conn, reviewer, ask, out, view.accession, item, tally)
+                _review_item(
+                    conn, reviewer, ask, out, (view.accession, view.source_url), item, tally
+                )
             if view.stage == "in_review":
                 out.write(
                     f"{view.accession} is in review. Fix facts with "

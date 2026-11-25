@@ -43,12 +43,14 @@ def _quote(label: str, text: str | None, source_url: str) -> list[str]:
 
 
 def _arguments(item: ItemView) -> list[str]:
-    counts = [len((t.body or "").split()) for t in item.texts if t.kind != "summary"]
-    if len(counts) != 2 or not all(counts):
+    counts = {t.kind: len((t.body or "").split()) for t in item.texts if t.kind != "summary"}
+    proponent, board = counts.get("proponent_argument", 0), counts.get("board_argument", 0)
+    if not proponent and not board:
         return []
-    low, high = sorted(counts)
-    flag = " UNEVEN" if high - low > _UNEVEN_SHARE * high else ""
-    return [f"  arguments: {counts[0]} and {counts[1]} words{flag}"]
+    low, high = sorted((proponent, board))
+    # One side missing is the most uneven case of all (spec §8.4).
+    flag = " ONE-SIDED" if not low else " UNEVEN" if high - low > _UNEVEN_SHARE * high else ""
+    return [f"  arguments: proponent {proponent}, board {board} words{flag}"]
 
 
 def item(view: ItemView, source_url: str) -> str:

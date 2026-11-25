@@ -59,6 +59,7 @@ class QueuedFiling:
         ticker: The company's ticker.
         stage: ``in_review``, ``checked``, or ``published``.
         pending_texts: Latest-version texts still pending.
+        needs_manual: Latest-version texts rejected twice, waiting to be written by hand.
     """
 
     filing_id: int
@@ -66,6 +67,7 @@ class QueuedFiling:
     ticker: str
     stage: str
     pending_texts: int
+    needs_manual: int
 
 
 @dataclass(frozen=True)
@@ -130,7 +132,7 @@ def queue(conn: psycopg.Connection) -> list[QueuedFiling]:
     """List filings waiting for review, oldest filing first.
 
     A filing waits when it is ``in_review``, or when it is ``checked`` or
-    ``published`` and a latest-version text is still pending.
+    ``published`` and a latest-version text is pending or needs manual writing.
 
     Args:
         conn: Database connection.
@@ -141,7 +143,8 @@ def queue(conn: psycopg.Connection) -> list[QueuedFiling]:
     rows = conn.execute(
         f"""
         select f.id, f.accession, c.ticker, f.stage,
-               count(t.id) filter (where t.review_status = 'pending') as pending
+               count(t.id) filter (where t.review_status = 'pending') as pending,
+               count(t.id) filter (where t.review_status = 'needs_manual') as manual
         from filings f
         join companies c on c.id = f.company_id
         left join meetings m on m.proxy_filing_id = f.id
@@ -149,7 +152,8 @@ def queue(conn: psycopg.Connection) -> list[QueuedFiling]:
         left join ({_LATEST_TEXTS}) t on t.ballot_item_id = bi.id
         where f.stage in ('in_review', 'checked', 'published')
         group by f.id, c.ticker
-        having f.stage = 'in_review' or count(t.id) filter (where t.review_status = 'pending') > 0
+        having f.stage = 'in_review'
+            or count(t.id) filter (where t.review_status in ('pending', 'needs_manual')) > 0
         order by f.filed_at, f.id
         """
     ).fetchall()
@@ -347,8 +351,18 @@ def approve_text(conn: psycopg.Connection, text_id: int, reviewer: str) -> int:
         text = _text(conn, text_id)
         _pending(text)
         conn.execute("update item_texts set review_status = 'approved' where id = %s", (text_id,))
-        return _record(conn, text.filing_id, "approve", reviewer, item_id=text.item_id,
-                       text_id=text_id)  # fmt: skip
+        review_id = _record(conn, text.filing_id, "approve", reviewer, item_id=text.item_id,
+                            text_id=text_id)  # fmt: skip
+        public = conn.execute(
+            "select body from item_texts where ballot_item_id = %s and kind = %s "
+            "and version < %s and review_status = 'approved' order by version desc limit 1",
+            (text.item_id, text.kind, text.version),
+        ).fetchone()
+        if text.published and public is not None:
+            # This version replaces a public text: that is a correction (spec §7.3).
+            _correct(conn, text.item_id, text.kind, public[0], text.body, "approved a new version",
+                     review_id)  # fmt: skip
+        return review_id
 
 
 def approve_item(conn: psycopg.Connection, item_id: int, reviewer: str) -> list[int]:
@@ -493,7 +507,7 @@ def _update(conn: psycopg.Connection, table: str, field: str, value: object, row
     try:
         with conn.transaction():
             conn.execute(query, (value, row_id))
-    except psycopg.errors.CheckViolation:
+    except (psycopg.errors.IntegrityError, psycopg.errors.DataError):
         raise ReviewError(f"{field}: {value!r} is not allowed") from None
 
 
@@ -639,6 +653,7 @@ def clear(conn: psycopg.Connection, accession: str, reviewer: str, reason: str) 
         return _record(conn, filing_id, "clear", reviewer, reason=reason)
 
 
+_REQUEUE_STAGES = ("in_review", "checked", "out_of_scope")
 # Child rows first; the 2026-11-24 reset deleted in this order.
 _REQUEUE_DELETES = (
     "delete from item_texts where ballot_item_id in (select id from _items) "
@@ -671,7 +686,12 @@ def requeue(conn: psycopg.Connection, accession: str, reviewer: str, reason: str
     """
     reason = _required_text(reason, "reason")
     with conn.transaction():
-        filing_id, _ = _filing(conn, accession)
+        filing_id, stage = _filing(conn, accession)
+        # A fetched filing may be waiting on a batch: requeueing it would bill it twice.
+        if stage not in _REQUEUE_STAGES:
+            raise ReviewError(
+                f"{accession} is {stage}; only {', '.join(_REQUEUE_STAGES)} filings can be requeued"
+            )
         if _item_count(conn, filing_id, published_only=True):
             raise ReviewError(f"{accession} has published items; it can't be requeued")
         params = {"filing": filing_id}

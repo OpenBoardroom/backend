@@ -223,3 +223,53 @@ def test_regenerate_api_error_is_recorded(conn: psycopg.Connection, tmp_path: Pa
     assert conn.execute("select status from extraction_runs where kind = 'texts'").fetchone() == (
         "failed",
     )
+
+
+def _during_call(conn: psycopg.Connection, action: Any, response: Any) -> Any:
+    """A transport handler that runs ``action`` on the database while the call is in flight."""
+
+    def handle(request: Any) -> Any:
+        del request
+        action()
+        return response
+
+    return handle
+
+
+def test_regenerate_skips_text_edited_during_the_call(
+    conn: psycopg.Connection, tmp_path: Path
+) -> None:
+    # Final review #1: a reviewer edit made while the call runs must win; a model
+    # version on top would later replace public text with no correction.
+    seeded = seed_filing(conn, stage="published")
+    text_id = _reject_proponent(conn, seeded.item_ids[1])
+    handler = _during_call(
+        conn,
+        lambda: store.edit_text(conn, text_id, "The proponent argues X.", "quinn", "by hand"),
+        stream_response(_message(GOOD)),
+    )
+
+    result = regenerate(conn, mock_client(handler), SETTINGS, _text_dir(tmp_path))
+
+    assert result.texts == 0
+    assert result.failed == [f"{ACCESSION}: item 2 proponent_argument changed during the run"]
+    assert ("proponent_argument", 2, "The proponent argues X.", "approved") in _latest(
+        conn, seeded.item_ids[1]
+    )
+
+
+def test_regenerate_skips_filing_requeued_during_the_call(
+    conn: psycopg.Connection, tmp_path: Path
+) -> None:
+    seeded = seed_filing(conn, stage="in_review")
+    _reject_proponent(conn, seeded.item_ids[1])
+    handler = _during_call(
+        conn,
+        lambda: store.requeue(conn, ACCESSION, "quinn", "re-extract"),
+        stream_response(_message(GOOD)),
+    )
+
+    result = regenerate(conn, mock_client(handler), SETTINGS, _text_dir(tmp_path))
+
+    assert result.texts == 0
+    assert result.failed == [f"{ACCESSION}: item 2 proponent_argument changed during the run"]

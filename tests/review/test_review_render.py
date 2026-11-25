@@ -83,8 +83,8 @@ def test_render_flags_uneven_arguments() -> None:
     uneven = render.filing(_view(_proposal(words(40), words(60))))
     even = render.filing(_view(_proposal(words(40), words(48))))
 
-    assert "arguments: 40 and 60 words UNEVEN" in uneven
-    assert "arguments: 40 and 48 words" in even and "UNEVEN" not in even
+    assert "arguments: proponent 40, board 60 words UNEVEN" in uneven
+    assert "arguments: proponent 40, board 48 words" in even and "UNEVEN" not in even
 
 
 def test_render_filing_without_meeting_or_items() -> None:
@@ -108,3 +108,11 @@ def test_render_unstated_values_read_plainly() -> None:
     assert "vote: plurality, abstentions count against: not stated" in text
     assert "shares not stated" in text
     assert "None" not in text
+
+
+def test_render_flags_one_sided_arguments() -> None:
+    # Final review #2: one empty argument is the most uneven case of all (spec §8.4).
+    text = render.filing(_view(_proposal("", "The board argues that it already reports.")))
+    assert "arguments: proponent 0, board 7 words ONE-SIDED" in text
+    none = render.filing(_view(_proposal("", "")))
+    assert "arguments:" not in none

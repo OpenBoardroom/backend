@@ -46,6 +46,8 @@ class RegenerateResult:
 class _Rewrite:
     item_id: int
     kind: str
+    text_id: int
+    label: str
 
 
 def _filings(conn: psycopg.Connection, limit: int | None) -> list[tuple[int, str]]:
@@ -79,7 +81,8 @@ def _payload(
         texts = cursor.execute(
             f"""
             select distinct on (t.ballot_item_id, t.kind)
-                   bi.id as item_id, bi.number, t.kind, t.body, t.review_status,
+                   t.id as text_id, bi.id as item_id, bi.number, t.kind, t.body,
+                   t.review_status,
                    {", ".join(f"bi.{column}" for column in _FACTS)},
                    (select r.reason from reviews r where r.item_text_id = t.id
                     and r.decision = 'reject' order by r.id desc limit 1) as reason
@@ -107,7 +110,8 @@ def _payload(
         if row["review_status"] == "rejected":
             item["rewrite"].append({"text": row["kind"], "reason": row["reason"]})
             key = (item["number"], item["part"])
-            rewrites.setdefault(key, []).append(_Rewrite(row["item_id"], row["kind"]))
+            rewrite = _Rewrite(row["item_id"], row["kind"], row["text_id"], row["number"])
+            rewrites.setdefault(key, []).append(rewrite)
     wanted = [item for item in items.values() if item["rewrite"]]
     return wanted, rewrites
 
@@ -217,6 +221,20 @@ def regenerate(
             output = cast(dict[str, Any], outcome.output)
             for item in output["items"]:
                 for rewrite in rewrites.get((item["number"], item["part"]), []):
+                    # The call took a while: a reviewer may have edited the text, or
+                    # requeued the filing, meanwhile. Their decision wins.
+                    latest = conn.execute(
+                        "select id, review_status from item_texts "
+                        "where ballot_item_id = %s and kind = %s "
+                        "order by version desc limit 1 for update",
+                        (rewrite.item_id, rewrite.kind),
+                    ).fetchone()
+                    if latest != (rewrite.text_id, "rejected"):
+                        failed.append(
+                            f"{accession}: item {rewrite.label} {rewrite.kind} "
+                            "changed during the run"
+                        )
+                        continue
                     conn.execute(
                         """
                         insert into item_texts (ballot_item_id, kind, version, body, origin,

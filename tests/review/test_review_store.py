@@ -83,3 +83,18 @@ def test_load_filing_without_meeting(conn: psycopg.Connection) -> None:
 
     assert view is not None and (view.meeting, view.items) == (None, [])
     assert [q.accession for q in store.queue(conn)] == ["0000320193-26-000001"]
+
+
+def test_queue_keeps_texts_that_need_manual_writing(conn: psycopg.Connection) -> None:
+    # Final review #3: after two rejections a text needs a person; it must stay visible.
+    seeded = seed_filing(conn)
+    _approve_all(conn, seeded.filing_id)
+    conn.execute(
+        "update item_texts set review_status = 'needs_manual' "
+        "where ballot_item_id = %s and kind = 'summary'",
+        (seeded.item_ids[1],),
+    )
+
+    queued = store.queue(conn)
+
+    assert [(q.pending_texts, q.needs_manual) for q in queued] == [(0, 1)]
