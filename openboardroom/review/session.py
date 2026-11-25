@@ -57,6 +57,9 @@ def _edit(
 ) -> bool:
     """Read a new text and a reason, show them, and save only on confirmation."""
     body = _read_body(ask)
+    if not body.strip():
+        out.write("an empty text can't be saved; approve a text that should stay empty\n")
+        return False
     reason = _ask(ask, "reason > ")
     out.write(f"new text:\n{body}\n")
     if _ask(ask, "save? [y/n] > ").lower() != "y":

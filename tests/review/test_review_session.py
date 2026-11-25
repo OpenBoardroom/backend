@@ -220,3 +220,17 @@ def test_session_shows_item_before_each_prompt(conn: psycopg.Connection) -> None
     session.run(conn, "quinn", _asker(["s", f"r {proponent}", "missing figure", "q"]), out)
 
     assert f"[{proponent}] proponent_argument v1 model rejected" in out.getvalue()
+
+
+def test_session_refuses_blank_edit_before_asking_more(conn: psycopg.Connection) -> None:
+    # Found in Quinn's first real session: a blank edit asked for a reason and a
+    # confirmation, then failed. It should stop at once.
+    seeded = seed_filing(conn)
+    summary = _text_id(conn, seeded.item_ids[0], "summary")
+    out = io.StringIO()
+
+    made = session.run(conn, "quinn", _asker([f"e {summary}", ".", "q"]), out)
+
+    assert made == 0
+    assert "an empty text can't be saved" in out.getvalue()
+    assert "new text:" not in out.getvalue()  # never reached the reason and confirmation
