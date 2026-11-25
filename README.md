@@ -119,21 +119,28 @@ In `--collect` runs, the last count is filings still waiting on a batch that has
 
 A person reviews every filing before its texts are public. Facts publish on passing checks; a filing that failed a check stays `in_review` until a reviewer clears it. Set `OBR_REVIEWER` to your name for these commands. They need the database URL but not the EDGAR User-Agent.
 
+A typical pass:
+
+1. `uv run obr publish` makes the facts of `checked` filings public.
+2. `uv run obr review next` walks the queue. Approve, edit, or reject each text; fix facts on `in_review` filings with `obr review fix`, then clear them.
+3. `uv run obr review regenerate` rewrites the texts you rejected (costs money). They come back to the queue as pending.
+4. `uv run obr review next` again for the rewritten texts.
+
 | Command | What it does |
 |---|---|
-| `uv run obr review queue` | List filings waiting for review: `in_review` filings and filings with pending texts, oldest filing first |
-| `uv run obr review next` | Walk the queue. Per item: approve all its texts, approve, edit, or reject one, skip, or quit. Per `in_review` filing: clear, requeue, or keep. Every decision is saved as you make it |
-| `uv run obr review show ACCESSION` | Print one filing: facts, failed checks, quotes with links to the EDGAR document, texts with their ids, and argument lengths (flagged `UNEVEN` when they differ by more than a quarter) |
+| `uv run obr review queue` | List filings waiting for review, oldest filing first: `in_review` filings, and filings with pending texts or texts to write by hand |
+| `uv run obr review next` | Walk the queue. Each item is shown before its prompt. Per item: approve all its texts, approve, edit, or reject one, skip, or quit. An edit reads lines until one holding only `.`, then a reason, then asks before saving. Per `in_review` filing: clear, requeue, or keep. Every decision is saved as you make it |
+| `uv run obr review show ACCESSION` | Print one filing: facts, failed checks, quotes with links that jump to them in the EDGAR document, texts with their ids, and each side's argument length (flagged `UNEVEN` when they differ by more than a quarter, `ONE-SIDED` when one is missing) |
 | `uv run obr review approve TEXT_ID` / `approve-item ITEM_ID` | Approve one text, or all of an item's pending texts |
 | `uv run obr review edit TEXT_ID --body TEXT --reason R` | Replace a text with your own, which is approved. The model's text is kept |
-| `uv run obr review reject TEXT_ID --reason R` | Reject a text so it is rewritten. A second rejection in a row marks it for writing by hand (use `edit`) |
-| `uv run obr review fix ITEM_ID FIELD VALUE --reason R` | Change one fact of an item. `""` means none; separate co-filers with `;` |
-| `uv run obr review fix-meeting ACCESSION FIELD VALUE --reason R` | Change one fact of a meeting. Dates are `YYYY-MM-DD` |
+| `uv run obr review reject TEXT_ID --reason R` | Reject a text so `regenerate` rewrites it. A second rejection in a row marks it for writing by hand (use `edit`) |
+| `uv run obr review fix ITEM_ID FIELD VALUE --reason R` | Change one fact of an item: `title`, `type`, `category`, `effect`, `lead_filer`, `representative`, `co_filers`, `board_recommendation`, `vote_base`, `vote_threshold_pct`, `abstentions_count_against`, `vote_standard_text`, `request`, or `status`. `""` means none; separate co-filers with `;`; abstentions take `true` or `false` |
+| `uv run obr review fix-meeting ACCESSION FIELD VALUE --reason R` | Change one fact of a meeting: `kind`, `meeting_date`, `meeting_time`, `format`, `record_date`, or `shares_outstanding`. Dates are `YYYY-MM-DD` |
 | `uv run obr review clear ACCESSION --reason R` | Move an `in_review` filing to `checked` once its facts are right |
-| `uv run obr review requeue ACCESSION --reason R` | Send a filing back to extraction (for a missing or extra item). Deletes its extraction rows and keeps the review record. Refused once any of its items is published |
-| `uv run obr review regenerate [--limit N]` | Rewrite rejected texts with Claude, one call per filing. **Costs money**; pass the API key as for `extract` |
+| `uv run obr review requeue ACCESSION --reason R` | Send an `in_review`, `checked`, or `out_of_scope` filing back to extraction (for a missing or extra item). Deletes its extraction rows, including billed runs, so their token counts are lost and the two-failure cap starts over; keeps the review record. Refused once any of its items is published |
+| `uv run obr review regenerate [--limit N]` | Rewrite rejected texts with Claude, one call per filing. **Costs money**; pass the API key as for `extract`. A text you edited or requeued while the call ran is left as you changed it and reported |
 
-A change to a public value (a fact fix, or an edit of an approved text on a published item) also writes a correction record, which the public correction log shows.
+A change to a public value writes a correction record, which the public correction log shows: a fact fix on a published item, an edit of an approved text on a published item, or approving a new version that replaces a public text.
 
 ### Discovery notices
 
