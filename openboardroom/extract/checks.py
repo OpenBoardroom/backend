@@ -118,6 +118,20 @@ def _quote_problem(field: str, quote: object, haystack: str) -> str | None:
     return None
 
 
+def quote_problem(field: str, quote: object, text: str) -> str | None:
+    """Check one quote against a filing, as the quotes check does (spec §6.4).
+
+    Args:
+        field: The quote's name, used in the message.
+        quote: The quote; anything but a string fails.
+        text: The filing's plain text, not yet normalized.
+
+    Returns:
+        Why the quote fails, or None when it passes.
+    """
+    return _quote_problem(field, quote, normalize(text))
+
+
 def _quote_needed(field: str, item: dict[str, Any]) -> bool:
     """Whether the item states the fact this quote must support (mirrors the consistency rules)."""
     if field == "recommendation_quote":

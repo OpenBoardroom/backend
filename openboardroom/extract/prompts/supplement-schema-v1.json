@@ -1,0 +1,199 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "changes"
+  ],
+  "properties": {
+    "changes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/change"
+      }
+    }
+  },
+  "$defs": {
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "number",
+        "part",
+        "recommendation",
+        "nominees",
+        "field",
+        "value",
+        "item",
+        "source_quote"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "withdraw",
+            "change_recommendation",
+            "change_nominees",
+            "amend_text",
+            "add_item"
+          ]
+        },
+        "number": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "part": {
+          "type": "string"
+        },
+        "recommendation": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "for",
+                "against",
+                "abstain",
+                "none",
+                "for_each_nominee",
+                "one_year",
+                "two_years",
+                "three_years"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "nominees": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "field": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "title",
+                "request",
+                "vote_standard_text",
+                "lead_filer",
+                "representative",
+                "co_filers"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "value": {
+          "type": "string"
+        },
+        "item": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/added_item"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_quote": {
+          "type": "string"
+        }
+      }
+    },
+    "added_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "type",
+        "category",
+        "effect",
+        "board_recommendation",
+        "lead_filer",
+        "representative",
+        "request",
+        "summary"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "management",
+            "shareholder"
+          ]
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "director_election",
+            "say_on_pay",
+            "say_on_pay_frequency",
+            "auditor_ratification",
+            "equity_plan",
+            "charter_bylaw_amendment",
+            "share_capital_authority",
+            "shareholder_proposal",
+            "other"
+          ]
+        },
+        "effect": {
+          "type": "string",
+          "enum": [
+            "binding",
+            "advisory",
+            "precatory"
+          ]
+        },
+        "board_recommendation": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "for",
+                "against",
+                "abstain",
+                "none",
+                "for_each_nominee",
+                "one_year",
+                "two_years",
+                "three_years"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lead_filer": {
+          "type": "string"
+        },
+        "representative": {
+          "type": "string"
+        },
+        "request": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string",
+          "description": "One neutral sentence on what shareholders are asked to vote on"
+        }
+      }
+    }
+  }
+}

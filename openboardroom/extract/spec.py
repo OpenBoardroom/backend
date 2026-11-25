@@ -19,6 +19,8 @@ PROMPT_VERSION = "4"
 SCHEMA_VERSION = "3"
 # Text-only regeneration after a review rejection (spec §7.2); prompt and schema share it.
 TEXTS_PROMPT_VERSION = "1"
+# Supplement (DEFA14A) pass: ballot changes only (spec §6.3 item 3); prompt and schema share it.
+SUPPLEMENT_PROMPT_VERSION = "1"
 
 _PROMPTS = files("openboardroom.extract") / "prompts"
 # A closing tag inside the untrusted filing text would end the data block early.
@@ -147,4 +149,63 @@ def validate_output(output: object) -> list[str]:
     return [
         f"{'/'.join(str(part) for part in error.path) or '<root>'}: {error.message}"
         for error in errors
+    ]
+
+
+def supplement_prompt() -> str:
+    """Return the system prompt for reading a supplement's ballot changes.
+
+    Returns:
+        The contents of ``prompts/supplement-v{SUPPLEMENT_PROMPT_VERSION}.md``.
+    """
+    return (_PROMPTS / f"supplement-v{SUPPLEMENT_PROMPT_VERSION}.md").read_text(encoding="utf-8")
+
+
+def supplement_schema() -> dict[str, object]:
+    """Return the JSON Schema for a supplement's changes.
+
+    Returns:
+        A fresh copy of ``prompts/supplement-schema-v{SUPPLEMENT_PROMPT_VERSION}.json``.
+    """
+    path = _PROMPTS / f"supplement-schema-v{SUPPLEMENT_PROMPT_VERSION}.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+@cache
+def _supplement_validator() -> Draft202012Validator:
+    return Draft202012Validator(supplement_schema())
+
+
+def supplement_user_message(text: str, items: list[dict[str, object]]) -> str:
+    r"""Build the user message for one supplement.
+
+    Args:
+        text: Plain text of the supplement.
+        items: The meeting's current items (``supplement.meeting_items``).
+
+    Returns:
+        The items as JSON, then the supplement last inside ``<filing>`` tags,
+        with ``</filing`` escaped as in ``user_message``.
+    """
+    filing = _CLOSING_TAG.sub(r"<\\/\1", text)
+    return (
+        "The meeting's current items:\n"
+        f"{json.dumps(items, indent=2, ensure_ascii=False)}\n\n"
+        f"<filing>\n{filing}\n</filing>"
+    )
+
+
+def validate_supplement(output: object) -> list[str]:
+    """Check a supplement's output against its schema.
+
+    Args:
+        output: Parsed JSON from the model.
+
+    Returns:
+        One ``path: message`` string per schema error; empty when valid.
+    """
+    found: list[ValidationError] = list(_supplement_validator().iter_errors(cast(Any, output)))  # pyright: ignore[reportUnknownMemberType]
+    return [
+        f"{'/'.join(str(part) for part in error.path) or '<root>'}: {error.message}"
+        for error in sorted(found, key=lambda e: [str(part) for part in e.path])
     ]

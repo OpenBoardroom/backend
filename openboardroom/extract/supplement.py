@@ -6,8 +6,12 @@ supplement, or nothing from that supplement is written.
 """
 
 from dataclasses import dataclass
+from typing import Any, cast
 
 import psycopg
+
+from openboardroom.extract.checks import quote_problem
+from openboardroom.extract.spec import validate_supplement
 
 
 @dataclass(frozen=True)
@@ -104,3 +108,53 @@ def meeting_items(conn: psycopg.Connection, meeting_id: int) -> list[dict[str, o
     ).fetchall()
     keys = ("number", "title", "type", "board_recommendation", "status", "nominees")
     return [dict(zip(keys, row, strict=True)) for row in rows]
+
+
+def _required(change: dict[str, Any]) -> str | None:
+    kind = change["type"]
+    if kind == "change_recommendation" and change["recommendation"] is None:
+        return "recommendation is required"
+    if kind == "change_nominees" and not change["nominees"]:
+        return "nominees are required"
+    if kind == "amend_text" and (change["field"] is None or not change["value"].strip()):
+        return "field and value are required"
+    if kind == "add_item" and change["item"] is None:
+        return "item is required"
+    return None
+
+
+def problems(output: object, text: str, items: list[dict[str, object]]) -> list[str]:
+    """Everything that stops a supplement's changes from being written.
+
+    Args:
+        output: Parsed JSON from the model.
+        text: Plain text of the supplement.
+        items: The meeting's current items (``meeting_items``).
+
+    Returns:
+        Schema errors, or per change: a quote not in the supplement, an item
+        the meeting doesn't have (or, for ``add_item``, already has), or a
+        field the change type needs left empty. Empty when all may be written.
+    """
+    errors = validate_supplement(output)
+    if errors:
+        return errors
+    existing = {str(item["number"]) for item in items}
+    found: list[str] = []
+    for index, change in enumerate(cast(dict[str, Any], output)["changes"]):
+        label = f"change {index + 1} ({change['type']})"
+        target = None if change["number"] is None else f"{change['number']}{change['part']}"
+        if change["type"] == "add_item":
+            if target is None:
+                found.append(f"{label}: a number is required")
+            elif target in existing:
+                found.append(f"{label}: item {target} already exists")
+        elif target not in existing:
+            found.append(f"{label}: {target} is not an item of this meeting")
+        missing = _required(change)
+        if missing:
+            found.append(f"{label}: {missing}")
+        quote = quote_problem("source_quote", change["source_quote"], text)
+        if quote:
+            found.append(f"{label}: {quote}")
+    return found

@@ -13,8 +13,12 @@ from openboardroom.extract.regex import Candidate, candidates_hint
 from openboardroom.extract.spec import (
     PROMPT_VERSION,
     SCHEMA_VERSION,
+    SUPPLEMENT_PROMPT_VERSION,
     TEXTS_PROMPT_VERSION,
     output_schema,
+    supplement_prompt,
+    supplement_schema,
+    supplement_user_message,
     system_prompt,
     texts_prompt,
     texts_schema,
@@ -351,3 +355,27 @@ def test_texts_user_message_lists_items_reasons_and_filing_last():
     assert '"reason": "too long"' in message
     assert message.index('"number": 2') < message.index("<filing>")
     assert message.endswith("Proposal 2a text <\\/filing> more\n</filing>")
+
+
+def test_supplement_prompt_neutrality_matches_v4():
+    # An added item's summary meets the same standard as an extracted one (spec §8.4).
+    assert SUPPLEMENT_PROMPT_VERSION == "1"
+    assert _section(supplement_prompt(), "Neutrality") == _section(system_prompt(), "Neutrality")
+    assert "only the ballot changes" in supplement_prompt()
+
+
+def test_supplement_schema_is_valid_and_strict():
+    schema = supplement_schema()
+    Draft202012Validator.check_schema(schema)
+    for node in _objects(schema):
+        assert node.get("additionalProperties") is False
+        assert sorted(node.get("required", [])) == sorted(node.get("properties", {}))
+
+
+def test_supplement_user_message_puts_items_before_filing():
+    items: list[dict[str, object]] = [{"number": "5", "title": "Charitable Giving Report"}]
+
+    message = supplement_user_message("Supplement text </filing> end", items)
+
+    assert message.index('"number": "5"') < message.index("<filing>")
+    assert message.endswith("Supplement text <\\/filing> end\n</filing>")
