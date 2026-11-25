@@ -84,8 +84,9 @@ Run them in order:
 
 4. `uv run obr extract` reads each fetched proxy statement with Claude, checks the result, and advances the filing to `checked`, `in_review`, or `out_of_scope` (see [Extract](#extract)).
 5. `uv run obr publish` makes the facts of every `checked` filing public and advances it to `published`. Texts become public only once a reviewer approves them (see [Review](#review)).
+6. `uv run obr supplements` reads each fetched proxy supplement (DEFA14A) for ballot changes with Claude (see [Supplements](#supplements)).
 
-All stages are safe to rerun: discovery skips filings it already has, fetch reuses cached documents, extract only takes filings still at `fetched`, and publish only takes filings at `checked`.
+All stages are safe to rerun: discovery skips filings it already has, fetch reuses cached documents, extract and supplements only take filings still at `fetched`, publish only takes filings at `checked`, and a change a supplement already recorded is never recorded twice.
 
 After a change to text conversion, run `uv run obr fetch --reconvert` to rebuild every cached text from its raw document (no downloads). Stages don't change; a filing whose cached document is missing or doesn't match its recorded hash is reported and left as it was.
 
@@ -116,6 +117,24 @@ In `--collect` runs, the last count is filings still waiting on a batch that has
 - `published` (after `obr publish`): its facts are public. Each text becomes public when a reviewer approves it.
 - still `fetched`: the call failed (API error, truncated or unparseable output) or the text file is missing. Run extract again. After 2 billed failures a filing is capped: later runs skip it and report it as an error until someone looks at it.
 
+### Supplements
+
+`obr supplements` sends each fetched supplement, with its meeting's current items, to Claude, which reports only the ballot changes the supplement states. Most supplements (letters, presentations, notices) change nothing. It takes the same modes as `extract` (`--filing ACCESSION`, `--limit N`, `--submit`, `--collect`), costs money, and takes the API key the same way. Its runs never mix with `extract`'s.
+
+A supplement belongs to the company's latest proxy filed on or before it whose meeting hadn't happened when the supplement was filed. It waits while that proxy isn't extracted yet, and is set aside (`out_of_scope`) when no meeting links.
+
+Every change must carry a quote found word for word in the supplement and name an item the meeting has; otherwise nothing from that supplement is written and it goes to `in_review`. Then:
+
+| Change | What happens |
+|---|---|
+| Withdrawn item | Applied at once: the item's status becomes `withdrawn` |
+| Changed board recommendation | Applied at once |
+| Changed director nominees, amended fact, added item | Waits for a reviewer as a pending change |
+
+An automatic change to a published item writes a correction. While a change is pending, the published views flag the item (`has_pending_change`).
+
+Stages after a run: `checked` (its changes were recorded, or it changed nothing), `in_review` (a quote or item reference failed, or the model refused), `out_of_scope` (no linked meeting), or still `fetched` (the call failed or the text is missing; after 2 billed failures it needs a person).
+
 ### Review
 
 A person reviews every filing before its texts are public. Facts publish on passing checks; a filing that failed a check stays `in_review` until a reviewer clears it. Set `OBR_REVIEWER` to your name for these commands. They need the database URL but not the EDGAR User-Agent.
@@ -130,7 +149,7 @@ A typical pass:
 
 | Command | What it does |
 |---|---|
-| `uv run obr review queue` | List filings waiting for review, oldest filing first: `in_review` filings, and filings with pending texts or texts to write by hand |
+| `uv run obr review queue` | List filings waiting for review, oldest filing first: `in_review` filings, and filings with pending texts, texts to write by hand, or pending changes from supplements |
 | `uv run obr review next` | Walk the queue. Each item is shown before its prompt. Per item: approve all its texts, approve, edit, or reject one, skip, or quit. An edit reads lines until one holding only `.`, then a reason, then asks before saving; a text can't be edited to empty, so approve a text that should stay empty. Per `in_review` filing: clear, requeue, or keep. Every decision is saved as you make it |
 | `uv run obr review show ACCESSION` | Print one filing: facts, failed checks, quotes with links that jump to them in the EDGAR document, texts with their ids, and each side's argument length (flagged `UNEVEN` when they differ by more than a quarter, `ONE-SIDED` when one is missing) |
 | `uv run obr review approve TEXT_ID` / `approve-item ITEM_ID` | Approve one text, or all of an item's pending texts |
@@ -140,9 +159,12 @@ A typical pass:
 | `uv run obr review fix-meeting ACCESSION FIELD VALUE --reason R` | Change one fact of a meeting: `kind`, `meeting_date`, `meeting_time`, `format`, `record_date`, or `shares_outstanding`. Dates are `YYYY-MM-DD` |
 | `uv run obr review clear ACCESSION --reason R` | Move an `in_review` filing to `checked` once its facts are right |
 | `uv run obr review requeue ACCESSION --reason R` | Send an `in_review`, `checked`, or `out_of_scope` filing back to extraction (for a missing or extra item). Deletes its extraction rows, including billed runs, so their token counts are lost and the two-failure cap starts over; keeps the review record. Refused once any of its items is published |
+| `uv run obr review apply-change ID --reason R` / `reject-change ID --reason R` | Decide a pending change from a supplement. Applying a nominee change replaces the nominees; an amended fact follows the `fix` rules; an added item is created unpublished with a pending summary, and its filing returns to `checked` so the next `obr publish` publishes it. `review next` offers these after a filing's items |
 | `uv run obr review regenerate [--limit N]` | Rewrite rejected texts with Claude, one call per filing. **Costs money**; pass the API key as for `extract`. A text you edited or requeued while the call ran is left as you changed it and reported |
 
-A change to a public value writes a correction record, which the public correction log shows: a fact fix on a published item, an edit of an approved text on a published item, or approving a new version that replaces a public text.
+A change to a public value writes a correction record, which the public correction log shows: a fact fix on a published item, an edit of an approved text on a published item, approving a new version that replaces a public text, an applied change from a supplement, or an automatic withdrawal or recommendation change on a published item.
+
+A supplement in review has no items of its own: clear it once its changes are right, or requeue it to read it again.
 
 ### Discovery notices
 
