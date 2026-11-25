@@ -220,9 +220,10 @@ def test_requeue_refuses_when_vote_results_or_pending_changes_exist(
         store.requeue(conn, ACCESSION, "quinn", "r")
     conn.execute("delete from vote_results")
     conn.execute(
-        "insert into pending_changes (ballot_item_id, field, extraction_run_id, reason) "
-        "values (%s, 'title', %s, 'rerun')",
-        (seeded.item_ids[0], seeded.run_id),
+        "insert into pending_changes "
+        "(meeting_id, ballot_item_id, field, extraction_run_id, reason) "
+        "select meeting_id, id, 'title', %s, 'rerun' from ballot_items where id = %s",
+        (seeded.run_id, seeded.item_ids[0]),
     )
     with pytest.raises(ReviewError, match="pending changes"):
         store.requeue(conn, ACCESSION, "quinn", "r")

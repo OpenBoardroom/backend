@@ -226,7 +226,7 @@ CREATE TABLE public.extraction_runs (
     batch_id text,
     detail text,
     CONSTRAINT extraction_runs_input_tokens_check CHECK ((input_tokens >= 0)),
-    CONSTRAINT extraction_runs_kind_check CHECK ((kind = ANY (ARRAY['regex'::text, 'llm'::text, 'reconcile'::text, 'texts'::text]))),
+    CONSTRAINT extraction_runs_kind_check CHECK ((kind = ANY (ARRAY['regex'::text, 'llm'::text, 'reconcile'::text, 'texts'::text, 'supplement'::text]))),
     CONSTRAINT extraction_runs_output_tokens_check CHECK ((output_tokens >= 0)),
     CONSTRAINT extraction_runs_status_check CHECK ((status = ANY (ARRAY['submitted'::text, 'succeeded'::text, 'refused'::text, 'failed'::text])))
 );
@@ -432,15 +432,19 @@ ALTER TABLE public.nominees ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
 
 CREATE TABLE public.pending_changes (
     id bigint NOT NULL,
-    ballot_item_id bigint NOT NULL,
+    ballot_item_id bigint,
     field text NOT NULL,
     proposed jsonb,
     source_quote text,
     extraction_run_id bigint NOT NULL,
     reason text NOT NULL,
     status text DEFAULT 'pending'::text NOT NULL,
+    meeting_id bigint NOT NULL,
+    decided_at timestamp with time zone,
+    review_id bigint,
     CONSTRAINT pending_changes_reason_check CHECK ((reason = ANY (ARRAY['rerun'::text, 'supplement'::text, 'reconciliation'::text]))),
-    CONSTRAINT pending_changes_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'applied'::text, 'rejected'::text])))
+    CONSTRAINT pending_changes_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'applied'::text, 'rejected'::text]))),
+    CONSTRAINT pending_changes_target_check CHECK (((ballot_item_id IS NOT NULL) <> (field = 'item'::text)))
 );
 
 
@@ -640,7 +644,7 @@ CREATE TABLE public.reviews (
     after jsonb,
     decided_at timestamp with time zone DEFAULT now() NOT NULL,
     ballot_item_id bigint,
-    CONSTRAINT reviews_decision_check CHECK ((decision = ANY (ARRAY['approve'::text, 'edit'::text, 'reject'::text, 'fix'::text, 'clear'::text, 'requeue'::text])))
+    CONSTRAINT reviews_decision_check CHECK ((decision = ANY (ARRAY['approve'::text, 'edit'::text, 'reject'::text, 'fix'::text, 'clear'::text, 'requeue'::text, 'apply_change'::text, 'reject_change'::text])))
 );
 
 
@@ -945,6 +949,13 @@ CREATE INDEX pending_changes_ballot_item_id_idx ON public.pending_changes USING 
 
 
 --
+-- Name: pending_changes_meeting_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX pending_changes_meeting_id_idx ON public.pending_changes USING btree (meeting_id);
+
+
+--
 -- Name: reviews_ballot_item_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1095,6 +1106,22 @@ ALTER TABLE ONLY public.pending_changes
 
 
 --
+-- Name: pending_changes pending_changes_meeting_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pending_changes
+    ADD CONSTRAINT pending_changes_meeting_id_fkey FOREIGN KEY (meeting_id) REFERENCES public.meetings(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: pending_changes pending_changes_review_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pending_changes
+    ADD CONSTRAINT pending_changes_review_id_fkey FOREIGN KEY (review_id) REFERENCES public.reviews(id) ON DELETE SET NULL;
+
+
+--
 -- Name: reviews reviews_ballot_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1162,4 +1189,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261121000006'),
     ('20261122000001'),
     ('20261124000001'),
-    ('20261125000001');
+    ('20261125000001'),
+    ('20261125000002');

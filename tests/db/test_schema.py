@@ -189,3 +189,42 @@ def test_extraction_run_kind_accepts_texts(conn: psycopg.Connection) -> None:
         "insert into extraction_runs (filing_id, kind, status) values (%s, 'texts', 'succeeded')",
         (filing_id,),
     )
+
+
+def _change(conn: psycopg.Connection, meeting_id: int, item_id: int | None, field: str) -> None:
+    conn.execute(
+        "insert into pending_changes "
+        "(meeting_id, ballot_item_id, field, extraction_run_id, reason) "
+        "values (%s, %s, %s, (select max(id) from extraction_runs), 'supplement')",
+        (meeting_id, item_id, field),
+    )
+
+
+def test_pending_change_for_added_item_names_meeting_only(conn: psycopg.Connection) -> None:
+    _, item_id = _review_ids(conn)
+    row = conn.execute("select meeting_id from ballot_items where id = %s", (item_id,)).fetchone()
+    assert row is not None
+    meeting_id = row[0]
+    _change(conn, meeting_id, None, "item")
+    _change(conn, meeting_id, item_id, "title")
+    for bad_item, field in ((item_id, "item"), (None, "title")):
+        with pytest.raises(psycopg.errors.CheckViolation), conn.transaction():
+            _change(conn, meeting_id, bad_item, field)
+
+
+def test_extraction_run_kind_accepts_supplement(conn: psycopg.Connection) -> None:
+    filing_id, _ = _review_ids(conn)
+    conn.execute(
+        "insert into extraction_runs (filing_id, kind, status) "
+        "values (%s, 'supplement', 'succeeded')",
+        (filing_id,),
+    )
+
+
+def test_review_decision_accepts_change_decisions(conn: psycopg.Connection) -> None:
+    filing_id, _ = _review_ids(conn)
+    for decision in ("apply_change", "reject_change"):
+        conn.execute(
+            "insert into reviews (filing_id, decision, reviewer) values (%s, %s, 'q')",
+            (filing_id, decision),
+        )
