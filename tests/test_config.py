@@ -9,6 +9,7 @@ from openboardroom.config import (
     Settings,
     database_url_from_env,
     extract_settings_from_env,
+    review_settings_from_env,
 )
 from openboardroom.extract.llm import LlmSettings
 
@@ -125,3 +126,18 @@ def test_extract_invalid_effort_raises(value: str) -> None:
 def test_extract_invalid_max_tokens_raises(value: str) -> None:
     with pytest.raises(ConfigError, match="OBR_EXTRACT_MAX_TOKENS"):
         extract_settings_from_env({"OBR_EXTRACT_MAX_TOKENS": value})
+
+
+@pytest.mark.parametrize("value", [None, "", "  "])
+def test_review_settings_need_reviewer(value: str | None) -> None:
+    env = {"OBR_DATABASE_URL": VALID["OBR_DATABASE_URL"]}
+    if value is not None:
+        env["OBR_REVIEWER"] = value
+    with pytest.raises(ConfigError, match="OBR_REVIEWER"):
+        review_settings_from_env(env)
+
+
+def test_review_settings_skip_edgar() -> None:
+    env = {"OBR_DATABASE_URL": VALID["OBR_DATABASE_URL"], "OBR_REVIEWER": " quinn "}
+    settings = review_settings_from_env(env)
+    assert (settings.database_url, settings.reviewer) == (VALID["OBR_DATABASE_URL"], "quinn")

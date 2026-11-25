@@ -137,3 +137,31 @@ def extract_settings_from_env(env: Mapping[str, str] = os.environ) -> LlmSetting
     if max_tokens <= 0:
         raise ConfigError(f"OBR_EXTRACT_MAX_TOKENS must be greater than 0, got {raw!r}")
     return LlmSettings(model=model, effort=effort, max_tokens=max_tokens)
+
+
+@dataclass(frozen=True)
+class ReviewSettings:
+    """Settings for the review commands.
+
+    Attributes:
+        database_url: Postgres connection URL.
+        reviewer: Name recorded on every review decision.
+    """
+
+    database_url: str
+    reviewer: str
+
+
+def review_settings_from_env(env: Mapping[str, str] = os.environ) -> ReviewSettings:
+    """Read the review settings. Review never calls EDGAR, so no User-Agent is needed.
+
+    Args:
+        env: Variable mapping to read; defaults to the process environment.
+
+    Returns:
+        The database URL and the reviewer's name, both stripped.
+
+    Raises:
+        ConfigError: If `OBR_DATABASE_URL` or `OBR_REVIEWER` is missing or blank.
+    """
+    return ReviewSettings(database_url_from_env(env), _required(env, "OBR_REVIEWER"))

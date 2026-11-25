@@ -131,3 +131,61 @@ def test_migrations_round_trip(
     finally:
         with psycopg.connect(pg_url, autocommit=True) as admin:
             admin.execute(sql.SQL("drop database {} with (force)").format(sql.Identifier(name)))
+
+
+def _review_ids(conn: psycopg.Connection) -> tuple[int, int]:
+    """Insert a meeting with one item and one text; return (filing id, item id)."""
+    meeting_id = _meeting(conn)
+    _insert_item(conn, meeting_id, "1", "other")
+    row = conn.execute(
+        "select m.proxy_filing_id, bi.id from ballot_items bi "
+        "join meetings m on m.id = bi.meeting_id"
+    ).fetchone()
+    assert row is not None
+    return row[0], row[1]
+
+
+def test_review_decision_rejects_unknown_value(conn: psycopg.Connection) -> None:
+    filing_id, _ = _review_ids(conn)
+    with pytest.raises(psycopg.errors.CheckViolation):
+        conn.execute(
+            "insert into reviews (filing_id, decision, reviewer) values (%s, 'maybe', 'q')",
+            (filing_id,),
+        )
+
+
+def test_review_may_name_an_item(conn: psycopg.Connection) -> None:
+    filing_id, item_id = _review_ids(conn)
+    conn.execute(
+        "insert into reviews (filing_id, ballot_item_id, decision, reviewer) "
+        "values (%s, %s, 'fix', 'q')",
+        (filing_id, item_id),
+    )
+
+
+def test_deleting_a_reviewed_text_keeps_the_review(conn: psycopg.Connection) -> None:
+    filing_id, item_id = _review_ids(conn)
+    row = conn.execute(
+        "insert into item_texts (ballot_item_id, kind, version, body, origin) "
+        "values (%s, 'summary', 1, 'S.', 'model') returning id",
+        (item_id,),
+    ).fetchone()
+    assert row is not None
+    conn.execute(
+        "insert into reviews (filing_id, item_text_id, ballot_item_id, decision, reviewer) "
+        "values (%s, %s, %s, 'approve', 'q')",
+        (filing_id, row[0], item_id),
+    )
+    conn.execute("delete from item_texts where id = %s", (row[0],))
+    conn.execute("delete from ballot_items where id = %s", (item_id,))
+    assert conn.execute("select item_text_id, ballot_item_id from reviews").fetchall() == [
+        (None, None)
+    ]
+
+
+def test_extraction_run_kind_accepts_texts(conn: psycopg.Connection) -> None:
+    filing_id, _ = _review_ids(conn)
+    conn.execute(
+        "insert into extraction_runs (filing_id, kind, status) values (%s, 'texts', 'succeeded')",
+        (filing_id,),
+    )

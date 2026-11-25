@@ -226,7 +226,7 @@ CREATE TABLE public.extraction_runs (
     batch_id text,
     detail text,
     CONSTRAINT extraction_runs_input_tokens_check CHECK ((input_tokens >= 0)),
-    CONSTRAINT extraction_runs_kind_check CHECK ((kind = ANY (ARRAY['regex'::text, 'llm'::text, 'reconcile'::text]))),
+    CONSTRAINT extraction_runs_kind_check CHECK ((kind = ANY (ARRAY['regex'::text, 'llm'::text, 'reconcile'::text, 'texts'::text]))),
     CONSTRAINT extraction_runs_output_tokens_check CHECK ((output_tokens >= 0)),
     CONSTRAINT extraction_runs_status_check CHECK ((status = ANY (ARRAY['submitted'::text, 'succeeded'::text, 'refused'::text, 'failed'::text])))
 );
@@ -638,7 +638,9 @@ CREATE TABLE public.reviews (
     reviewer text NOT NULL,
     before jsonb,
     after jsonb,
-    decided_at timestamp with time zone DEFAULT now() NOT NULL
+    decided_at timestamp with time zone DEFAULT now() NOT NULL,
+    ballot_item_id bigint,
+    CONSTRAINT reviews_decision_check CHECK ((decision = ANY (ARRAY['approve'::text, 'edit'::text, 'reject'::text, 'fix'::text, 'clear'::text, 'requeue'::text])))
 );
 
 
@@ -943,6 +945,13 @@ CREATE INDEX pending_changes_ballot_item_id_idx ON public.pending_changes USING 
 
 
 --
+-- Name: reviews_ballot_item_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX reviews_ballot_item_id_idx ON public.reviews USING btree (ballot_item_id);
+
+
+--
 -- Name: reviews_filing_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1086,6 +1095,14 @@ ALTER TABLE ONLY public.pending_changes
 
 
 --
+-- Name: reviews reviews_ballot_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reviews
+    ADD CONSTRAINT reviews_ballot_item_id_fkey FOREIGN KEY (ballot_item_id) REFERENCES public.ballot_items(id) ON DELETE SET NULL;
+
+
+--
 -- Name: reviews reviews_filing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1098,7 +1115,7 @@ ALTER TABLE ONLY public.reviews
 --
 
 ALTER TABLE ONLY public.reviews
-    ADD CONSTRAINT reviews_item_text_id_fkey FOREIGN KEY (item_text_id) REFERENCES public.item_texts(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT reviews_item_text_id_fkey FOREIGN KEY (item_text_id) REFERENCES public.item_texts(id) ON DELETE SET NULL;
 
 
 --
@@ -1144,4 +1161,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261121000005'),
     ('20261121000006'),
     ('20261122000001'),
-    ('20261124000001');
+    ('20261124000001'),
+    ('20261125000001');
