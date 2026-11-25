@@ -232,3 +232,10 @@ The board's charge is kept specific and close to its wording: "describes the pro
 | LIN | `0001193125-26-192209` | F24: items 2a and 2b |
 
 GOOGL (`0001308179-26-000342`) is still `in_review` from its v2 sample run (F15, since fixed).
+
+**Re-runs under prompt v4** (2026-11-24, all `checked`, $2.28 together):
+- **NEE:** items 4 and 5 have no lead filer or representative, as the filing names none (F23).
+- **LIN:** items are stored as 1, 2a, 2b, 3, 4, 5 (F24). 2a is the non-binding auditor ratification; 2b, auditor remuneration, is `other` and `binding`. Item 5's lead filer is NorthStar Asset Management, Inc. Funded Pension Plan, which matches the filing.
+- **GOOGL:** item 6 again has only its representative, Inspire Investing, LLC (F15). The other filers and representatives match the v2 run.
+
+Stages now: 95 `checked`, 5 `in_review` (BRK-B, TXN, IBM, V, PEP: item counts to confirm by hand), 5 `out_of_scope`.
