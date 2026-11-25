@@ -239,3 +239,17 @@ GOOGL (`0001308179-26-000342`) is still `in_review` from its v2 sample run (F15,
 - **GOOGL:** item 6 again has only its representative, Inspire Investing, LLC (F15). The other filers and representatives match the v2 run.
 
 Stages now: 95 `checked`, 5 `in_review` (BRK-B, TXN, IBM, V, PEP: item counts to confirm by hand), 5 `out_of_scope`.
+
+### Hand counts for the five unlabeled filings (2026-11-24)
+
+Each model item list was compared with the meeting notice's list of business. For every filing, the count check was the only check that failed.
+
+| Filing | Notice | Model | Result |
+|---|---|---|---|
+| BRK-B | Numbered list 1–4: directors, say-on-pay, frequency, "a shareholder proposal" | 4 items in that order | Matches |
+| TXN | Bullets: directors, say-on-pay, auditor (EY), "one stockholder proposal" | 4 items in that order | Matches |
+| IBM | Items 1–4 (directors, PwC, say-on-pay, 2026 long-term performance plan) and "four stockholder proposals" (5–8) | 8 items; 5–8 match the headings "Proposal 5"–"Proposal 8" | Matches |
+| V | Four management items (directors, say-on-pay, KPMG, officer-exculpation charter amendment) and "shareholder proposals" | 8 items; the filing has "PROPOSAL 5"–"PROPOSAL 8" and no 9 | Matches |
+| PEP | "Proxy Item" 1–3 (directors, KPMG, say-on-pay) and "Proxy Items 4-6" | 6 items; 4–6 match the "(Proxy Item No. N)" headings | Matches |
+
+All five item counts are confirmed. The filings stay `in_review` until the review CLI (Plan 3) can clear them. A person still reviews their content, as for every `checked` filing.
