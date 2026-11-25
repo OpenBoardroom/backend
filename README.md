@@ -110,9 +110,10 @@ ANTHROPIC_API_KEY="$(security find-generic-password -s <keychain-item> -w)" uv r
 
 In `--collect` runs, the last count is filings still waiting on a batch that hasn't ended (or whose results couldn't be read). Each run commits filing by filing, so a crash keeps results already paid for. It prints one line of counts and one line per failure to stderr, and exits 1 if any filing failed. What a filing's stage means afterward:
 
-- `checked`: all four checks passed. It is ready for review.
-- `in_review`: a check failed, the model refused, or the output couldn't be written. A reviewer looks at the items it did produce; nothing is published.
+- `checked`: all four checks passed. `obr publish` makes its facts public; its texts wait for review.
+- `in_review`: a check failed, the model refused, or the output couldn't be written. Nothing from it is published until a reviewer fixes its facts and clears it, or requeues it for extraction (see [Review](#review)).
 - `out_of_scope`: the meeting date, confirmed by its verbatim quote, isn't covered by any index membership, so the filing is set aside. A date its quote doesn't back goes to `in_review` instead.
+- `published` (after `obr publish`): its facts are public. Each text becomes public when a reviewer approves it.
 - still `fetched`: the call failed (API error, truncated or unparseable output) or the text file is missing. Run extract again. After 2 billed failures a filing is capped: later runs skip it and report it as an error until someone looks at it.
 
 ### Review
@@ -122,14 +123,15 @@ A person reviews every filing before its texts are public. Facts publish on pass
 A typical pass:
 
 1. `uv run obr publish` makes the facts of `checked` filings public.
-2. `uv run obr review next` walks the queue. Approve, edit, or reject each text; fix facts on `in_review` filings with `obr review fix`, then clear them.
+2. `uv run obr review next` walks the queue. Approve, edit, or reject each text; fix facts on `in_review` filings with `obr review fix`, then clear them. Skipping an item leaves it for the next pass, and quitting keeps every decision made.
 3. `uv run obr review regenerate` rewrites the texts you rejected (costs money). They come back to the queue as pending.
 4. `uv run obr review next` again for the rewritten texts.
+5. `uv run obr publish` again for filings you cleared, so their facts go public.
 
 | Command | What it does |
 |---|---|
 | `uv run obr review queue` | List filings waiting for review, oldest filing first: `in_review` filings, and filings with pending texts or texts to write by hand |
-| `uv run obr review next` | Walk the queue. Each item is shown before its prompt. Per item: approve all its texts, approve, edit, or reject one, skip, or quit. An edit reads lines until one holding only `.`, then a reason, then asks before saving. Per `in_review` filing: clear, requeue, or keep. Every decision is saved as you make it |
+| `uv run obr review next` | Walk the queue. Each item is shown before its prompt. Per item: approve all its texts, approve, edit, or reject one, skip, or quit. An edit reads lines until one holding only `.`, then a reason, then asks before saving; a text can't be edited to empty, so approve a text that should stay empty. Per `in_review` filing: clear, requeue, or keep. Every decision is saved as you make it |
 | `uv run obr review show ACCESSION` | Print one filing: facts, failed checks, quotes with links that jump to them in the EDGAR document, texts with their ids, and each side's argument length (flagged `UNEVEN` when they differ by more than a quarter, `ONE-SIDED` when one is missing) |
 | `uv run obr review approve TEXT_ID` / `approve-item ITEM_ID` | Approve one text, or all of an item's pending texts |
 | `uv run obr review edit TEXT_ID --body TEXT --reason R` | Replace a text with your own, which is approved. The model's text is kept |
