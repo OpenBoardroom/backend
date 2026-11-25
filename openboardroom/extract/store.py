@@ -400,7 +400,8 @@ def insert_item(
         run_id: The llm run that produced the item.
         item: The item's fields.
     """
-    number = item.get("number")
+    # A lettered vote is stored as printed, "2a" (spec §8.3, F24).
+    number, part = item.get("number"), item.get("part") or ""
     item_id = _id(
         conn.execute(
             """
@@ -415,7 +416,7 @@ def insert_item(
             """,
             (
                 meeting_id,
-                None if number is None else str(number),
+                None if number is None else f"{number}{part}",
                 *(_value(item.get(column)) for column in _ITEM_COLUMNS[:6]),
                 # The column is not null; a missing list means no co-filers.
                 item.get("co_filers") or [],

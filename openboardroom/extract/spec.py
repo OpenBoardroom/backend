@@ -15,8 +15,8 @@ from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 
 from openboardroom.extract.regex import Candidate, candidates_hint
 
-PROMPT_VERSION = "3"
-SCHEMA_VERSION = "2"
+PROMPT_VERSION = "4"
+SCHEMA_VERSION = "3"
 
 _PROMPTS = files("openboardroom.extract") / "prompts"
 # A closing tag inside the untrusted filing text would end the data block early.

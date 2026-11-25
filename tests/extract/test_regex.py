@@ -37,6 +37,9 @@ def test_golden(name: str):
         ("(ITEM 1 ON THE PROXY CARD)", 1),
         ("ELECTION OF DIRECTORS (ITEM 1)", 1),
         ("Shareholder Proposal – Action by Written Consent (Item 5)", 5),
+        # Linde 2026 letters two votes under one number (finding F24).
+        ("Proposal 2a: Non-Binding Ratification of the Appointment of the Auditor", 2),
+        ("PROPOSAL 2B: Authorization of the Board", 2),
     ],
 )
 def test_variants(line: str, number: int):

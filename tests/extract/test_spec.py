@@ -50,7 +50,7 @@ def _objects(node: object) -> list[dict[str, Any]]:
 
 
 def test_versions():
-    assert (PROMPT_VERSION, SCHEMA_VERSION) == ("3", "2")
+    assert (PROMPT_VERSION, SCHEMA_VERSION) == ("4", "3")
 
 
 def test_schema_is_valid_json_schema():
@@ -281,7 +281,10 @@ def test_prompt_hedge_and_attribution_rule():
 def test_earlier_prompt_versions_stay_readable():
     # Runs record the prompt version that produced them; the old text stays auditable.
     prompts = files("openboardroom.extract") / "prompts"
-    for name in ("system-v1.md", "system-v2.md", "output-schema-v1.json"):
+    for name in (
+        "system-v1.md", "system-v2.md", "system-v3.md",
+        "output-schema-v1.json", "output-schema-v2.json",
+    ):  # fmt: skip
         assert (prompts / name).is_file()
 
 
@@ -294,3 +297,18 @@ def test_share_capital_authority_category():
     assert "`share_capital_authority`: a management proposal" in prompt
     assert "pre-emption rights" in prompt
     assert "stays `charter_bylaw_amendment`" in prompt
+
+
+def test_lettered_part_field():
+    # Finding F24: Linde 2026 prints "Proposal 2a" and "Proposal 2b" as separate votes.
+    schema = cast(dict[str, Any], output_schema())
+    item = schema["$defs"]["item"]
+    assert item["properties"]["part"]["type"] == "string"
+    assert "part" in item["required"]
+    prompt = system_prompt()
+    assert "`part`:" in prompt and '"2a"' in prompt
+
+
+def test_prompt_allows_an_unnamed_proponent():
+    # Finding F23: some filings name no proponent at all.
+    assert "names no proponent" in system_prompt()

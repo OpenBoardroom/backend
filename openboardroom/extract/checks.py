@@ -154,9 +154,24 @@ def _meeting(output: object) -> dict[str, Any] | None:
     return cast(dict[str, Any], meeting) if isinstance(meeting, dict) else None
 
 
+def _key(item: object) -> tuple[int, str] | None:
+    """An item's ``(number, part)``, or None when either is malformed. A missing part is ""."""
+    fields = cast(dict[str, Any], item) if isinstance(item, dict) else {}
+    number, part = fields.get("number"), fields.get("part", "")
+    if type(number) is not int or not isinstance(part, str):
+        return None
+    return number, part
+
+
+def _shown(item: object) -> str:
+    key = _key(item)
+    if key is not None:
+        return f"{key[0]}{key[1]}"
+    return repr(cast(dict[str, Any], item).get("number")) if isinstance(item, dict) else "?"
+
+
 def _label(index: int, item: object) -> str:
-    number = cast(dict[str, Any], item).get("number") if isinstance(item, dict) else None
-    return f"item {number if type(number) is int else f'at position {index + 1}'}"
+    return f"item {_shown(item) if _key(item) else f'at position {index + 1}'}"
 
 
 def _check_count(output: object, candidates: list[Candidate]) -> CheckResult:
@@ -166,15 +181,31 @@ def _check_count(output: object, candidates: list[Candidate]) -> CheckResult:
     problems: list[str] = []
     if not items:
         problems.append("no proposals found")
-    if len(items) != len(candidates):
-        problems.append(f"{len(items)} items for {len(candidates)} candidates")
-    numbers = [
-        cast(dict[str, Any], i).get("number") if isinstance(i, dict) else None for i in items
-    ]
-    expected = list(range(1, len(items) + 1))
-    if not all(type(n) is int for n in numbers) or numbers != expected:
-        problems.append(f"item numbers are {numbers}, expected 1..{len(items)} in order")
+    keys = [_key(i) for i in items]
+    valid = [k for k in keys if k is not None]
+    # Lettered parts ("2a", "2b") are separate items under one proposal number (spec §8.3).
+    proposals = len({number for number, _ in valid}) + len(keys) - len(valid)
+    if proposals != len(candidates):
+        problems.append(f"{proposals} proposal numbers for {len(candidates)} candidates")
+    if len(valid) != len(keys) or not _numbered_in_order(valid):
+        shown = ", ".join(_shown(i) for i in items)
+        problems.append(f"item numbers are [{shown}], expected 1..{proposals} in order")
     return _result("count", problems)
+
+
+def _numbered_in_order(keys: list[tuple[int, str]]) -> bool:
+    """Numbers run 1, 2, … without gaps; each is one unlettered item or parts a, b, … in order."""
+    groups: list[list[str]] = []
+    previous = None
+    for number, part in keys:
+        if number != previous:
+            groups.append([])
+            previous = number
+            if number != len(groups):
+                return False
+        groups[-1].append(part)
+    letters = "abcdefghijklmnopqrstuvwxyz"
+    return all(parts == [""] or parts == list(letters[: len(parts)]) for parts in groups)
 
 
 def _check_quotes(output: object, text: str) -> CheckResult:
@@ -250,11 +281,8 @@ def _type_problems(label: str, item: dict[str, Any]) -> list[str]:
             )
         if _missing(item.get("request")):
             problems.append(f"{label}: request is required for a shareholder proposal")
-        # A filing may name only the agent acting "on behalf of its client" (spec §6.4).
-        if _missing(item.get("lead_filer")) and _missing(item.get("representative")):
-            problems.append(
-                f"{label}: lead_filer or representative is required for a shareholder proposal"
-            )
+        # No filer check: a filing may name only an agent, or no proponent at all
+        # (spec §6.4, updates 2026-11-23 and 2026-11-24).
         return problems
 
     if category == "shareholder_proposal":

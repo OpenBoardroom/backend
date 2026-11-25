@@ -20,7 +20,9 @@ MAX_PROPOSAL_NUMBER = 30
 # A heading starts the line. The rest of the line is not capped: a proposal's
 # title can run long (Microsoft's 13th did, and a length cap missed it).
 _HEADING = re.compile(
-    r"^\s*(?:Proposal|Item)\s+(?:No\.?\s*|Number\s+)?(\d{1,2}|" + "|".join(_WORD_NUMBERS) + r")\b",
+    r"^\s*(?:Proposal|Item)\s+(?:No\.?\s*|Number\s+)?(\d{1,2}|" + "|".join(_WORD_NUMBERS) + r")"
+    # A lettered vote, "Proposal 2a", counts toward its number (finding F24).
+    r"(?:(?<=\d)[a-z])?\b",
     re.IGNORECASE,
 )
 # A parenthesized label anywhere in the line: "ELECTION OF DIRECTORS (ITEM 1)",

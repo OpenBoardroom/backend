@@ -159,15 +159,6 @@ def test_missing_meeting_does_not_crash() -> None:
     assert not results[3].passed
 
 
-def test_shareholder_without_lead_filer_fails_consistency() -> None:
-    out = _output()
-    item = _item(out, "shareholder_proposal")
-    item["lead_filer"] = ""
-    results = _run(out)
-    assert _failed(results) == ["consistency"]
-    assert f"item {item['number']}: lead_filer" in (results[3].detail or "")
-
-
 def test_director_election_without_nominees_fails() -> None:
     out = _output()
     _item(out, "director_election")["nominees"] = []
@@ -499,12 +490,6 @@ def test_blank_required_strings_fail_consistency(bad: str) -> None:
         assert expected in detail
 
 
-def test_blank_lead_filer_fails_consistency() -> None:
-    out = _output()
-    _item(out, "shareholder_proposal")["lead_filer"] = "  "
-    assert "lead_filer" in (_run(out)[3].detail or "")
-
-
 def test_zero_items_and_zero_candidates_fails_count() -> None:
     results = _run({**_output(), "items": []}, candidates=[])
     assert not results[0].passed
@@ -521,12 +506,43 @@ def test_shareholder_item_with_only_a_representative_passes() -> None:
 
 
 @pytest.mark.parametrize("blank", ["", "  "])
-def test_shareholder_item_without_filer_or_representative_fails(blank: str) -> None:
+def test_shareholder_item_without_filer_or_representative_passes(blank: str) -> None:
+    # NextEra 2026 names no proponent, only "a shareholder of the Company" (finding F23).
     out = _output()
     item = _item(out, "shareholder_proposal")
     item.update(lead_filer=blank, representative=blank)
+    assert _failed(_run(out)) == []
+
+
+def _split_item_two(out: dict[str, Any], parts: tuple[str, str]) -> list[dict[str, Any]]:
+    """Turn item 2 into two items under number 2, as Linde 2026 prints "2a" and "2b"."""
+    index = next(i for i, item in enumerate(out["items"]) if item["number"] == 2)
+    first, second = out["items"][index], copy.deepcopy(out["items"][index])
+    first["part"], second["part"] = parts
+    out["items"].insert(index + 1, second)
+    return [first, second]
+
+
+def test_lettered_parts_pass_count() -> None:
+    out = _output()
+    _split_item_two(out, ("a", "b"))
+    assert _failed(_run(out)) == []
+
+
+@pytest.mark.parametrize(
+    ("parts", "shown"),
+    [(("", ""), "2, 2"), (("b", "c"), "2b, 2c"), (("", "a"), "2, 2a"), (("b", "a"), "2b, 2a")],
+)
+def test_bad_parts_fail_count(parts: tuple[str, str], shown: str) -> None:
+    out = _output()
+    _split_item_two(out, parts)
     results = _run(out)
-    assert _failed(results) == ["consistency"]
-    assert f"item {item['number']}: lead_filer or representative is required" in (
-        results[3].detail or ""
-    )
+    assert _failed(results) == ["count"]
+    assert f"[1, {shown}, 3" in (results[0].detail or "")
+
+
+def test_label_names_the_part() -> None:
+    out = _output()
+    first, _ = _split_item_two(out, ("a", "b"))
+    first["source_quote"] = "words that are not anywhere in this filing at all"
+    assert "item 2a:" in (_run(out)[1].detail or "")

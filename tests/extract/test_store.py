@@ -471,3 +471,31 @@ def test_blank_text_is_stored_as_null(conn: psycopg.Connection) -> None:
     assert row == (None,) * len(blank)
     bodies = conn.execute("select body from item_texts").fetchall()
     assert bodies == [(None,)] * 3
+
+
+def test_insert_item_stores_a_lettered_number(conn: psycopg.Connection) -> None:
+    # Finding F24: the stored number is the label as printed, "2a".
+    company = add_company(conn)
+    filing_id = add_filing(conn, company, "0000320193-24-000001")
+    filing = store.Filing(filing_id, "0000320193-24-000001", company)
+    run_id = store.insert_llm_run(conn, filing_id, SETTINGS, None, STARTED, batch_id="b")
+    meeting_id = store.insert_meeting(
+        conn,
+        filing,
+        kind=None,
+        meeting_date=None,
+        meeting_time=None,
+        format=None,
+        record_date=None,
+        shares_outstanding=None,
+        date_quote=None,
+    )
+
+    store.insert_item(conn, meeting_id, run_id, {"number": 2, "part": "a", "summary": "S."})
+    store.insert_item(conn, meeting_id, run_id, {"number": 2, "part": "b", "summary": "S."})
+    store.insert_item(conn, meeting_id, run_id, {"number": 3, "part": "", "summary": "S."})
+
+    rows = conn.execute(
+        "select number from ballot_items where meeting_id = %s order by id", (meeting_id,)
+    ).fetchall()
+    assert rows == [("2a",), ("2b",), ("3",)]
