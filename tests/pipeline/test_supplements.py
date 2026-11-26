@@ -333,3 +333,17 @@ def test_cli_rejects_bad_arguments_and_config(
     monkeypatch.delenv("OBR_DATABASE_URL", raising=False)
     assert main(["supplements"]) == 1
     assert "OBR_DATABASE_URL" in capsys.readouterr().err
+
+
+def test_refusal_records_a_check_with_the_reason(conn: psycopg.Connection, tmp_path: Path) -> None:
+    # Final review M-4 (promoted): review shows why a supplement is there.
+    _setup(conn, tmp_path)
+    details = {"type": "refusal", "category": "cyber", "explanation": "declined"}
+    refusal = {**_message({"changes": []}), "stop_reason": "refusal", "stop_details": details}
+
+    run(conn, mock_client(Recorder(stream_response(refusal))), SETTINGS, tmp_path, mode="direct")
+
+    detail = conn.execute(
+        "select check_name, detail from check_results where not passed"
+    ).fetchone()
+    assert detail is not None and detail[0] == "consistency" and "refusal" in detail[1]

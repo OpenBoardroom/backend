@@ -225,7 +225,7 @@ def test_requeue_refuses_when_vote_results_or_pending_changes_exist(
         "select meeting_id, id, 'title', %s, 'rerun' from ballot_items where id = %s",
         (seeded.run_id, seeded.item_ids[0]),
     )
-    with pytest.raises(ReviewError, match="pending changes"):
+    with pytest.raises(ReviewError, match="changes from supplements"):
         store.requeue(conn, ACCESSION, "quinn", "r")
     assert _count(conn, "ballot_items") == 2
 

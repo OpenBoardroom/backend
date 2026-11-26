@@ -174,3 +174,13 @@ def test_published_view_flags_pending_change(admin_conn: psycopg.Connection) -> 
         (items[0], "Election of Directors", False),
         (items[1], "Report on Water Use", True),
     ]
+
+
+def test_rejected_change_is_not_recorded_again(conn: psycopg.Connection) -> None:
+    # Final review I-4: a reviewer's rejection stands when the supplement is read again.
+    supplement, run_id, _ = _setup(conn)
+    change = _change(type="amend_text", field="title", value="Water Report")
+    write_changes(conn, supplement, run_id, [change], NOW)
+    conn.execute("update pending_changes set status = 'rejected'")
+
+    assert write_changes(conn, supplement, run_id, [change], NOW) == ChangeCounts(0, 0, 1)

@@ -197,7 +197,9 @@ def run(conn: psycopg.Connection, reviewer: str, ask: Callable[[str], str], out:
             if view.stage == "in_review":
                 out.write(
                     f"{view.accession} is in review. Fix facts with "
-                    "`obr review fix ITEM_ID FIELD VALUE --reason R` before clearing.\n"
+                    "`obr review fix ITEM_ID FIELD VALUE --reason R` before clearing. "
+                    "For a supplement, clearing discards its changes; requeue it to read "
+                    "it again.\n"
                 )
                 tally.made += _decide_filing(conn, reviewer, ask, out, view.accession)
     except _Quit:

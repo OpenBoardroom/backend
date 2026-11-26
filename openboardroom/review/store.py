@@ -771,16 +771,23 @@ def requeue(conn: psycopg.Connection, accession: str, reviewer: str, reason: str
             "select id from extraction_runs where filing_id = %(filing)s",
             params,
         )
-        for table, what in (
-            ("vote_results", "vote results"),
-            ("pending_changes", "pending changes"),
-        ):
-            query = sql.SQL(
-                "select exists (select 1 from {} where ballot_item_id in (select id from _items))"
-            ).format(sql.Identifier(table))
-            row = conn.execute(query).fetchone()
+        blockers = (
+            # Results arrive after the meeting (Plan 4).
+            ("select exists (select 1 from vote_results "
+             "where ballot_item_id in (select id from _items))", "has vote results"),
+            # Changes from supplements on this proxy's meeting, added items included.
+            ("select exists (select 1 from pending_changes pc join meetings m "
+             "on m.id = pc.meeting_id where m.proxy_filing_id = %(filing)s)",
+             "has changes from supplements"),
+            # A supplement whose runs recorded changes: re-reading it would orphan them.
+            ("select exists (select 1 from pending_changes "
+             "where extraction_run_id in (select id from _runs))",
+             "recorded changes from supplements"),
+        )  # fmt: skip
+        for query, what in blockers:
+            row = conn.execute(query, params).fetchone()  # pyright: ignore[reportArgumentType]
             if row is not None and row[0]:
-                raise ReviewError(f"{accession} has {what}; it can't be requeued")
+                raise ReviewError(f"{accession} {what}; it can't be requeued")
         review_id = _record(conn, filing_id, "requeue", reviewer, reason=reason)
         for statement in _REQUEUE_DELETES:
             conn.execute(statement, params)  # pyright: ignore[reportArgumentType]
@@ -800,16 +807,20 @@ class _Change:
     run_id: int
     filing_id: int
     filing_stage: str
+    source_quote: str | None
+    supplement: str
 
 
 def _change(conn: psycopg.Connection, change_id: int) -> _Change:
     row = conn.execute(
         """
         select pc.id, pc.meeting_id, pc.ballot_item_id, pc.field, pc.proposed, pc.status,
-               pc.extraction_run_id, f.id, f.stage
+               pc.extraction_run_id, f.id, f.stage, pc.source_quote, s.accession
         from pending_changes pc
         join meetings m on m.id = pc.meeting_id
         join filings f on f.id = m.proxy_filing_id
+        join extraction_runs r on r.id = pc.extraction_run_id
+        join filings s on s.id = r.filing_id
         where pc.id = %s
         for update of pc
         """,
@@ -845,6 +856,13 @@ def _apply_nominees(conn: psycopg.Connection, item_id: int, names: list[str]) ->
 
 def _add_item(conn: psycopg.Connection, change: _Change) -> int:
     item: dict[str, Any] = change.proposed
+    number = f"{item['number']}{item['part']}"
+    taken = conn.execute(
+        "select 1 from ballot_items where meeting_id = %s and number = %s",
+        (change.meeting_id, number),
+    ).fetchone()
+    if taken:
+        raise ReviewError(f"item {number} already exists; reject this change")
     columns = ("title", "type", "category", "effect", "board_recommendation", "lead_filer",
                "representative", "request")  # fmt: skip
     values = [item[c] if item[c] != "" else None for c in columns]
@@ -852,11 +870,11 @@ def _add_item(conn: psycopg.Connection, change: _Change) -> int:
         """
         insert into ballot_items (meeting_id, number, title, type, category, effect,
                                   board_recommendation, lead_filer, representative, request,
-                                  extraction_run_id)
-        values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                  source_quote, extraction_run_id)
+        values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         returning id
         """,
-        (change.meeting_id, f"{item['number']}{item['part']}", *values, change.run_id),
+        (change.meeting_id, number, *values, change.source_quote, change.run_id),
     ).fetchone()
     assert row is not None
     conn.execute(
@@ -934,7 +952,9 @@ def apply_change(conn: psycopg.Connection, change_id: int, reviewer: str, reason
             after={"field": change.field, "value": after},
         )  # fmt: skip
         if published:
-            _correct(conn, item_id, change.field, before, after, reason, review_id)
+            # The public correction log names the supplement behind the change.
+            _correct(conn, item_id, change.field, before, after,
+                     f"supplement {change.supplement}: {reason}", review_id)  # fmt: skip
         _decide(conn, change, "applied", review_id)
         return review_id
 

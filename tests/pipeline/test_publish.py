@@ -91,3 +91,16 @@ def test_cli_publish_prints_counts(
     assert main(["publish"]) == 0
     assert calls == [True]
     assert "publish: 3 filings, 21 items" in capsys.readouterr().out
+
+
+def test_publish_leaves_supplements_alone(conn: psycopg.Connection) -> None:
+    # Final review I-1: supplements are never published; only their changes are.
+    from review_seed import add_supplement
+
+    seed_filing(conn)
+    add_supplement(conn, "0000320193-26-000101", "2026-01-20", stage="checked")
+
+    assert publish(conn, NOW) == PublishResult(filings=1, items=2)
+    assert conn.execute("select stage from filings where form = 'DEFA14A'").fetchone() == (
+        "checked",
+    )

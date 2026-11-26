@@ -225,7 +225,7 @@ def _recorded(
         select exists (
             select 1 from pending_changes
             where meeting_id = %s and ballot_item_id is not distinct from %s and field = %s
-              and proposed = %s and status in ('pending', 'applied')
+              and proposed = %s and status in ('pending', 'applied', 'rejected')
         )
         """,
         (meeting_id, item_id, field, Jsonb(proposed)),
@@ -245,8 +245,9 @@ def write_changes(
     Runs inside the caller's transaction. Withdrawals and recommendation
     changes update the item at once; when the item is public, a correction
     with no review is written. Other changes wait for a reviewer. A change
-    already recorded (pending or applied) by an earlier run is skipped, so a
-    supplement processed twice changes nothing twice.
+    already recorded (pending, applied, or rejected by a reviewer) by an
+    earlier run is skipped, so a supplement read twice changes nothing twice
+    and a rejection stands.
 
     Args:
         conn: Database connection.

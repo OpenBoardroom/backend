@@ -68,7 +68,12 @@ def test_apply_nominee_change_on_published_election_corrects(conn: psycopg.Conne
     nominees = conn.execute("select name from nominees order by position").fetchall()
     assert nominees == [("Ann Lee",), ("Cy Diaz",)]
     assert _corrections(conn) == [
-        ("nominees", ["Ann Lee", "Bo Chen"], ["Ann Lee", "Cy Diaz"], "matches the supplement")
+        (
+            "nominees",
+            ["Ann Lee", "Bo Chen"],
+            ["Ann Lee", "Cy Diaz"],
+            f"supplement {SUPP}: matches the supplement",
+        )  # fmt: skip
     ]
     row = conn.execute(
         "select status, review_id, decided_at is not null from pending_changes where id = %s",
@@ -242,3 +247,48 @@ def test_session_change_prompt_handles_skip_errors_and_quit(conn: psycopg.Connec
     assert "unknown choice 'x'" in out.getvalue()
     assert "a reason is required" in out.getvalue()
     assert conn.execute("select distinct status from pending_changes").fetchall() == [("pending",)]
+
+
+def test_requeue_refuses_proxy_with_added_item_change(conn: psycopg.Connection) -> None:
+    # Final review I-2a: an added-item change names only the meeting.
+    _seed(conn, _change(type="add_item", number=3, nominees=[], item=ADDED), stage="in_review")
+    with pytest.raises(ReviewError, match="has changes from supplements"):
+        store.requeue(conn, PROXY, "quinn", "re-extract")
+
+
+def test_requeue_refuses_supplement_that_wrote_changes(conn: psycopg.Connection) -> None:
+    # Final review I-2b: its runs back recorded changes.
+    _seed(conn, _change())
+    conn.execute("update filings set stage = 'checked' where accession = %s", (SUPP,))
+    with pytest.raises(ReviewError, match="recorded changes"):
+        store.requeue(conn, SUPP, "quinn", "read again")
+
+
+def test_requeue_rereads_supplement_without_changes(conn: psycopg.Connection) -> None:
+    _seed(conn)
+    conn.execute("update filings set stage = 'in_review' where accession = %s", (SUPP,))
+    store.requeue(conn, SUPP, "quinn", "quote typo; read again")
+    assert conn.execute("select stage from filings where accession = %s", (SUPP,)).fetchone() == (
+        "fetched",
+    )
+
+
+def test_apply_second_added_item_with_same_number_raises(conn: psycopg.Connection) -> None:
+    # Final review I-3: two supplements may each propose item 3.
+    first, second = _seed(
+        conn,
+        _change(type="add_item", number=3, nominees=[], item=ADDED),
+        _change(type="add_item", number=3, nominees=[], item={**ADDED, "title": "Stock Split"}),
+    )  # fmt: skip
+    store.apply_change(conn, first, "quinn", "new vote")
+    with pytest.raises(ReviewError, match="item 3 already exists"):
+        store.apply_change(conn, second, "quinn", "same vote")
+
+
+def test_applied_added_item_carries_its_source_quote(conn: psycopg.Connection) -> None:
+    # Final review I-5: the item's facts trace to the supplement's words.
+    (change_id,) = _seed(conn, _change(type="add_item", number=3, nominees=[], item=ADDED))
+    store.apply_change(conn, change_id, "quinn", "new vote")
+    assert conn.execute("select source_quote from ballot_items where number = '3'").fetchone() == (
+        QUOTE,
+    )

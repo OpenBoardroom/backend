@@ -164,7 +164,7 @@ A typical pass:
 
 A change to a public value writes a correction record, which the public correction log shows: a fact fix on a published item, an edit of an approved text on a published item, approving a new version that replaces a public text, an applied change from a supplement, or an automatic withdrawal or recommendation change on a published item.
 
-A supplement in review has no items of its own: clear it once its changes are right, or requeue it to read it again.
+A supplement in review has written none of its changes. Requeue it to read it again (for example, after a quote typo), or clear it to discard its changes, for one that truly changes nothing. A supplement whose changes were already recorded can't be requeued; decide its changes instead. A rejected change is not proposed again when a supplement is re-read.
 
 ### Discovery notices
 

@@ -161,6 +161,10 @@ def _apply(
             tally.add("failed", supplement.accession, outcome.detail)
             return
         if outcome.status == "refused":
+            # Record why, so review shows the reason (no other check ran).
+            store.insert_check_results(
+                conn, run_id, [CheckResult("consistency", False, outcome.detail or "refused")]
+            )
             store.set_stage(conn, supplement.filing_id, "in_review")
             tally.add("in_review", supplement.accession)
             return

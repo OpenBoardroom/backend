@@ -40,8 +40,9 @@ def publish(conn: psycopg.Connection, now: datetime) -> PublishResult:
     """
     with conn.transaction():
         filings = conn.execute(
+            # Supplements are never published; only their changes are (spec §7.1).
             "update filings set stage = 'published', stage_updated_at = now() "
-            "where stage = 'checked' returning id"
+            "where stage = 'checked' and form = 'DEF 14A' returning id"
         ).fetchall()
         ids = [filing_id for (filing_id,) in filings]
         items = conn.execute(
