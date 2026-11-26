@@ -253,3 +253,17 @@ Each model item list was compared with the meeting notice's list of business. Fo
 | PEP | "Proxy Item" 1–3 (directors, KPMG, say-on-pay) and "Proxy Items 4-6" | 6 items; 4–6 match the "(Proxy Item No. N)" headings | Matches |
 
 All five item counts are confirmed. The filings stay `in_review` until the review CLI (Plan 3) can clear them. A person still reviews their content, as for every `checked` filing.
+
+## Supplements (Plan 3b, 2026-11-25)
+
+Five supplements read one at a time with `obr supplements --filing`, supplement prompt v1, Claude Opus 5.5 at effort `high`, standard rates: 23,831 input and 1,164 output tokens together, **$0.12**. All five `checked`; every change verified against the supplement text.
+
+| Supplement | Accession | Result | Verified |
+|---|---|---|---|
+| GS | `0001193125-26-141997` | Item 5 (charitable giving report) withdrawn, applied; correction written (item public) | "“Item 5. Shareholder Proposal Regarding Charitable Giving Reporting” will not be considered" |
+| DIS | `0001744489-26-000028` | Item 5 (climate ROI report) withdrawn, applied; correction | "Proposal 5 will not be presented at or voted on" |
+| GE | `0000040545-26-000022` | Item 6 (written consent) withdrawn, applied; correction | "Withdrawal of Proposal No. 6: Shareholder Proposal Requesting Right to Act by Written Consent". The plan guessed GE's withdrawal was item 7; the filing says 6 |
+| GM | `0001193125-26-239355` | One pending `nominees` change: the 11 nominees minus Jonathan McNeill | "…will be the only director candidates nominated"; the 10 names match the supplement |
+| PM | `0001628280-26-022319` | No changes (a photo correction) | Correct |
+
+Linking on all 204 fetched supplements (no API calls): 164 link to a meeting, 40 are set aside (Tesla's 24 for its 2025 meeting; the rest filed before their company's proxy or after the meeting), 0 wait.
