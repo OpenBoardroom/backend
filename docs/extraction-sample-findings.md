@@ -267,3 +267,19 @@ Five supplements read one at a time with `obr supplements --filing`, supplement 
 | PM | `0001628280-26-022319` | No changes (a photo correction) | Correct |
 
 Linking on all 204 fetched supplements (no API calls): 164 link to a meeting, 40 are set aside (Tesla's 24 for its 2025 meeting; the rest filed before their company's proxy or after the meeting), 0 wait.
+
+### Supplements batch (2026-11-25/26)
+
+`msgbatch_01T7LJcRUMGduiaS4hc5s98E`: 159 linked supplements, 905,179 input and 7,524 output tokens, **$1.89** at batch rates. All 159 `checked`, none in review. No automatic changes; 11 pending changes:
+
+| Change | Supplement | Proposed | Assessment |
+|---|---|---|---|
+| 10 | MSFT `0001193125-26-453698` | Nominees: the 12 minus Emma Walmsley | Correct ("Ms. Walmsley is no longer a director nominee") |
+| 11–14 | NEE `0001104659-26-055646` | Item 4: lead filer Wendy Chavkin 2022 Revocable Trust, representative Trillium Asset Management. Item 5: lead filer Inspire Investing, LLC, representative Bowyer Research | Correct; fills the proponents the proxy didn't name (F23) |
+| 15 | UPS `0001628280-26-021015` | Item 3 vote standard: "a majority of the voting power of the shares present … and entitled to vote" | Correct; but `vote_base` stays `votes_cast` (F25) |
+| 5 | DUK `0001104659-26-033897` | Item 4 vote standard replaced by one sentence about broker non-votes | Wrong as a replacement: it would drop the 80%-of-outstanding standard (F25) |
+| 6–9 | MDLZ `0001628280-26-025322` | Items 2–5 vote standard replaced by a paraphrase | The real correction is that abstentions also have no effect on Item 3 (the proxy listed "Items 2, 4, and 5"). The structured fields were already right; the paraphrase isn't the filing's wording (F25) |
+
+The three earlier keyword hits checked: BAC and AMZN mention "withdraw" only in general text (no changes, correct); MSFT's November supplement is change 10.
+
+**F25 (Medium).** `amend_text` replaces the whole field with what the supplement says, but supplements often state only the correction. For `vote_standard_text` that fragment drops the rest of the standard (Duke) or substitutes a paraphrase (Mondelez), and the structured fields (`vote_base`, `abstentions_count_against`) can't be amended at all (UPS). Options: supplement prompt v2 asks for the full corrected wording, built from the current wording plus the supplement's change, and adds the structured vote fields to `amend_text`; or leave vote-standard corrections to review, where `obr review fix` handles them.
