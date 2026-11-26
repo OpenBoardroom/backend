@@ -118,19 +118,48 @@ def meeting_items(conn: psycopg.Connection, meeting_id: int) -> list[dict[str, o
 
     Returns:
         Per item, in ballot order: ``number`` as printed, ``title``, ``type``,
-        ``board_recommendation``, ``status``, and ``nominees``.
+        ``board_recommendation``, ``status``, ``nominees``, and the current value
+        of every field ``amend_text`` can change.
     """
     rows = conn.execute(
         """
         select bi.number, bi.title, bi.type, bi.board_recommendation, bi.status,
                array(select n.name from nominees n where n.ballot_item_id = bi.id
-                     order by n.position)
+                     order by n.position),
+               bi.lead_filer, bi.representative, bi.co_filers, bi.request,
+               bi.vote_standard_text, bi.vote_base, bi.vote_threshold_pct::float,
+               bi.abstentions_count_against
         from ballot_items bi where bi.meeting_id = %s order by bi.id
         """,
         (meeting_id,),
     ).fetchall()
-    keys = ("number", "title", "type", "board_recommendation", "status", "nominees")
+    # The amendable fields' current values let a change carry the full corrected value (F25).
+    keys = (
+        "number", "title", "type", "board_recommendation", "status", "nominees", "lead_filer",
+        "representative", "co_filers", "request", "vote_standard_text", "vote_base",
+        "vote_threshold_pct", "abstentions_count_against",
+    )  # fmt: skip
     return [dict(zip(keys, row, strict=True)) for row in rows]
+
+
+_VOTE_BASES = (
+    "votes_cast", "shares_present_and_voting", "shares_present", "shares_outstanding",
+    "plurality", "other",
+)  # fmt: skip
+
+
+def _valid_vote_value(field: str, value: str) -> bool:
+    """Whether a structured vote amendment's value fits its field."""
+    value = value.strip()
+    if field == "vote_base":
+        return value in _VOTE_BASES
+    if field == "vote_threshold_pct":
+        try:
+            float(value)
+        except ValueError:
+            return False
+        return True
+    return value.lower() in ("true", "false")
 
 
 def _required(change: dict[str, Any]) -> str | None:
@@ -141,6 +170,13 @@ def _required(change: dict[str, Any]) -> str | None:
         return "nominees are required"
     if kind == "amend_text" and (change["field"] is None or not change["value"].strip()):
         return "field and value are required"
+    vote_fields = ("vote_base", "vote_threshold_pct", "abstentions_count_against")
+    if (
+        kind == "amend_text"
+        and change["field"] in vote_fields
+        and not _valid_vote_value(change["field"], change["value"])
+    ):
+        return f"{change['value']!r} is not a valid {change['field']}"
     if kind == "add_item" and change["item"] is None:
         return "item is required"
     return None

@@ -99,3 +99,20 @@ def test_added_item_needs_a_number() -> None:
     assert problems({"changes": [added]}, TEXT, ITEMS) == [
         "change 1 (add_item): a number is required"
     ]
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "ok"),
+    [
+        ("vote_base", "shares_present", True),
+        ("vote_base", "most votes", False),
+        ("vote_threshold_pct", "66.67", True),
+        ("vote_threshold_pct", "two thirds", False),
+        ("abstentions_count_against", "false", True),
+        ("abstentions_count_against", "no effect", False),
+    ],
+)
+def test_structured_amendments_must_fit_their_vocabulary(field: str, value: str, ok: bool) -> None:
+    change = _change(type="amend_text", field=field, value=value)
+    found = problems({"changes": [change]}, TEXT, ITEMS)
+    assert found == [] if ok else (len(found) == 1 and "is not a valid" in found[0])

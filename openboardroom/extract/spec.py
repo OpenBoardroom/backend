@@ -20,7 +20,7 @@ SCHEMA_VERSION = "3"
 # Text-only regeneration after a review rejection (spec §7.2); prompt and schema share it.
 TEXTS_PROMPT_VERSION = "1"
 # Supplement (DEFA14A) pass: ballot changes only (spec §6.3 item 3); prompt and schema share it.
-SUPPLEMENT_PROMPT_VERSION = "1"
+SUPPLEMENT_PROMPT_VERSION = "2"
 
 _PROMPTS = files("openboardroom.extract") / "prompts"
 # A closing tag inside the untrusted filing text would end the data block early.

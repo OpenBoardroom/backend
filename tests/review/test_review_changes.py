@@ -292,3 +292,20 @@ def test_applied_added_item_carries_its_source_quote(conn: psycopg.Connection) -
     assert conn.execute("select source_quote from ballot_items where number = '3'").fetchone() == (
         QUOTE,
     )
+
+
+def test_apply_structured_vote_amendment_corrects(conn: psycopg.Connection) -> None:
+    # Finding F25: UPS 2026 corrected Proposal 3 to shares present and entitled to vote.
+    (change_id,) = _seed(
+        conn,
+        _change(
+            type="amend_text", number=2, nominees=[], field="vote_base", value="shares_present"
+        ),
+    )
+
+    store.apply_change(conn, change_id, "quinn", "UPS supplement")
+
+    assert conn.execute("select vote_base from ballot_items where number = '2'").fetchone() == (
+        "shares_present",
+    )
+    assert _corrections(conn)[0][:3] == ("vote_base", None, "shares_present")

@@ -359,7 +359,7 @@ def test_texts_user_message_lists_items_reasons_and_filing_last():
 
 def test_supplement_prompt_neutrality_matches_v4():
     # An added item's summary meets the same standard as an extracted one (spec §8.4).
-    assert SUPPLEMENT_PROMPT_VERSION == "1"
+    assert SUPPLEMENT_PROMPT_VERSION == "2"
     assert _section(supplement_prompt(), "Neutrality") == _section(system_prompt(), "Neutrality")
     assert "only the ballot changes" in supplement_prompt()
 
@@ -379,3 +379,17 @@ def test_supplement_user_message_puts_items_before_filing():
 
     assert message.index('"number": "5"') < message.index("<filing>")
     assert message.endswith("Supplement text <\\/filing> end\n</filing>")
+
+
+def test_supplement_v2_amends_with_full_corrected_values():
+    # Finding F25: supplements often state only a correction; the change must carry
+    # the field's whole corrected value, and the structured vote fields can be amended.
+    prompt = supplement_prompt()
+    assert "the field's full corrected value" in prompt
+    assert "current value" in prompt
+    schema = cast(dict[str, Any], supplement_schema())
+    fields = schema["$defs"]["change"]["properties"]["field"]["anyOf"][0]["enum"]
+    assert {"vote_base", "vote_threshold_pct", "abstentions_count_against"} <= set(fields)
+    prompts = files("openboardroom.extract") / "prompts"
+    assert (prompts / "supplement-v1.md").is_file()
+    assert (prompts / "supplement-schema-v1.json").is_file()

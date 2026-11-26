@@ -100,10 +100,15 @@ def test_meeting_items_lists_numbers_and_nominees(conn: psycopg.Connection) -> N
 
     items = supplement.meeting_items(conn, _meeting(conn, proxy.filing_id))
 
-    assert items == [
-        {"number": "1", "title": "Election of Directors", "type": "management",
-         "board_recommendation": "for_each_nominee", "status": "active",
-         "nominees": ["Ann Lee", "Bo Chen"]},
-        {"number": "2", "title": "Report on Water Use", "type": "shareholder",
-         "board_recommendation": "against", "status": "active", "nominees": []},
-    ]  # fmt: skip
+    assert [(i["number"], i["title"], i["nominees"]) for i in items] == [
+        ("1", "Election of Directors", ["Ann Lee", "Bo Chen"]),
+        ("2", "Report on Water Use", []),
+    ]
+    # Every amendable field's current value, so a change can carry the full corrected value (F25).
+    assert items[1] | {"nominees": []} == {
+        "number": "2", "title": "Report on Water Use", "type": "shareholder",
+        "board_recommendation": "against", "status": "active", "nominees": [],
+        "lead_filer": "A Fund", "representative": None, "co_filers": [],
+        "request": "a report on water use", "vote_standard_text": None, "vote_base": None,
+        "vote_threshold_pct": None, "abstentions_count_against": None,
+    }  # fmt: skip

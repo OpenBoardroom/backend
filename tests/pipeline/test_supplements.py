@@ -68,7 +68,7 @@ def test_direct_withdrawal_end_to_end(conn: psycopg.Connection, tmp_path: Path) 
         "select kind, status, prompt_version, schema_version from extraction_runs "
         "where kind = 'supplement'"
     ).fetchone()
-    assert run_row == ("supplement", "succeeded", "1", "1")
+    assert run_row == ("supplement", "succeeded", "2", "2")
     sent = recorder.body()
     assert '"number": "2"' in sent["messages"][0]["content"]
     assert sent["output_config"]["format"]["schema"]["required"] == ["changes"]
