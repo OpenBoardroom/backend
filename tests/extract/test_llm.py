@@ -589,3 +589,20 @@ def test_batch_outcomes_survives_a_malformed_results_line() -> None:
     assert (first.outcome.status, first.retry) == ("succeeded", False)
     # Everything not yet collected is retried directly.
     assert [outcomes[i] for i in IDS[1:]] == [_NO_RESULT] * 4
+
+
+def test_submit_batch_is_never_retried() -> None:
+    # Backend review, 2026-11-27: the SDK retries a POST after a 5xx or timeout by
+    # default, which can create (and bill) the same batch twice. One attempt only;
+    # the caller records nothing, and the next run resubmits on purpose.
+    error = {"type": "error", "error": {"type": "api_error", "message": "Fixture error."}}
+    recorder = Recorder(json_response(error, status=500), json_response(_batch("in_progress")))
+    client = anthropic.Anthropic(
+        api_key=FAKE_API_KEY,
+        max_retries=2,
+        http_client=httpx2.Client(transport=httpx2.MockTransport(recorder)),
+    )
+
+    with pytest.raises(anthropic.InternalServerError):
+        submit_batch(client, SETTINGS, [("0001308179-24-000010", TEXT, CANDIDATES)])
+    assert len(recorder.requests) == 1

@@ -379,7 +379,10 @@ def submit_requests(
         batch.append(
             Request(custom_id=custom_id, params=cast(MessageCreateParamsNonStreaming, params))
         )
-    return client.messages.batches.create(requests=batch).id
+    # Never retried: a retry after a timeout or 5xx can create (and bill) the
+    # same batch twice. A failed submit records nothing, and the next run
+    # submits again on purpose (backend review, 2026-11-27).
+    return client.with_options(max_retries=0).messages.batches.create(requests=batch).id
 
 
 def batch_status(client: anthropic.Anthropic, batch_id: str) -> Literal["in_progress", "ended"]:
