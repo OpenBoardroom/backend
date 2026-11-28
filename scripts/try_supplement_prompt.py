@@ -48,8 +48,22 @@ def _meeting(conn: psycopg.Connection, accession: str) -> int | None:
     ).fetchone()
     if row is not None:
         return row[0]
-    linked = supp.linked(conn, accession)
-    return linked.meeting_id if linked else None
+    # The linking rule, for a supplement at any stage (supp.linked takes only
+    # fetched ones): the company's latest extracted proxy filed on or before it
+    # whose meeting hadn't happened yet.
+    row = conn.execute(
+        """
+        select m.id from filings s
+        join filings f on f.company_id = s.company_id and f.form = 'DEF 14A'
+            and f.filed_at <= s.filed_at and f.stage <> 'out_of_scope'
+        join meetings m on m.proxy_filing_id = f.id
+            and (m.meeting_date is null or m.meeting_date >= s.filed_at::date)
+        where s.accession = %s
+        order by f.filed_at desc, f.id desc limit 1
+        """,
+        (accession,),
+    ).fetchone()
+    return row[0] if row else None
 
 
 def main(argv: list[str]) -> int:
