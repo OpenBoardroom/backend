@@ -254,6 +254,45 @@ def _check_schema(output: object) -> CheckResult:
     return _result("schema", validate_output(output))
 
 
+# The words a recommendation's quote must contain (backend review, 2026-11-27).
+# Measured on the 548 items of the 2026 season: no correct item fails.
+_FOR_WORDS = re.compile(r"\bfor\b|\bin favou?r\b|\bapprov|\belect", re.IGNORECASE)
+# "FOR" as a vote, in capitals, but not "FOR THE REASONS STATED" and the like.
+_FOR_VOTE = re.compile(r"\bFOR\b(?!\s+THE\s+(?:REASONS|FOREGOING|ABOVE))")
+_AGAINST = re.compile(r"\bagainst\b", re.IGNORECASE)
+_FREQUENCY_WORDS = {
+    "one_year": re.compile(r"\b(?:one|1)[- ]year\b|\bevery year\b|\bannual", re.IGNORECASE),
+    "two_years": re.compile(r"\b(?:two|2)[- ]years?\b", re.IGNORECASE),
+    "three_years": re.compile(r"\b(?:three|3)[- ]years?\b", re.IGNORECASE),
+}
+
+
+def _recommendation_problem(label: str, item: dict[str, Any]) -> str | None:
+    """Whether ``board_recommendation`` says what its quote says.
+
+    The quotes check only finds the quote somewhere in the filing; this keeps a
+    flipped recommendation, the fact a voter acts on most, from passing. A
+    quote that names a vote both ways (one sentence covering several items)
+    passes when it also has a capitalized FOR.
+    """
+    recommendation, quote = item.get("board_recommendation"), item.get("recommendation_quote")
+    if not isinstance(recommendation, str) or not isinstance(quote, str) or not quote.strip():
+        return None
+    if recommendation == "against":
+        agrees = bool(_AGAINST.search(quote))
+    elif recommendation in ("for", "for_each_nominee"):
+        agrees = bool(_FOR_WORDS.search(quote)) and (
+            not _AGAINST.search(quote) or bool(_FOR_VOTE.search(quote))
+        )
+    elif recommendation in _FREQUENCY_WORDS:
+        agrees = bool(_FREQUENCY_WORDS[recommendation].search(quote))
+    else:
+        return None
+    if agrees:
+        return None
+    return f"{label}: board_recommendation {recommendation!r} doesn't match recommendation_quote"
+
+
 def _item_problems(label: str, item: dict[str, Any]) -> list[str]:
     problems = [f"{label}: {f} is required" for f in _ALWAYS_REQUIRED if _missing(item.get(f))]
     if (
@@ -270,6 +309,9 @@ def _item_problems(label: str, item: dict[str, Any]) -> list[str]:
         isinstance(nominees, list) and nominees
     ):
         problems.append(f"{label}: nominees needs at least one name for a director election")
+    mismatch = _recommendation_problem(label, item)
+    if mismatch:
+        problems.append(mismatch)
     return problems + _type_problems(label, item)
 
 

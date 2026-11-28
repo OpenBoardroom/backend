@@ -79,7 +79,8 @@ def test_paraphrased_quote_fails_quotes_naming_item() -> None:
 @pytest.mark.parametrize("field", ["recommendation_quote", "vote_standard_quote"])
 def test_other_item_quotes_are_checked(field: str) -> None:
     out = _output()
-    out["items"][1][field] = "invented words that appear nowhere in the document"
+    # Says FOR, as item 2's recommendation does, so only the quotes check fails.
+    out["items"][1][field] = "invented words for a vote FOR that appear nowhere in the document"
     results = _run(out)
     assert _failed(results) == ["quotes"]
     assert results[1].detail is not None and f"item 2: {field}" in results[1].detail
@@ -546,3 +547,51 @@ def test_label_names_the_part() -> None:
     first, _ = _split_item_two(out, ("a", "b"))
     first["source_quote"] = "words that are not anywhere in this filing at all"
     assert "item 2a:" in (_run(out)[1].detail or "")
+
+
+# --- the board recommendation agrees with its quote (backend review, 2026-11-27) ---
+
+
+def _with_recommendation(recommendation: str, quote: str) -> dict[str, Any]:
+    out = _output()
+    item = _item(out, "shareholder_proposal")
+    item.update(board_recommendation=recommendation, recommendation_quote=quote)
+    return out
+
+
+@pytest.mark.parametrize(
+    ("recommendation", "quote"),
+    [
+        ("for", "The Board recommends a vote AGAINST this proposal for the following reasons:"),
+        ("for", "For these reasons, the Board recommends that you vote AGAINST this proposal."),
+        ("against", "The Board of Directors recommends a vote FOR this proposal."),
+        ("one_year", "The Board recommends a vote for every three years."),
+        ("three_years", "The Board recommends that shareholders vote for ONE YEAR."),
+    ],
+)
+def test_recommendation_that_contradicts_its_quote_fails(recommendation: str, quote: str) -> None:
+    results = run_checks(_with_recommendation(recommendation, quote), FILING, CANDIDATES)
+    consistency = results[3]
+    assert not consistency.passed
+    assert "board_recommendation" in (consistency.detail or "")
+
+
+@pytest.mark.parametrize(
+    ("recommendation", "quote"),
+    [
+        ("against", "For the foregoing reasons, the Board recommends a vote AGAINST this "
+                    "proposal."),
+        ("against", "FOR THE REASONS STATED, THE BOARD RECOMMENDS THAT YOU VOTE AGAINST "
+                    "PROPOSAL 04"),
+        ("for", "The Board recommends a vote FOR all of the nominees listed, FOR Proposals 2-3 and "
+                "AGAINST Proposal 4."),
+        ("for", "The Board unanimously recommends that shareholders vote in favor of this "
+                "proposal."),
+        ("for", "The Board recommends that you approve the amended plan."),
+        ("one_year", "The Board recommends a vote for an annual advisory vote."),
+        ("none", "The Board makes no recommendation on this proposal."),
+    ],
+)  # fmt: skip
+def test_recommendation_consistent_with_its_quote_passes(recommendation: str, quote: str) -> None:
+    results = run_checks(_with_recommendation(recommendation, quote), FILING, CANDIDATES)
+    assert "board_recommendation" not in (results[3].detail or "")
