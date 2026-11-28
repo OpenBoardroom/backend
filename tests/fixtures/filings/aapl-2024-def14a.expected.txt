@@ -1,284 +1,3 @@
-false
-0000320193
-DEF 14A
-0000320193
-2022-09-25
-2023-09-30
-0000320193
-aapl:MrCookMember
-2022-09-25
-2023-09-30
-0000320193
-aapl:MrCookMember
-2021-09-26
-2022-09-24
-0000320193
-2021-09-26
-2022-09-24
-0000320193
-aapl:MrCookMember
-2020-09-27
-2021-09-25
-0000320193
-2020-09-27
-2021-09-25
-0000320193
-ecd:PeoMember
-aapl:MrCookMember
-2020-09-27
-2021-09-25
-0000320193
-ecd:PeoMember
-aapl:MrCookMember
-2021-09-26
-2022-09-24
-0000320193
-ecd:PeoMember
-aapl:MrCookMember
-2022-09-25
-2023-09-30
-0000320193
-ecd:PeoMember
-aapl:MrCookMember
-aapl:GrantDateFairValueOfStockAwardsFromSCTMember
-2022-09-25
-2023-09-30
-0000320193
-ecd:NonPeoNeoMember
-aapl:GrantDateFairValueOfStockAwardsFromSCTMember
-2022-09-25
-2023-09-30
-0000320193
-ecd:PeoMember
-aapl:MrCookMember
-aapl:GrantDateFairValueOfStockAwardsFromSCTMember
-2021-09-26
-2022-09-24
-0000320193
-ecd:NonPeoNeoMember
-aapl:GrantDateFairValueOfStockAwardsFromSCTMember
-2021-09-26
-2022-09-24
-0000320193
-ecd:PeoMember
-aapl:MrCookMember
-aapl:GrantDateFairValueOfStockAwardsFromSCTMember
-2020-09-27
-2021-09-25
-0000320193
-ecd:NonPeoNeoMember
-aapl:GrantDateFairValueOfStockAwardsFromSCTMember
-2020-09-27
-2021-09-25
-0000320193
-ecd:PeoMember
-aapl:MrCookMember
-aapl:FairValueOfEquityAwardsGrantedInTheYearAndUnvestedAsOfYearEndMember
-2022-09-25
-2023-09-30
-0000320193
-ecd:NonPeoNeoMember
-aapl:FairValueOfEquityAwardsGrantedInTheYearAndUnvestedAsOfYearEndMember
-2022-09-25
-2023-09-30
-0000320193
-ecd:PeoMember
-aapl:MrCookMember
-aapl:FairValueOfEquityAwardsGrantedInTheYearAndUnvestedAsOfYearEndMember
-2021-09-26
-2022-09-24
-0000320193
-ecd:NonPeoNeoMember
-aapl:FairValueOfEquityAwardsGrantedInTheYearAndUnvestedAsOfYearEndMember
-2021-09-26
-2022-09-24
-0000320193
-ecd:PeoMember
-aapl:MrCookMember
-aapl:FairValueOfEquityAwardsGrantedInTheYearAndUnvestedAsOfYearEndMember
-2020-09-27
-2021-09-25
-0000320193
-ecd:NonPeoNeoMember
-aapl:FairValueOfEquityAwardsGrantedInTheYearAndUnvestedAsOfYearEndMember
-2020-09-27
-2021-09-25
-0000320193
-ecd:PeoMember
-aapl:MrCookMember
-aapl:ChangeInFairValueFromPriorYearEndOfOutstandingAndUnvestedAwardsGrantedInPriorYearsMember
-2022-09-25
-2023-09-30
-0000320193
-ecd:NonPeoNeoMember
-aapl:ChangeInFairValueFromPriorYearEndOfOutstandingAndUnvestedAwardsGrantedInPriorYearsMember
-2022-09-25
-2023-09-30
-0000320193
-ecd:PeoMember
-aapl:MrCookMember
-aapl:ChangeInFairValueFromPriorYearEndOfOutstandingAndUnvestedAwardsGrantedInPriorYearsMember
-2021-09-26
-2022-09-24
-0000320193
-ecd:NonPeoNeoMember
-aapl:ChangeInFairValueFromPriorYearEndOfOutstandingAndUnvestedAwardsGrantedInPriorYearsMember
-2021-09-26
-2022-09-24
-0000320193
-ecd:PeoMember
-aapl:MrCookMember
-aapl:ChangeInFairValueFromPriorYearEndOfOutstandingAndUnvestedAwardsGrantedInPriorYearsMember
-2020-09-27
-2021-09-25
-0000320193
-ecd:NonPeoNeoMember
-aapl:ChangeInFairValueFromPriorYearEndOfOutstandingAndUnvestedAwardsGrantedInPriorYearsMember
-2020-09-27
-2021-09-25
-0000320193
-ecd:PeoMember
-aapl:MrCookMember
-aapl:ChangeInFairValueFromPriorYearEndOfVestedAwardsGrantedInPriorYearsMember
-2022-09-25
-2023-09-30
-0000320193
-ecd:NonPeoNeoMember
-aapl:ChangeInFairValueFromPriorYearEndOfVestedAwardsGrantedInPriorYearsMember
-2022-09-25
-2023-09-30
-0000320193
-ecd:PeoMember
-aapl:MrCookMember
-aapl:ChangeInFairValueFromPriorYearEndOfVestedAwardsGrantedInPriorYearsMember
-2021-09-26
-2022-09-24
-0000320193
-ecd:NonPeoNeoMember
-aapl:ChangeInFairValueFromPriorYearEndOfVestedAwardsGrantedInPriorYearsMember
-2021-09-26
-2022-09-24
-0000320193
-ecd:PeoMember
-aapl:MrCookMember
-aapl:ChangeInFairValueFromPriorYearEndOfVestedAwardsGrantedInPriorYearsMember
-2020-09-27
-2021-09-25
-0000320193
-ecd:NonPeoNeoMember
-aapl:ChangeInFairValueFromPriorYearEndOfVestedAwardsGrantedInPriorYearsMember
-2020-09-27
-2021-09-25
-0000320193
-ecd:PeoMember
-aapl:MrCookMember
-aapl:FairValueAtVestingDateOfVestedAwardsGrantedInCurrentYearMember
-2022-09-25
-2023-09-30
-0000320193
-ecd:NonPeoNeoMember
-aapl:FairValueAtVestingDateOfVestedAwardsGrantedInCurrentYearMember
-2022-09-25
-2023-09-30
-0000320193
-ecd:PeoMember
-aapl:MrCookMember
-aapl:FairValueAtVestingDateOfVestedAwardsGrantedInCurrentYearMember
-2021-09-26
-2022-09-24
-0000320193
-ecd:NonPeoNeoMember
-aapl:FairValueAtVestingDateOfVestedAwardsGrantedInCurrentYearMember
-2021-09-26
-2022-09-24
-0000320193
-ecd:PeoMember
-aapl:MrCookMember
-aapl:FairValueAtVestingDateOfVestedAwardsGrantedInCurrentYearMember
-2020-09-27
-2021-09-25
-0000320193
-ecd:NonPeoNeoMember
-aapl:FairValueAtVestingDateOfVestedAwardsGrantedInCurrentYearMember
-2020-09-27
-2021-09-25
-0000320193
-ecd:NonPeoNeoMember
-aapl:LucaMaestriMember
-2022-09-25
-2023-09-30
-0000320193
-ecd:NonPeoNeoMember
-aapl:LucaMaestriMember
-2021-09-26
-2022-09-24
-0000320193
-ecd:NonPeoNeoMember
-aapl:LucaMaestriMember
-2020-09-27
-2021-09-25
-0000320193
-ecd:NonPeoNeoMember
-aapl:KateAdamsMember
-2022-09-25
-2023-09-30
-0000320193
-ecd:NonPeoNeoMember
-aapl:KateAdamsMember
-2021-09-26
-2022-09-24
-0000320193
-ecd:NonPeoNeoMember
-aapl:KateAdamsMember
-2020-09-27
-2021-09-25
-0000320193
-ecd:NonPeoNeoMember
-aapl:DeirdreOBrienMember
-2022-09-25
-2023-09-30
-0000320193
-ecd:NonPeoNeoMember
-aapl:DeirdreOBrienMember
-2021-09-26
-2022-09-24
-0000320193
-ecd:NonPeoNeoMember
-aapl:DeirdreOBrienMember
-2020-09-27
-2021-09-25
-0000320193
-ecd:NonPeoNeoMember
-aapl:JeffWilliamsMember
-2022-09-25
-2023-09-30
-0000320193
-ecd:NonPeoNeoMember
-aapl:JeffWilliamsMember
-2021-09-26
-2022-09-24
-0000320193
-ecd:NonPeoNeoMember
-aapl:JeffWilliamsMember
-2020-09-27
-2021-09-25
-0000320193
-1
-2022-09-25
-2023-09-30
-0000320193
-2
-2022-09-25
-2023-09-30
-0000320193
-3
-2022-09-25
-2023-09-30
-iso4217:USD
-xbrli:shares
-iso4217:USD
-xbrli:shares
-xbrli:pure
 UNITED STATES
 SECURITIES AND EXCHANGE COMMISSION
 Washington, DC 20549
@@ -296,62 +15,26 @@ Definitive Additional Materials
 Soliciting Material under §240.14a-12
 Apple Inc.
 (Name of Registrant as Specified in Its Charter)
-(Name of Person(s) Filing Proxy Statement, if
-other than the Registrant)
+(Name of Person(s) Filing Proxy Statement, if other than the Registrant)
 Payment of Filing Fee (Check all boxes that apply):
 No fee required.
 Fee paid previously with preliminary materials.
 Fee computed on table in exhibit required by Item 25(b) per Exchange Act Rules 14a-6(i)(1) and 0-11.
 Attending the Annual Meeting
-We are pleased to welcome shareholders to the 2024
-Annual Meeting, to be held virtually on February 28, 2024, at 9:00 A.M. Pacific Time.
-To attend, vote, and submit questions during the
-Annual Meeting visit
-www.virtualshareholdermeeting.com/AAPL2024
-and enter the control number included
-in your Notice of Internet Availability of Proxy Materials, voting instruction form, or proxy card. Online access to the webcast will
-open approximately 15 minutes prior to the start of the Annual Meeting. Attendance at the Annual Meeting is subject to capacity limits
-set by the virtual meeting platform provider. To submit questions in advance of the Annual Meeting, visit
-proxyvote.com
-before 8:59 P.M. Pacific Time on February 27, 2024, and enter your control number.
-Your vote is important to us. Even if you plan on
-attending the Annual Meeting, we encourage you to vote your shares in advance to ensure that your vote will be represented at the Annual
-Meeting. To vote in advance online, visit
-proxyvote.com
-and enter the control number included in your
-Notice of Internet Availability of Proxy Materials, or, if you requested printed copies of the proxy materials, you may vote by phone
-or by mail. For more detailed information, see the section entitled “Voting Procedures” beginning on page 109 of
-the Proxy Statement.
-In the Proxy Statement, the terms
-“Apple,” “we,” “our,” and “Company” refer to Apple Inc. Information presented in
-the Proxy Statement is based on Apple’s fiscal calendar, other than references to particular years in connection with our shareholder
-engagement program, in the biographical information about our directors and executive officers, and the opposition statements to the shareholder
-proposals, which refer to calendar years. The Proxy Statement includes website addresses and references to additional materials found
-on those websites, as well as references to our Civil Rights Assessment and Workers’ Rights Assessment. These websites, materials and
-our Civil Rights Assessment and Workers’ Rights Assessment are not incorporated by reference into the Proxy Statement or in any
-other Securities and Exchange Commission filing we make under the Securities Exchange Act of 1934, as amended.
-This document includes forward-looking
-statements within the meaning of the Private Securities Litigation Reform Act of 1995, including statements regarding our environmental,
-social, and governance goals, commitments, and strategies, and our executive compensation program. These statements involve risks and
-uncertainties. Actual results could differ materially from any future results expressed or implied by the forward-looking statements for
-a variety of reasons, including due to the risks, uncertainties, and other important factors that are discussed in our most recently filed
-periodic reports on Form 10-K and Form 10-Q and subsequent Securities and Exchange Commission filings. We assume no obligation to update
-any forward-looking statements, which speak only as of the date they are made.
+We are pleased to welcome shareholders to the 2024 Annual Meeting, to be held virtually on February 28, 2024, at 9:00 A.M. Pacific Time.
+To attend, vote, and submit questions during the Annual Meeting visit www.virtualshareholdermeeting.com/AAPL2024 and enter the control number included in your Notice of Internet Availability of Proxy Materials, voting instruction form, or proxy card. Online access to the webcast will open approximately 15 minutes prior to the start of the Annual Meeting. Attendance at the Annual Meeting is subject to capacity limits set by the virtual meeting platform provider. To submit questions in advance of the Annual Meeting, visit proxyvote.com before 8:59 P.M. Pacific Time on February 27, 2024, and enter your control number.
+Your vote is important to us. Even if you plan on attending the Annual Meeting, we encourage you to vote your shares in advance to ensure that your vote will be represented at the Annual Meeting. To vote in advance online, visit proxyvote.com and enter the control number included in your Notice of Internet Availability of Proxy Materials, or, if you requested printed copies of the proxy materials, you may vote by phone or by mail. For more detailed information, see the section entitled “Voting Procedures” beginning on page 109 of the Proxy Statement.
+In the Proxy Statement, the terms “Apple,” “we,” “our,” and “Company” refer to Apple Inc. Information presented in the Proxy Statement is based on Apple’s fiscal calendar, other than references to particular years in connection with our shareholder engagement program, in the biographical information about our directors and executive officers, and the opposition statements to the shareholder proposals, which refer to calendar years. The Proxy Statement includes website addresses and references to additional materials found on those websites, as well as references to our Civil Rights Assessment and Workers’ Rights Assessment. These websites, materials and our Civil Rights Assessment and Workers’ Rights Assessment are not incorporated by reference into the Proxy Statement or in any other Securities and Exchange Commission filing we make under the Securities Exchange Act of 1934, as amended.
+This document includes forward-looking statements within the meaning of the Private Securities Litigation Reform Act of 1995, including statements regarding our environmental, social, and governance goals, commitments, and strategies, and our executive compensation program. These statements involve risks and uncertainties. Actual results could differ materially from any future results expressed or implied by the forward-looking statements for a variety of reasons, including due to the risks, uncertainties, and other important factors that are discussed in our most recently filed periodic reports on Form 10-K and Form 10-Q and subsequent Securities and Exchange Commission filings. We assume no obligation to update any forward-looking statements, which speak only as of the date they are made.
 Copyright © 2024 Apple Inc. All rights reserved. Apple and the Apple logo are trademarks of Apple Inc., registered in the U.S. and other countries and regions.
-These materials were first sent
-or made available to shareholders on January 11, 2024.
+These materials were first sent or made available to shareholders on January 11, 2024.
 Table of Contents
-Notice
-of 2024 Annual Meeting of Shareholders
-5
-Message
-from our Chief Executive Officer
+Notice of 2024 Annual Meeting of Shareholders
+Message from our Chief Executive Officer
 8
-Apple
-Values
+Apple Values
 9
-Proxy
-Statement Summary
+Proxy Statement Summary
 11
 2023 Business Highlights
 12
@@ -363,8 +46,7 @@ Shareholder Engagement
 15
 Voting Matters and Vote Recommendations
 16
-Corporate
-Governance
+Corporate Governance
 19
 Our Corporate Governance Framework
 20
@@ -394,11 +76,9 @@ Nominees for Election
 32
 Compensation of Directors
 38
-Executive
-Officers
+Executive Officers
 41
-Executive
-Compensation
+Executive Compensation
 43
 Message from the People and Compensation Committee
 45
@@ -408,47 +88,31 @@ People and Compensation Committee Report
 61
 Executive Compensation Tables
 62
-Management
-Proposals
+Management Proposals
 73
-Proposal No. 1 - Election
-of Directors
+Proposal No. 1 - Election of Directors
 74
-Proposal No. 2 -
-Ratification of Appointment of Independent Registered Public Accounting Firm
-75
-Proposal No. 3 - Advisory
-Vote to Approve Executive Compensation
-77
-Back to Contents
-Shareholder
-Proposals
-79
+Proposal No. 2 - Ratification of Appointment of Independent Registered Public Accounting Firm
+Proposal No. 3 - Advisory Vote to Approve Executive Compensation
+Shareholder Proposals
 Shareholder Proposals
 80
 Identification of Proponents
 82
 Vote Required
 82
-Proposal No. 4 - EEO
-Policy Risk Report
+Proposal No. 4 - EEO Policy Risk Report
 83
-Proposal No. 5 - Report on
-Ensuring Respect for Civil Liberties
+Proposal No. 5 - Report on Ensuring Respect for Civil Liberties
 86
-Proposal No. 6 - Racial
-and Gender Pay Gaps
+Proposal No. 6 - Racial and Gender Pay Gaps
 89
-Proposal No. 7 - Report on
-Use of AI
+Proposal No. 7 - Report on Use of AI
 93
-Proposal No. 8 -
-Congruency Report on Privacy and Human Rights
+Proposal No. 8 - Congruency Report on Privacy and Human Rights
 97
 Other Matters
 100
-Other
-Information
 101
 Audit and Finance Committee Report
 102
@@ -457,10 +121,7 @@ Security Ownership of Certain Beneficial Owners and Management
 Delinquent Section 16(a) Reports
 104
 Equity Compensation Plan Information
-105
 General Information
-106
-Back to Contents
 Notice of 2024 Annual Meeting of Shareholders
 Date and Time
 Virtual Meeting Site
@@ -471,14 +132,11 @@ Who Can Vote
 Shareholders of record at the close of business on January 2, 2024
 Items of Business and Board Voting Recommendation
 1
-Election of Directors: Wanda Austin, Tim Cook,
-Alex Gorsky, Andrea Jung, Art Levinson,
+Election of Directors: Wanda Austin, Tim Cook, Alex Gorsky, Andrea Jung, Art Levinson,
 Monica Lozano, Ron Sugar, and Sue Wagner
-FOR
-each of the nominees
+FOR each of the nominees
 2
-Ratification of Appointment of Independent Registered Public
-Accounting Firm
+Ratification of Appointment of Independent Registered Public Accounting Firm
 FOR
 3
 Advisory Vote to Approve Executive Compensation
@@ -486,246 +144,76 @@ FOR
 4-8
 Shareholder Proposals if properly presented
 AGAINST
-And other business as may properly come before the Annual Meeting and
-any postponements or adjournments thereof.
+And other business as may properly come before the Annual Meeting and any postponements or adjournments thereof.
 Sincerely,
 Katherine Adams
 Senior Vice President,
 General Counsel and Secretary
 Cupertino, California
 January 11, 2024
-Important notice regarding
-the Availability of Proxy Materials for the Annual Meeting of Shareholders to be held on February 28, 2024. The Notice of
-Meeting, Proxy Statement, and Annual Report on Form 10-K are available free of charge at
-proxyvote.com
-and
-at
-investor.apple.com
-.
-Back to Contents
-Summary
-Governance
-Directors
-Compensation
-Proposals
-Other Information
-2024 Proxy Statement
-73
+Important notice regarding the Availability of Proxy Materials for the Annual Meeting of Shareholders to be held on February 28, 2024. The Notice of Meeting, Proxy Statement, and Annual Report on Form 10-K are available free of charge at proxyvote.com and at investor.apple.com.
 Management
-Proposals
-Proposal
-No. 1 - Election of Directors
+Proposal No. 1 - Election of Directors
 74
-Proposal
-No. 2 - Ratification of Appointment of Independent Registered Public Accounting Firm
-75
-Proposal
-No. 3 - Advisory Vote to Approve Executive Compensation
-77
-Back to Contents
-Summary
-Governance
-Directors
-Compensation
-Proposals
-Other Information
-2024 Proxy Statement
-74
+Proposal No. 2 - Ratification of Appointment of Independent Registered Public Accounting Firm
+Proposal No. 3 - Advisory Vote to Approve Executive Compensation
 Proposal No. 1
 Election of Directors
-The Board has nominated Wanda Austin, Tim Cook, Alex Gorsky, Andrea
-Jung, Art Levinson, Monica Lozano, Ron Sugar, and Sue Wagner to be elected to serve on our Board until the next annual meeting
-of shareholders and until their successors are duly elected and qualified.
-Holders of proxies solicited by this Proxy Statement will vote the
-proxies received by them as directed on the proxy card or, if no direction is made, for the election of the Board’s eight
-nominees.
-The term of any incumbent director who does not receive the affirmative
-vote of (i) a majority of the shares present or represented by proxy and voting at the Annual Meeting and (ii) a majority
-of the shares required to constitute a quorum, and has not earlier resigned, will end on the date that is the earlier of (a) 90 days
-after the date on which the voting results for the Annual Meeting are determined by the inspector of election, or (b) the date
-on which the Board selects a person to fill the office held by that director in accordance with Apple’s bylaws.
-Each of the director nominees has consented to serving as a nominee,
-being named in this Proxy Statement, and serving on the Board if elected. Each director elected at the Annual Meeting will be elected
-to serve a one-year term. If any nominee is unable to serve or for good cause will not serve as a director at the time of the Annual
-Meeting, the proxy holders may vote for any nominee designated by the present Board to fill the vacancy.
-There are no family relationships among Apple’s executive officers,
-directors, and nominees.
-For more information on the director nominees, please see the section
-entitled “Directors” beginning on page 29.
-The
-Board
-recommends
-a vote
-FOR
-each
-of the nominees
+The Board has nominated Wanda Austin, Tim Cook, Alex Gorsky, Andrea Jung, Art Levinson, Monica Lozano, Ron Sugar, and Sue Wagner to be elected to serve on our Board until the next annual meeting of shareholders and until their successors are duly elected and qualified.
+Holders of proxies solicited by this Proxy Statement will vote the proxies received by them as directed on the proxy card or, if no direction is made, for the election of the Board’s eight nominees.
+The term of any incumbent director who does not receive the affirmative vote of (i) a majority of the shares present or represented by proxy and voting at the Annual Meeting and (ii) a majority of the shares required to constitute a quorum, and has not earlier resigned, will end on the date that is the earlier of (a) 90 days after the date on which the voting results for the Annual Meeting are determined by the inspector of election, or (b) the date on which the Board selects a person to fill the office held by that director in accordance with Apple’s bylaws.
+Each of the director nominees has consented to serving as a nominee, being named in this Proxy Statement, and serving on the Board if elected. Each director elected at the Annual Meeting will be elected to serve a one-year term. If any nominee is unable to serve or for good cause will not serve as a director at the time of the Annual Meeting, the proxy holders may vote for any nominee designated by the present Board to fill the vacancy.
+There are no family relationships among Apple’s executive officers, directors, and nominees.
+For more information on the director nominees, please see the section entitled “Directors” beginning on page 29.
+The Board recommends a vote FOR each of the nominees
 Vote Required
 Apple has implemented majority voting in uncontested elections of directors. Accordingly, Apple’s bylaws provide that in an uncontested election of directors the affirmative vote of (i) a majority of the shares present or represented by proxy and voting at the Annual Meeting and (ii) a majority of the shares required to constitute a quorum is required to elect a director.
-Back to Contents
-Summary
-Governance
-Directors
-Compensation
-Proposals
-Other Information
-2024 Proxy Statement
-83
 Proposal No. 4
 Shareholder Proposal
-Apple has been advised that the National Center for Public Policy
-Research intends to submit the following proposal at the Annual Meeting.
+Apple has been advised that the National Center for Public Policy Research intends to submit the following proposal at the Annual Meeting.
 EEO Policy Risk Report
 RESOLVED
-Shareholders request that Apple Inc. (“Apple”) issue
-a public report detailing the potential risks associated with omitting “viewpoint” and “ideology” from
-its written equal employment opportunity (EEO) policy. The report should be available within a reasonable timeframe, prepared at
-a reasonable expense and omit proprietary information.
+Shareholders request that Apple Inc. (“Apple”) issue a public report detailing the potential risks associated with omitting “viewpoint” and “ideology” from its written equal employment opportunity (EEO) policy. The report should be available within a reasonable timeframe, prepared at a reasonable expense and omit proprietary information.
 SUPPORTING STATEMENT
-Apple does not explicitly prohibit discrimination based on viewpoint
-or ideology in its written EEO policy.
-Apple’s lack of a company-wide best practice EEO policy
-sends mixed signals to company employees and prospective employees and calls into question the extent to which individuals are
-protected due to inconsistent state policies and the absence of federal protection for partisan activities. Approximately half
-of Americans live and work in a jurisdiction with no legal protections if their employer takes action against them for their political
-activities.
-Companies with inclusive policies are better able to recruit
-the most talented employees from a broad labor pool, resolve complaints internally to avoid costly litigation or reputational damage,
-and minimize employee turnover. Moreover, inclusive policies contribute to more efficient human capital management by eliminating
-the need to maintain different policies in different locations.
-There is ample evidence that individuals with conservative viewpoints
-may face discrimination at Apple.
-In general, Silicon Valley is hostile to
-right-of-center thought. At the 2019 annual meeting of Apple shareholders, an audience member told company CEO Tim Cook about
-her close friend who works at Apple and lives in fear of retribution every single day because she happens to be a conservative.
-What she described was the textbook definition of a hostile work environment. Apple has also refused requests to increase the
-viewpoint diversity of its board.
-(1)
-This also signals to employees that viewpoint
-discrimination is condoned if not encouraged.
-Presently shareholders are unable to evaluate how Apple prevents
-discrimination towards employees based on their ideology or viewpoint, mitigates employee concerns of potential discrimination,
-and ensures a respectful and supportive work atmosphere that bolsters employee performance.
-Without an inclusive EEO policy, Apple may be sacrificing competitive
-advantages relative to peers while simultaneously increasing company and shareholder exposure to reputational and financial risks.
-We recommend that the report evaluate risks including, but not
-limited to, negative effects on employee hiring and retention, as well as litigation risks from conflicting state and company anti-discrimination
-policies.
+Apple does not explicitly prohibit discrimination based on viewpoint or ideology in its written EEO policy.
+Apple’s lack of a company-wide best practice EEO policy sends mixed signals to company employees and prospective employees and calls into question the extent to which individuals are protected due to inconsistent state policies and the absence of federal protection for partisan activities. Approximately half of Americans live and work in a jurisdiction with no legal protections if their employer takes action against them for their political activities.
+Companies with inclusive policies are better able to recruit the most talented employees from a broad labor pool, resolve complaints internally to avoid costly litigation or reputational damage, and minimize employee turnover. Moreover, inclusive policies contribute to more efficient human capital management by eliminating the need to maintain different policies in different locations.
+There is ample evidence that individuals with conservative viewpoints may face discrimination at Apple.
+In general, Silicon Valley is hostile to right-of-center thought. At the 2019 annual meeting of Apple shareholders, an audience member told company CEO Tim Cook about her close friend who works at Apple and lives in fear of retribution every single day because she happens to be a conservative. What she described was the textbook definition of a hostile work environment. Apple has also refused requests to increase the viewpoint diversity of its board.(1) This also signals to employees that viewpoint discrimination is condoned if not encouraged.
+Presently shareholders are unable to evaluate how Apple prevents discrimination towards employees based on their ideology or viewpoint, mitigates employee concerns of potential discrimination, and ensures a respectful and supportive work atmosphere that bolsters employee performance.
+Without an inclusive EEO policy, Apple may be sacrificing competitive advantages relative to peers while simultaneously increasing company and shareholder exposure to reputational and financial risks.
+We recommend that the report evaluate risks including, but not limited to, negative effects on employee hiring and retention, as well as litigation risks from conflicting state and company anti-discrimination policies.
 (1)
 https://www.mercurynews.com/2019/02/21/shareholders-to-vote-on-requiring-apple-to-disclose-board-nominees-ideology/
-Back to Contents
-Summary
-Governance
-Directors
-Compensation
-Proposals
-Other Information
-2024 Proxy Statement
-84
 Apple’s Statement in Opposition to Proposal No. 4
 AGAINST
 Proposal No. 4
 The Board recommends a vote AGAINST Proposal No. 4 because:
 ●
-we are committed to nurturing a culture where every great idea can
-be heard and where everyone belongs, including those with differing viewpoints and ideologies;
+we are committed to nurturing a culture where every great idea can be heard and where everyone belongs, including those with differing viewpoints and ideologies;
 ●
-our policies, practices, and trainings already address the proposal’s
-concern, and a report on potential risks to the Company of omitting “viewpoint” and “ideology” from our EEO
-policy would not provide material additional information to shareholders; and
+our policies, practices, and trainings already address the proposal’s concern, and a report on potential risks to the Company of omitting “viewpoint” and “ideology” from our EEO policy would not provide material additional information to shareholders; and
 ●
-our Board maintains active oversight of our Apple values, including
-inclusion and diversity, and of matters relating to Apple’s people and teams.
-At Apple, we are committed to treating everyone with dignity
-and respect and believe that both Apple and its shareholders benefit from nurturing a culture where everyone belongs.
-We are committed to nurturing
-a culture where every great idea can be heard and where everyone belongs, including those with differing viewpoints
-and ideologies.
-Inclusion and diversity is one of Apple’s values, which means we want every employee to feel a
-sense of belonging in the workplace, where their perspectives are respected, sought out, and considered fairly. We believe
-that when we create a workplace where everyone feels comfortable sharing their diverse experiences and perspectives, we
-remove the barriers that prevent people from being fully engaged and, in turn, facilitate creativity and productivity.
-A culture of open dialogue and supportive feedback
-also requires respect, including for those with different points of view. That is why respect is a foundational element of our
-culture. It is necessary for great collaboration. It is necessary for great debate. It is necessary for our ideas, products, and
-services to be as great as they can be. We believe every employee has a role in making our workplace respectful and welcoming for
-everyone, which is why we require every Apple employee to participate in trainings on respect and inclusion.
-Our policies already address the
-proposal’s concern and therefore a report would not provide additional material information.
-Because our commitment
-to a respectful and inclusive workplace is broadly scoped and embedded across our policies, practices, and trainings, we
-believe the risk to Apple of omitting viewpoint or ideology specifically from our Equal Employment Opportunity Policy (EEO
-Policy) is low, and a report on potential risks would not provide material additional information to shareholders.
-Apple’s EEO Policy states that, “Apple is an equal
-opportunity employer and does not discriminate in recruiting, hiring, training, or promoting” on many specifically enumerated
-categories, including any “basis protected by law.” This latter protection would include any state or local law that
-provides employees protection with respect to political activities or political affiliation, such as laws in locations like California,
-New York State, and Washington D.C. While the proponent’s concerns are already addressed under applicable law, which flows
-through to our EEO Policy, our commitment to inclusion and respect is broader and permeates all our policies and practices.
-Apple’s Business Conduct and
-Compliance policies are foundational to how we do business and how we put our values into practice every day. In setting this
-foundation, our Business Conduct Policy states, “Apple is dedicated to maintaining a creative, diverse, inclusive, and
-supportive work environment, and does not tolerate discrimination or harassment of employees or non-employees with whom we
-have a business, service, or professional relationship,” thus anchoring our goal of fostering acceptance and supporting
-diversity in all of its aspects, including diversity based on differing viewpoints and ideologies, in one of our main guiding
-policies. All employees are required to complete training on the Business Conduct Policy upon hiring and annually thereafter.
-And the training makes clear that maintaining a culture where our differences are celebrated is a responsibility shared by
-everyone at Apple.
-We want to make sure we’re doing everything we can to safeguard
-and reinforce a culture free from harassment and discrimination and to ensure employees feel fully empowered to report inappropriate
-or discriminatory conduct, without fear of retaliation. That is why we also offer a range of resources for employees to address
-questions and report concerns, including People Support, the Business Conduct Helpline, and the Business Conduct website, as well
-as an external reporting hotline. All matters are carefully and thoroughly reviewed, and our policy strictly prohibits any retaliation
-for reporting potential employee misconduct or participating in an investigation.
-Back to Contents
-Summary
-Governance
-Directors
-Compensation
-Proposals
-Other Information
-2024 Proxy Statement
-85
-We also regularly engage our employees in surveys to learn about
-what’s going well and how we can do better in areas like career development, manager performance, and inclusivity, and teams
-are encouraged to create action plans based on survey results. Notably, in our 2023 employee surveys, results indicate that employees
-feel accepted at Apple, and that they can comfortably share ideas and opinions that are different from their team’s.
-Our Board maintains active oversight.
-Our People and Compensation
-Committee assists the Board in its oversight of management’s strategies, policies, and practices relating to Apple’s
-people and teams, including with respect to inclusion and diversity, culture and employee engagement, talent recruitment, development,
-and retention, and our Audit Committee assists the Board in its oversight of matters relating to business conduct and legal and
-regulatory compliance. Further, our Nominating Committee oversees Apple’s shareholder engagement strategy and response to
-shareholder proposals and oversaw Apple’s recently completed Civil Rights Assessment published in July 2023.
-For all the reasons above, the Board recommends a vote
-AGAINST
+our Board maintains active oversight of our Apple values, including inclusion and diversity, and of matters relating to Apple’s people and teams.
+At Apple, we are committed to treating everyone with dignity and respect and believe that both Apple and its shareholders benefit from nurturing a culture where everyone belongs.
+We are committed to nurturing a culture where every great idea can be heard and where everyone belongs, including those with differing viewpoints and ideologies. Inclusion and diversity is one of Apple’s values, which means we want every employee to feel a sense of belonging in the workplace, where their perspectives are respected, sought out, and considered fairly. We believe that when we create a workplace where everyone feels comfortable sharing their diverse experiences and perspectives, we remove the barriers that prevent people from being fully engaged and, in turn, facilitate creativity and productivity.
+A culture of open dialogue and supportive feedback also requires respect, including for those with different points of view. That is why respect is a foundational element of our culture. It is necessary for great collaboration. It is necessary for great debate. It is necessary for our ideas, products, and services to be as great as they can be. We believe every employee has a role in making our workplace respectful and welcoming for everyone, which is why we require every Apple employee to participate in trainings on respect and inclusion.
+Our policies already address the proposal’s concern and therefore a report would not provide additional material information. Because our commitment to a respectful and inclusive workplace is broadly scoped and embedded across our policies, practices, and trainings, we believe the risk to Apple of omitting viewpoint or ideology specifically from our Equal Employment Opportunity Policy (EEO Policy) is low, and a report on potential risks would not provide material additional information to shareholders.
+Apple’s EEO Policy states that, “Apple is an equal opportunity employer and does not discriminate in recruiting, hiring, training, or promoting” on many specifically enumerated categories, including any “basis protected by law.” This latter protection would include any state or local law that provides employees protection with respect to political activities or political affiliation, such as laws in locations like California, New York State, and Washington D.C. While the proponent’s concerns are already addressed under applicable law, which flows through to our EEO Policy, our commitment to inclusion and respect is broader and permeates all our policies and practices.
+Apple’s Business Conduct and Compliance policies are foundational to how we do business and how we put our values into practice every day. In setting this foundation, our Business Conduct Policy states, “Apple is dedicated to maintaining a creative, diverse, inclusive, and supportive work environment, and does not tolerate discrimination or harassment of employees or non-employees with whom we have a business, service, or professional relationship,” thus anchoring our goal of fostering acceptance and supporting diversity in all of its aspects, including diversity based on differing viewpoints and ideologies, in one of our main guiding policies. All employees are required to complete training on the Business Conduct Policy upon hiring and annually thereafter. And the training makes clear that maintaining a culture where our differences are celebrated is a responsibility shared by everyone at Apple.
+We want to make sure we’re doing everything we can to safeguard and reinforce a culture free from harassment and discrimination and to ensure employees feel fully empowered to report inappropriate or discriminatory conduct, without fear of retaliation. That is why we also offer a range of resources for employees to address questions and report concerns, including People Support, the Business Conduct Helpline, and the Business Conduct website, as well as an external reporting hotline. All matters are carefully and thoroughly reviewed, and our policy strictly prohibits any retaliation for reporting potential employee misconduct or participating in an investigation.
+We also regularly engage our employees in surveys to learn about what’s going well and how we can do better in areas like career development, manager performance, and inclusivity, and teams are encouraged to create action plans based on survey results. Notably, in our 2023 employee surveys, results indicate that employees feel accepted at Apple, and that they can comfortably share ideas and opinions that are different from their team’s.
+Our Board maintains active oversight. Our People and Compensation Committee assists the Board in its oversight of management’s strategies, policies, and practices relating to Apple’s people and teams, including with respect to inclusion and diversity, culture and employee engagement, talent recruitment, development, and retention, and our Audit Committee assists the Board in its oversight of matters relating to business conduct and legal and regulatory compliance. Further, our Nominating Committee oversees Apple’s shareholder engagement strategy and response to shareholder proposals and oversaw Apple’s recently completed Civil Rights Assessment published in July 2023.
+For all the reasons above, the Board recommends a vote AGAINST
 Proposal No. 4
 Vote Required
-Approval of Proposal No. 4 requires the affirmative vote
-of (i) a majority of the shares present or represented by proxy and voting at the Annual Meeting and (ii) a majority
-of the shares required to constitute a quorum.
-Back to Contents
-Summary
-Governance
-Directors
-Compensation
-Proposals
-Other Information
-2024 Proxy Statement
-97
+Approval of Proposal No. 4 requires the affirmative vote of (i) a majority of the shares present or represented by proxy and voting at the Annual Meeting and (ii) a majority of the shares required to constitute a quorum.
 Proposal No. 8
 Shareholder Proposal
-Apple has been advised that the National Legal and Policy Center intends
-to submit the following proposal at the Annual Meeting.
+Apple has been advised that the National Legal and Policy Center intends to submit the following proposal at the Annual Meeting.
 Congruency Report on Privacy and Human Rights
-WHEREAS:
-Inconsistency and incongruity persist between articulated
-and published policies and actual practices and operations, and pose substantial risk to companies, their customers, and society at large.
-Apple Inc. (the “Company”)
-“believe[s] security shouldn’t come at the expense of individual privacy.”
-(1)
-Its
-published “commitment to human rights” espouses the following principles:
-(2)
+WHEREAS: Inconsistency and incongruity persist between articulated and published policies and actual practices and operations, and pose substantial risk to companies, their customers, and society at large.
+Apple Inc. (the “Company”) “believe[s] security shouldn’t come at the expense of individual privacy.” (1) Its published “commitment to human rights” espouses the following principles: (2)
 ●
 “We believe in the power of technology to empower and connect people around the world ...”
 ●
@@ -736,37 +224,11 @@ published “commitment to human rights” espouses the following principles:
 “We believe in the critical importance of an open society in which information flows freely, and we’re convinced the best way we can continue to promote openness is to remain engaged, even where we may disagree with a country’s laws ...”
 ●
 “We work every day to make quality products ... available to our users in a way that respects their human rights. We’re required to comply with local laws, and at times there are complex issues about which we may disagree with governments ...”
-While any freedom-loving individual would likely admire such principles,
-Apple appears to implement — or rescind — them inconsistently across countries where it conducts business, and incongruently
-with its principles.
-For example in China, the Company severely restricted use of its AirDrop
-wireless filesharing feature on users’ iPhones during protests against Chairman Xi Jinping’s “zero COVID” policies in
-late 2022.
-(3)
-Similarly, in 2017 Apple removed the
-New York Times’
-s apps from the App Store in China in 2017,
-(4)
-and
-removed apps including HKmap.live and Quartz from its offerings, during the protests in Hong Kong in 2019.
-(5)
-Yet upon
-the invasion into Ukraine, the Company halted the sale of all its products in Russia and stopped exports into the country.
-(6)
-“We
-are deeply concerned about the Russian invasion of Ukraine and stand with all of the people who are suffering as a result of the violence,”
-said an Apple spokesman. As a result, Apple stood to lose as much as $1.14 billion (U.S.) annually in iPhone sales alone, and the decision
-removed access to Apple’s critical communications and services for victims of the war.
-(7)
-Considering these examples, it appears the Company’s principles to “empower
-and connect people” as “a force for good” – while remaining “engaged” even where it disagrees with
-a government and its laws, by still making its products “available” to users – has its limits.
-Resolved:
-Shareholders request
-the Board of Directors issue a report by March 31,2025, at reasonable cost and omitting proprietary or confidential
-information, analyzing the congruency of the Company’s privacy and human rights policy positions with its actions,
-especially in such places as war zones and under oppressive regimes, as they impact how the Company maintains its reputation,
-viability and profitability.
+While any freedom-loving individual would likely admire such principles, Apple appears to implement — or rescind — them inconsistently across countries where it conducts business, and incongruently with its principles.
+For example in China, the Company severely restricted use of its AirDrop wireless filesharing feature on users’ iPhones during protests against Chairman Xi Jinping’s “zero COVID” policies in late 2022. (3) Similarly, in 2017 Apple removed the New York Times’s apps from the App Store in China in 2017, (4) and removed apps including HKmap.live and Quartz from its offerings, during the protests in Hong Kong in 2019. (5)
+Yet upon the invasion into Ukraine, the Company halted the sale of all its products in Russia and stopped exports into the country. (6) “We are deeply concerned about the Russian invasion of Ukraine and stand with all of the people who are suffering as a result of the violence,” said an Apple spokesman. As a result, Apple stood to lose as much as $1.14 billion (U.S.) annually in iPhone sales alone, and the decision removed access to Apple’s critical communications and services for victims of the war.(7)
+Considering these examples, it appears the Company’s principles to “empower and connect people” as “a force for good” – while remaining “engaged” even where it disagrees with a government and its laws, by still making its products “available” to users – has its limits.
+Resolved: Shareholders request the Board of Directors issue a report by March 31,2025, at reasonable cost and omitting proprietary or confidential information, analyzing the congruency of the Company’s privacy and human rights policy positions with its actions, especially in such places as war zones and under oppressive regimes, as they impact how the Company maintains its reputation, viability and profitability.
 (1)
 https://www.apple.com/privacy/govemment-information-requests/
 (2)
@@ -781,15 +243,6 @@ https://www.cnn.com/2019/10/10/media/quartz-china-apple-app-store
 https://www.npr.org/2022/03/0I/1083776364/apple-russia-pauses-sales-stops-exports
 (7)
 https://www.business-standard.com/article/international/apple-to-lose-3-mn-in-iphone-sales-daily-after-russia-pull-out-122030701009_1.html
-Back to Contents
-Summary
-Governance
-Directors
-Compensation
-Proposals
-Other Information
-2024 Proxy Statement
-98
 Apple’s Statement in Opposition to Proposal No. 8
 AGAINST
 Proposal No. 8
@@ -797,125 +250,33 @@ The Board recommends a vote AGAINST Proposal No. 8 because:
 ●
 Apple is deeply committed to respecting human rights;
 ●
-we are transparent about our approach to complex situations and
-prioritizing engagement; and
+we are transparent about our approach to complex situations and prioritizing engagement; and
 ●
-our robust policies and disclosures are publicly available, and
-our Board maintains active oversight of these areas, and therefore the requested report would not provide additional material information.
-Apple has long been committed to respecting human
-rights, and we view that commitment as a core part of our values and our mission to enrich people’s lives. We also believe privacy
-is a fundamental human right and innovate to build industry-leading privacy and security features into our products.
-We strive to conduct business ethically, honestly,
-and in compliance with applicable laws and regulations. We have an effective governance and risk management structure to oversee this
-work, and we report transparently on our efforts.
-Apple is deeply committed to respecting human
-rights.
-At Apple, our North Star is creating great technology that empowers our customers and enriches their lives. People come first
-in everything we do, and our respect for human rights includes our commitment to seeing that everyone is treated with dignity and respect.
-In 2020, our Board adopted
-Apple’s Human Rights Policy.
-(1)
-The policy governs how we treat everyone, including people at
-every level of our supply chain, as well as our customers, our employees, and our business partners. We are deeply committed
-to respecting internationally recognized human rights in our business operations, as set out in the United Nations
-International Bill of Human Rights and the International Labour Organization’s Declaration on Fundamental Principles
-and Rights at Work. Moreover, our approach is guided by the United Nations’ Guiding Principles on Business and Human
-Rights and reflects feedback that we have heard from our shareholders, as well as civil and human rights organizations and
-other stakeholders. Our commitment to human rights extends to every facet of our business, from working to safeguard security
-and user privacy in our products and promoting freedom of expression and access to information on our platforms to providing
-a safe and respectful environment for all people in our supply chain.
-In July 2023, we published our Civil Rights Assessment
-report prepared by former U.S. Attorney General Eric Holder and his team at Covington & Burling LLP. The report reviews
-Apple’s extensive efforts to respect civil rights and to promote diversity, equity, and inclusion and live by its core values, including
-accessibility, inclusion and diversity, and privacy. These efforts, many of which began years ago, are reflected in Apple’s current
-policies and practices, which are detailed in Covington’s report.
-We are transparent about our approach to complex
-situations and commitment to engagement.
-We’re required to comply with local laws, and at times there are complex considerations
-and issues where we may disagree with governments and other stakeholders on the most appropriate path or outcome. In these instances,
-we prioritize engagement, advocating for the outcome we believe is in the best interests of our users — their privacy, their ability
-to express themselves, and their ability to access reliable information and helpful technology.
-Our Human Rights Policy specifies that, in keeping
-with the UN Guiding Principles, where national law and international human rights standards conflict, “we respect national law while
-seeking to respect the principles of internationally recognized human rights.”
+our robust policies and disclosures are publicly available, and our Board maintains active oversight of these areas, and therefore the requested report would not provide additional material information.
+Apple has long been committed to respecting human rights, and we view that commitment as a core part of our values and our mission to enrich people’s lives. We also believe privacy is a fundamental human right and innovate to build industry-leading privacy and security features into our products.
+We strive to conduct business ethically, honestly, and in compliance with applicable laws and regulations. We have an effective governance and risk management structure to oversee this work, and we report transparently on our efforts.
+Apple is deeply committed to respecting human rights. At Apple, our North Star is creating great technology that empowers our customers and enriches their lives. People come first in everything we do, and our respect for human rights includes our commitment to seeing that everyone is treated with dignity and respect.
+In 2020, our Board adopted Apple’s Human Rights Policy. (1) The policy governs how we treat everyone, including people at every level of our supply chain, as well as our customers, our employees, and our business partners. We are deeply committed to respecting internationally recognized human rights in our business operations, as set out in the United Nations International Bill of Human Rights and the International Labour Organization’s Declaration on Fundamental Principles and Rights at Work. Moreover, our approach is guided by the United Nations’ Guiding Principles on Business and Human Rights and reflects feedback that we have heard from our shareholders, as well as civil and human rights organizations and other stakeholders. Our commitment to human rights extends to every facet of our business, from working to safeguard security and user privacy in our products and promoting freedom of expression and access to information on our platforms to providing a safe and respectful environment for all people in our supply chain.
+In July 2023, we published our Civil Rights Assessment report prepared by former U.S. Attorney General Eric Holder and his team at Covington & Burling LLP. The report reviews Apple’s extensive efforts to respect civil rights and to promote diversity, equity, and inclusion and live by its core values, including accessibility, inclusion and diversity, and privacy. These efforts, many of which began years ago, are reflected in Apple’s current policies and practices, which are detailed in Covington’s report.
+We are transparent about our approach to complex situations and commitment to engagement. We’re required to comply with local laws, and at times there are complex considerations and issues where we may disagree with governments and other stakeholders on the most appropriate path or outcome. In these instances, we prioritize engagement, advocating for the outcome we believe is in the best interests of our users — their privacy, their ability to express themselves, and their ability to access reliable information and helpful technology.
+Our Human Rights Policy specifies that, in keeping with the UN Guiding Principles, where national law and international human rights standards conflict, “we respect national law while seeking to respect the principles of internationally recognized human rights.”
 (1)
 investor.apple.com/Apple-Human-Rights-Policy
-Back to Contents
-Summary
-Governance
-Directors
-Compensation
-Proposals
-Other Information
-2024 Proxy Statement
-99
-Our robust policies and disclosures are publicly available and the
-requested report would not provide additional material information.
-We publish extensive reports on how our efforts align with our
-human rights and privacy policies, so the requested report would not provide shareholders with any additional material information. For
-example:
+Our robust policies and disclosures are publicly available and the requested report would not provide additional material information. We publish extensive reports on how our efforts align with our human rights and privacy policies, so the requested report would not provide shareholders with any additional material information. For example:
 ●
-App Store Review Guidelines:
-we disclose the standards and procedures
-that we apply in reviewing apps in our publicly available App Store Review Guidelines
-(2)
-and on our Developer Support
-website.
-(3)
-The guiding principle of the App Store is simple — we want to provide a safe experience for users
-to get apps and a great opportunity for all developers to be successful. We do this by offering a highly curated App Store where
-apps are reviewed by experts, and an editorial team helps users discover new apps every day.
+App Store Review Guidelines: we disclose the standards and procedures that we apply in reviewing apps in our publicly available App Store Review Guidelines(2) and on our Developer Support website.(3) The guiding principle of the App Store is simple — we want to provide a safe experience for users to get apps and a great opportunity for all developers to be successful. We do this by offering a highly curated App Store where apps are reviewed by experts, and an editorial team helps users discover new apps every day.
 ●
-App Store Transparency Report:
-we report transparently and
-comprehensively on our efforts to help keep the App Store a safe and trusted place for users to find the apps they love.
-Beginning with the 2022 calendar year, we expanded our prior biannual transparency reporting, which was focused on app
-removal requests by law enforcement and regulatory agencies, to offer a comprehensive App Store
-Transparency Report.
-(4)
+App Store Transparency Report: we report transparently and comprehensively on our efforts to help keep the App Store a safe and trusted place for users to find the apps they love. Beginning with the 2022 calendar year, we expanded our prior biannual transparency reporting, which was focused on app removal requests by law enforcement and regulatory agencies, to offer a comprehensive App Store Transparency Report. (4)
 ●
-Privacy:
-our Privacy website
-(5)
-sets out Apple’s privacy features that demonstrate our commitment
-to our core value of privacy, and our Privacy Policy
-(6)
-and service-specific privacy notices
-(7)
-provide
-clear explanations of how we collect, use, and store information.
+Privacy: our Privacy website (5) sets out Apple’s privacy features that demonstrate our commitment to our core value of privacy, and our Privacy Policy (6) and service-specific privacy notices (7) provide clear explanations of how we collect, use, and store information.
 ●
-Supplier Responsibility:
-our People and Environment in Our Supply Chain – 2023 Annual Progress Report
-(8)
-describes
-how Apple upholds the highest standards across our supply chain, in our care for people and the planet, and our Supplier Code of Conduct
-(9)
-requires
-the companies we do business with to abide by rigorous labor, health and safety, and environmental standards, and to respect the fundamental
-human rights of all people. We set standards, and we verify they’re met through independent, third-party assessments.
+Supplier Responsibility: our People and Environment in Our Supply Chain – 2023 Annual Progress Report (8) describes how Apple upholds the highest standards across our supply chain, in our care for people and the planet, and our Supplier Code of Conduct (9) requires the companies we do business with to abide by rigorous labor, health and safety, and environmental standards, and to respect the fundamental human rights of all people. We set standards, and we verify they’re met through independent, third-party assessments.
 ●
-Environment:
-our Environmental Progress Report
-(10)
-describes how Apple’s
-efforts align with our Human Rights Policy by maintaining “the highest standards in our due diligence and respect for
-human rights,” and setting out Apple’s goals and progress.
-Our Board maintains active oversight of these areas.
-Apple’s Board is responsible for overseeing and periodically reviewing Apple’s
-Human Rights Policy, while Apple’s General Counsel is responsible for its ongoing implementation and reports to the Board and its
-committees on progress and any significant issues identified in the diligence process. The Board is also regularly updated on the App
-Store business, including legal and regulatory matters. Our Audit Committee assists the Board in monitoring our significant business risks,
-including operational and reputational exposures that may relate to compliance with governmental laws, regulations, and orders, or to
-human rights issues. And our Nominating Committee assists the Board in its oversight of Apple’s strategies, policies, and practices
-relating to environmental and social matters, and oversaw our recently completed Civil Rights Assessment published in July 2023.
-For all the reasons above, the Board recommends a vote
-AGAINST
-Proposal No. 8
+Environment: our Environmental Progress Report(10) describes how Apple’s efforts align with our Human Rights Policy by maintaining “the highest standards in our due diligence and respect for human rights,” and setting out Apple’s goals and progress.
+Our Board maintains active oversight of these areas. Apple’s Board is responsible for overseeing and periodically reviewing Apple’s Human Rights Policy, while Apple’s General Counsel is responsible for its ongoing implementation and reports to the Board and its committees on progress and any significant issues identified in the diligence process. The Board is also regularly updated on the App Store business, including legal and regulatory matters. Our Audit Committee assists the Board in monitoring our significant business risks, including operational and reputational exposures that may relate to compliance with governmental laws, regulations, and orders, or to human rights issues. And our Nominating Committee assists the Board in its oversight of Apple’s strategies, policies, and practices relating to environmental and social matters, and oversaw our recently completed Civil Rights Assessment published in July 2023.
+For all the reasons above, the Board recommends a vote AGAINST Proposal No. 8
 Vote Required
-Approval of Proposal No. 8 requires the affirmative vote of (i) a majority
-of the shares present or represented by proxy and voting at the Annual Meeting and (ii) a majority of the shares required to constitute
-a quorum.
+Approval of Proposal No. 8 requires the affirmative vote of (i) a majority of the shares present or represented by proxy and voting at the Annual Meeting and (ii) a majority of the shares required to constitute a quorum.
 (2)
 developer.apple.com/app-store/review/guidelines/
 (3)
@@ -934,4 +295,3 @@ apple.com/supplier-responsibility/pdf/Apple_SR_2023_Progress_Report.pdf
 apple.com/supplier-responsibility/pdf/FY23-Supplier-Code-of-Conduct-and-Supplier-Responsibility-Standards.pdf
 (10)
 apple.com/environment/pdf/Apple_Environmental_Progress_Report_2023.pdf
-Back to Contents

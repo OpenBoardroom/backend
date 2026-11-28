@@ -12,7 +12,7 @@ import pytest
 from openboardroom.cli import main
 from openboardroom.config import Settings
 from openboardroom.edgar import EdgarClient, RateLimiter
-from openboardroom.pipeline.fetch import FetchResult, fetch
+from openboardroom.pipeline.fetch import FetchResult, ReconvertResult, fetch, reconvert
 from openboardroom.text import to_text
 
 FILINGS = Path(__file__).resolve().parents[1] / "fixtures" / "filings"
@@ -379,3 +379,103 @@ def test_cli_exits_nonzero_and_explains_a_stopped_run(
     assert "stopped early" in captured.err
     assert f"{OTHER}: EDGAR returned HTTP 403" in captured.err
     assert "fetch: 1 fetched, 0 failed" in captured.out
+
+
+def add_fetched(
+    conn: psycopg.Connection, cache: Path, raw: bytes | None, stale_text: bytes
+) -> None:
+    """Insert a fetched Apple filing whose recorded raw hash is APPLE_HTML's.
+
+    ``raw`` is what sits in the cache (None for nothing); the text file holds
+    ``stale_text`` and the row records its hash.
+    """
+    add_filing(conn, stage="fetched")
+    conn.execute(
+        "update filings set raw_sha256 = %s, text_sha256 = %s where accession = %s",
+        (sha256(APPLE_HTML), sha256(stale_text), ACCESSION),
+    )
+    (cache / "raw").mkdir(parents=True)
+    (cache / "text").mkdir(parents=True)
+    if raw is not None:
+        (cache / "raw" / f"{ACCESSION}.htm").write_bytes(raw)
+    (cache / "text" / f"{ACCESSION}.txt").write_bytes(stale_text)
+
+
+def test_reconvert_rewrites_text_and_hash(conn: psycopg.Connection, tmp_path: Path) -> None:
+    add_fetched(conn, tmp_path, APPLE_HTML, b"old conversion\n")
+
+    result = reconvert(conn, tmp_path)
+
+    expected = to_text(APPLE_HTML).encode("utf-8")
+    assert result == ReconvertResult(changed=1, unchanged=0, failed=[])
+    assert (tmp_path / "text" / f"{ACCESSION}.txt").read_bytes() == expected
+    assert filing(conn) == ("fetched", sha256(APPLE_HTML), sha256(expected), False)
+
+
+def test_reconvert_leaves_current_text_unchanged(conn: psycopg.Connection, tmp_path: Path) -> None:
+    current = to_text(APPLE_HTML).encode("utf-8")
+    add_fetched(conn, tmp_path, APPLE_HTML, current)
+    text_path = tmp_path / "text" / f"{ACCESSION}.txt"
+    before = text_path.stat().st_mtime_ns
+
+    result = reconvert(conn, tmp_path)
+
+    assert result == ReconvertResult(changed=0, unchanged=1, failed=[])
+    assert text_path.stat().st_mtime_ns == before
+
+
+def test_reconvert_missing_raw_fails_without_request(
+    conn: psycopg.Connection, tmp_path: Path
+) -> None:
+    add_fetched(conn, tmp_path, None, b"old conversion\n")
+
+    result = reconvert(conn, tmp_path)
+
+    assert result == ReconvertResult(changed=0, unchanged=0, failed=[ACCESSION])
+    assert filing(conn) == ("fetched", sha256(APPLE_HTML), sha256(b"old conversion\n"), False)
+
+
+def test_reconvert_hash_mismatch_fails(conn: psycopg.Connection, tmp_path: Path) -> None:
+    add_fetched(conn, tmp_path, APPLE_HTML + b"tampered", b"old conversion\n")
+
+    result = reconvert(conn, tmp_path)
+
+    assert result == ReconvertResult(changed=0, unchanged=0, failed=[ACCESSION])
+    assert filing(conn) == ("fetched", sha256(APPLE_HTML), sha256(b"old conversion\n"), False)
+    assert (tmp_path / "text" / f"{ACCESSION}.txt").read_bytes() == b"old conversion\n"
+
+
+def test_reconvert_skips_filings_never_downloaded(conn: psycopg.Connection, tmp_path: Path) -> None:
+    add_filing(conn)
+
+    assert reconvert(conn, tmp_path) == ReconvertResult(changed=0, unchanged=0, failed=[])
+
+
+def test_cli_reconvert_prints_counts_and_exits_nonzero_on_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    role_urls: dict[str, str],
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    calls: list[tuple[bool, Path]] = []
+
+    def fake(conn: psycopg.Connection, cache_dir: Path) -> ReconvertResult:
+        calls.append((conn.autocommit, cache_dir))
+        return ReconvertResult(changed=2, unchanged=1, failed=[OTHER])
+
+    def no_edgar(*args: object, **kwargs: object) -> None:
+        raise AssertionError("--reconvert must not open an EDGAR client")
+
+    monkeypatch.setenv("OBR_DATABASE_URL", role_urls["pipeline_rw"])
+    monkeypatch.setenv("OBR_EDGAR_USER_AGENT", "Test Org test@example.org")
+    monkeypatch.setenv("OBR_CACHE_DIR", str(tmp_path))
+    monkeypatch.setattr("openboardroom.pipeline.fetch.reconvert", fake)
+    monkeypatch.setattr("openboardroom.pipeline.fetch.EdgarClient", no_edgar)
+
+    code = main(["fetch", "--reconvert"])
+
+    captured = capsys.readouterr()
+    assert code == 1
+    assert calls == [(True, tmp_path)]
+    assert "fetch --reconvert: 2 changed, 1 unchanged, 1 failed" in captured.out
+    assert OTHER in captured.err

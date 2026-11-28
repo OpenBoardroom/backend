@@ -1,0 +1,62 @@
+[
+  {
+    "custom_id": "0000000000-24-000004",
+    "result": {
+      "type": "expired"
+    }
+  },
+  {
+    "custom_id": "0000000000-24-000003",
+    "result": {
+      "type": "errored",
+      "error": {
+        "type": "error",
+        "error": {"type": "api_error", "message": "Fixture internal error."},
+        "request_id": "req_fixture_errored"
+      }
+    }
+  },
+  {
+    "custom_id": "0000000000-24-000002",
+    "result": {
+      "type": "succeeded",
+      "message": {
+        "id": "msg_fixture_batch_refusal",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-opus-5-5",
+        "content": [],
+        "stop_reason": "refusal",
+        "stop_sequence": null,
+        "stop_details": {"type": "refusal", "category": null, "explanation": null},
+        "usage": {"input_tokens": 900, "output_tokens": 12}
+      }
+    }
+  },
+  {
+    "custom_id": "0000000000-24-000001",
+    "result": {
+      "type": "succeeded",
+      "message": {
+        "id": "msg_fixture_batch_ok",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-opus-5-5",
+        "content": [
+          {"type": "thinking", "thinking": "", "signature": "fixture"},
+          {"type": "text", "text": "{\"meeting\": null, \"items\": []}"}
+        ],
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {"input_tokens": 1000, "output_tokens": 50}
+      }
+    }
+  },
+  {
+    "custom_id": "0000000000-24-000005",
+    "result": {
+      "type": "canceled"
+    }
+  }
+]

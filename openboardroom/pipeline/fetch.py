@@ -33,6 +33,22 @@ class FetchResult:
     stopped: str | None = None
 
 
+@dataclass(frozen=True)
+class ReconvertResult:
+    """What a reconvert run did.
+
+    Attributes:
+        changed: Filings whose text, and so `text_sha256`, changed.
+        unchanged: Filings whose text was already current.
+        failed: Accessions whose cached raw document was missing or didn't match
+            `raw_sha256`; their rows and text files were left alone.
+    """
+
+    changed: int
+    unchanged: int
+    failed: list[str] = field(default_factory=lambda: [])
+
+
 def _stops_run(error: EdgarError) -> bool:
     """Whether `error` means EDGAR as a whole is unavailable to us, not just one filing.
 
@@ -148,8 +164,67 @@ def fetch(
     return FetchResult(fetched=fetched, failed=len(errors), errors=errors)
 
 
+def reconvert(conn: psycopg.Connection, cache_dir: Path) -> ReconvertResult:
+    """Rebuild every downloaded filing's text from its cached raw document.
+
+    Run after a change to `to_text`. Never downloads: a filing whose cached
+    `.htm` is missing or doesn't match `raw_sha256` is reported as failed and
+    left as it was. Stages are not changed.
+
+    Args:
+        conn: Connection to the pipeline database; each filing's update commits
+            on its own when the connection is in autocommit mode.
+        cache_dir: Root of the filing cache.
+
+    Returns:
+        Counts of changed and unchanged filings, and the failed accessions.
+    """
+    rows = conn.execute(
+        "select id, accession, raw_sha256, text_sha256 from filings "
+        "where raw_sha256 is not null order by id"
+    ).fetchall()
+    text_dir = cache_dir / "text"
+    text_dir.mkdir(parents=True, exist_ok=True)
+    changed = unchanged = 0
+    failed: list[str] = []
+    for filing_id, accession, raw_sha256, text_sha256 in rows:
+        raw = _cached(cache_dir / "raw" / f"{accession}.htm", raw_sha256)
+        if raw is None:
+            failed.append(accession)
+            continue
+        text = to_text(raw).encode("utf-8")
+        text_path = text_dir / f"{accession}.txt"
+        if _sha256(text) == text_sha256 and text_path.is_file():
+            unchanged += 1
+            continue
+        _write(text_path, text)
+        conn.execute(
+            "update filings set text_sha256 = %s where id = %s", (_sha256(text), filing_id)
+        )
+        changed += 1
+    return ReconvertResult(changed=changed, unchanged=unchanged, failed=failed)
+
+
+def _run_reconvert(settings: Settings) -> int:
+    with psycopg.connect(settings.database_url, autocommit=True) as conn:
+        result = reconvert(conn, settings.cache_dir)
+    for accession in result.failed:
+        print(
+            f"fetch --reconvert failed: {accession}: cached raw document missing "
+            "or doesn't match its recorded hash",
+            file=sys.stderr,
+        )
+    print(
+        f"fetch --reconvert: {result.changed} changed, {result.unchanged} unchanged, "
+        f"{len(result.failed)} failed"
+    )
+    return 1 if result.failed else 0
+
+
 def _run(args: argparse.Namespace) -> int:
     settings = Settings.from_env()
+    if args.reconvert:
+        return _run_reconvert(settings)
     # Autocommit: each filing's single UPDATE commits on its own, so a failure
     # later in the run doesn't undo filings already fetched.
     with (
@@ -180,5 +255,10 @@ def register(subparsers: SubParsers) -> None:
     """
     parser = subparsers.add_parser(
         "fetch", help="Download discovered filings and convert them to plain text."
+    )
+    parser.add_argument(
+        "--reconvert",
+        action="store_true",
+        help="Rebuild every cached filing's text from its raw document (no downloads).",
     )
     parser.set_defaults(func=_run)

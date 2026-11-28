@@ -1,0 +1,85 @@
+[
+  {
+    "number": 1,
+    "heading": "Proposal No. 1 - Election of Directors",
+    "lines": [
+      92,
+      2059,
+      2063,
+      2786,
+      2793
+    ]
+  },
+  {
+    "number": 2,
+    "heading": "Proposal No. 2 - Ratification of Appointment of Independent Registered Public Accounting Firm",
+    "lines": [
+      94,
+      2061,
+      2074,
+      2782
+    ]
+  },
+  {
+    "number": 3,
+    "heading": "Proposal No. 3 - Advisory Vote to Approve Executive Compensation",
+    "lines": [
+      95,
+      2062,
+      2113,
+      2788
+    ]
+  },
+  {
+    "number": 4,
+    "heading": "Proposal No. 4 - EEO Policy Risk Report",
+    "lines": [
+      103,
+      2132,
+      2217,
+      2236,
+      2254
+    ]
+  },
+  {
+    "number": 5,
+    "heading": "Proposal No. 5 - Report on Ensuring Respect for Civil Liberties",
+    "lines": [
+      105,
+      2134,
+      2257,
+      2284,
+      2318
+    ]
+  },
+  {
+    "number": 6,
+    "heading": "Proposal No. 6 - Racial and Gender Pay Gaps",
+    "lines": [
+      107,
+      2136,
+      2325,
+      2356
+    ]
+  },
+  {
+    "number": 7,
+    "heading": "Proposal No. 7 - Report on Use of AI",
+    "lines": [
+      109,
+      2138,
+      2386,
+      2400
+    ]
+  },
+  {
+    "number": 8,
+    "heading": "Proposal No. 8 - Congruency Report on Privacy and Human Rights",
+    "lines": [
+      111,
+      2140,
+      2436,
+      2473
+    ]
+  }
+]

@@ -1,0 +1,96 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meeting", "items"],
+  "properties": {
+    "meeting": {"$ref": "#/$defs/meeting"},
+    "items": {"type": "array", "items": {"$ref": "#/$defs/item"}}
+  },
+  "$defs": {
+    "meeting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "date", "time", "format", "record_date", "shares_outstanding", "date_quote"],
+      "properties": {
+        "kind": {"anyOf": [{"type": "string", "enum": ["annual", "special"]}, {"type": "null"}]},
+        "date": {"type": "string", "description": "YYYY-MM-DD, or \"\" if not stated"},
+        "time": {"type": "string", "description": "As written, with time zone, or \"\" if not stated"},
+        "format": {"anyOf": [{"type": "string", "enum": ["virtual", "in_person", "hybrid"]}, {"type": "null"}]},
+        "record_date": {"type": "string", "description": "YYYY-MM-DD, or \"\" if not stated"},
+        "shares_outstanding": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+        "date_quote": {"type": "string", "description": "8 to 40 consecutive words copied verbatim, or \"\" if not stated"}
+      }
+    },
+    "discussion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["proponent", "board"],
+      "properties": {
+        "proponent": {"type": "string", "description": "Begins \"The proponent argues\""},
+        "board": {"type": "string", "description": "Begins \"The board argues\""}
+      }
+    },
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "number", "title", "summary", "type", "category", "effect",
+        "lead_filer", "representative", "co_filers",
+        "board_recommendation", "recommendation_quote",
+        "vote_base", "vote_threshold_pct", "abstentions_count_against",
+        "vote_standard_text", "vote_standard_quote",
+        "request", "nominees", "discussion", "source_quote"
+      ],
+      "properties": {
+        "number": {"type": "integer"},
+        "title": {"type": "string"},
+        "summary": {"type": "string", "description": "One neutral sentence on what shareholders are asked to vote on"},
+        "type": {"type": "string", "enum": ["management", "shareholder"]},
+        "category": {
+          "type": "string",
+          "enum": [
+            "director_election", "say_on_pay", "say_on_pay_frequency", "auditor_ratification",
+            "equity_plan", "charter_bylaw_amendment", "shareholder_proposal", "other"
+          ]
+        },
+        "effect": {"type": "string", "enum": ["binding", "advisory", "precatory"]},
+        "lead_filer": {"type": "string", "description": "\"\" for a management item"},
+        "representative": {"type": "string", "description": "\"\" if none is named"},
+        "co_filers": {"type": "array", "items": {"type": "string"}},
+        "board_recommendation": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "for", "against", "abstain", "none",
+                "for_each_nominee", "one_year", "two_years", "three_years"
+              ]
+            },
+            {"type": "null"}
+          ]
+        },
+        "recommendation_quote": {"type": "string", "description": "8 to 40 consecutive words copied verbatim, or \"\" if not stated"},
+        "vote_base": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "votes_cast", "shares_present_and_voting", "shares_present",
+                "shares_outstanding", "plurality", "other"
+              ]
+            },
+            {"type": "null"}
+          ]
+        },
+        "vote_threshold_pct": {"anyOf": [{"type": "number"}, {"type": "null"}], "description": "50 for a majority"},
+        "abstentions_count_against": {"anyOf": [{"type": "boolean"}, {"type": "null"}]},
+        "vote_standard_text": {"type": "string", "description": "The filing's own wording, or \"\" if not stated"},
+        "vote_standard_quote": {"type": "string", "description": "8 to 40 consecutive words copied verbatim, or \"\" if not stated"},
+        "request": {"type": "string", "description": "What a shareholder proposal asks for; \"\" for a management item"},
+        "nominees": {"type": "array", "items": {"type": "string"}},
+        "discussion": {"anyOf": [{"$ref": "#/$defs/discussion"}, {"type": "null"}]},
+        "source_quote": {"type": "string", "description": "8 to 40 consecutive words copied verbatim"}
+      }
+    }
+  }
+}

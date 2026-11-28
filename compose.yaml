@@ -1,0 +1,25 @@
+# Local development database only. Production Postgres is managed by the
+# `infrastructure` repo. The passwords below are for this local container and
+# are not secrets; the port is bound to 127.0.0.1 so nothing else can reach it.
+services:
+  postgres:
+    # Same version CI uses for tests and the schema dump.
+    image: postgres:17.12
+    environment:
+      POSTGRES_DB: openboardroom
+      POSTGRES_USER: obr_owner
+      POSTGRES_PASSWORD: obr_owner_local
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Runs once, when the data volume is first created.
+      - ./db/local/roles.sql:/docker-entrypoint-initdb.d/roles.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U obr_owner -d openboardroom"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+volumes:
+  pgdata:

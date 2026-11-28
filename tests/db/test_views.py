@@ -157,8 +157,9 @@ def test_pending_change_flagged_value_unchanged(admin_conn: psycopg.Connection) 
     item_id = _item(admin_conn, published=True)
     admin_conn.execute(
         """
-        insert into pending_changes (ballot_item_id, field, proposed, extraction_run_id, reason)
-        select id, 'board_recommendation', '"against"', extraction_run_id, 'rerun'
+        insert into pending_changes
+            (meeting_id, ballot_item_id, field, proposed, extraction_run_id, reason)
+        select meeting_id, id, 'board_recommendation', '"against"', extraction_run_id, 'rerun'
         from ballot_items where id = %s
         """,
         (item_id,),
@@ -178,8 +179,8 @@ def test_resolved_change_not_flagged(admin_conn: psycopg.Connection) -> None:
     admin_conn.execute(
         """
         insert into pending_changes
-            (ballot_item_id, field, proposed, extraction_run_id, reason, status)
-        select id, 'title', '"New"', extraction_run_id, 'rerun', 'rejected'
+            (meeting_id, ballot_item_id, field, proposed, extraction_run_id, reason, status)
+        select meeting_id, id, 'title', '"New"', extraction_run_id, 'rerun', 'rejected'
         from ballot_items where id = %s
         """,
         (item_id,),

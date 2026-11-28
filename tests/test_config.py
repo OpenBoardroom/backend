@@ -4,7 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from openboardroom.config import ConfigError, Settings, database_url_from_env
+from openboardroom.config import (
+    ConfigError,
+    Settings,
+    database_url_from_env,
+    extract_settings_from_env,
+    review_settings_from_env,
+)
+from openboardroom.extract.llm import LlmSettings
 
 VALID = {
     "OBR_DATABASE_URL": "postgresql://u:p@localhost/db",
@@ -26,6 +33,9 @@ def test_blank_user_agent_counts_as_missing(value: str) -> None:
 def test_missing_database_url_raises() -> None:
     with pytest.raises(ConfigError, match="OBR_DATABASE_URL"):
         Settings.from_env({"OBR_EDGAR_USER_AGENT": VALID["OBR_EDGAR_USER_AGENT"]})
+
+
+EXTRACT_VARS = ["OBR_EXTRACT_MODEL", "OBR_EXTRACT_EFFORT", "OBR_EXTRACT_MAX_TOKENS"]
 
 
 @pytest.mark.parametrize("value", ["", "   "])
@@ -80,3 +90,54 @@ def test_database_url_from_env_needs_only_database_url() -> None:
     assert database_url_from_env({"OBR_DATABASE_URL": " postgresql://x "}) == "postgresql://x"
     with pytest.raises(ConfigError, match="OBR_DATABASE_URL"):
         database_url_from_env({"OBR_DATABASE_URL": "  "})
+
+
+def test_extract_defaults() -> None:
+    assert extract_settings_from_env({}) == LlmSettings("claude-opus-5-5", "high", 64000)
+
+
+def test_extract_overrides() -> None:
+    env = {
+        "OBR_EXTRACT_MODEL": " claude-x ",
+        "OBR_EXTRACT_EFFORT": "max",
+        "OBR_EXTRACT_MAX_TOKENS": "1000",
+    }
+    assert extract_settings_from_env(env) == LlmSettings("claude-x", "max", 1000)
+
+
+@pytest.mark.parametrize("value", ["", "  "])
+def test_extract_blank_values_use_defaults(value: str) -> None:
+    env = {name: value for name in EXTRACT_VARS}
+    assert extract_settings_from_env(env) == LlmSettings("claude-opus-5-5", "high", 64000)
+
+
+@pytest.mark.parametrize("effort", ["low", "medium", "high", "xhigh", "max"])
+def test_extract_effort_levels_allowed(effort: str) -> None:
+    assert extract_settings_from_env({"OBR_EXTRACT_EFFORT": effort}).effort == effort
+
+
+@pytest.mark.parametrize("value", ["extreme", "HIGH", "1"])
+def test_extract_invalid_effort_raises(value: str) -> None:
+    with pytest.raises(ConfigError, match="OBR_EXTRACT_EFFORT"):
+        extract_settings_from_env({"OBR_EXTRACT_EFFORT": value})
+
+
+@pytest.mark.parametrize("value", ["lots", "0", "-5", "1.5"])
+def test_extract_invalid_max_tokens_raises(value: str) -> None:
+    with pytest.raises(ConfigError, match="OBR_EXTRACT_MAX_TOKENS"):
+        extract_settings_from_env({"OBR_EXTRACT_MAX_TOKENS": value})
+
+
+@pytest.mark.parametrize("value", [None, "", "  "])
+def test_review_settings_need_reviewer(value: str | None) -> None:
+    env = {"OBR_DATABASE_URL": VALID["OBR_DATABASE_URL"]}
+    if value is not None:
+        env["OBR_REVIEWER"] = value
+    with pytest.raises(ConfigError, match="OBR_REVIEWER"):
+        review_settings_from_env(env)
+
+
+def test_review_settings_skip_edgar() -> None:
+    env = {"OBR_DATABASE_URL": VALID["OBR_DATABASE_URL"], "OBR_REVIEWER": " quinn "}
+    settings = review_settings_from_env(env)
+    assert (settings.database_url, settings.reviewer) == (VALID["OBR_DATABASE_URL"], "quinn")
