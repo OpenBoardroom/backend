@@ -188,17 +188,17 @@ def test_running_header_and_page_numbers_are_dropped() -> None:
         [
             b"<div>2026 Proxy Statement</div><div>%d</div>" % n
             + b"<div>Table of Contents</div><p>Body %d</p>" % n
-            for n in range(1, 6)
+            for n in range(1, 13)
         ]
     )
 
-    assert to_text(html) == "Body 1\nBody 2\nBody 3\nBody 4\nBody 5\n"
+    assert to_text(html) == "".join(f"Body {n}\n" for n in range(1, 13))
 
 
 def test_sentence_split_by_furniture_is_contiguous_after_drop() -> None:
     # ExxonMobil 2026, Item 6: the resolution runs across a page break.
     furniture = b"<div>2026 Proxy Statement</div><div>%d</div><div>Table of Contents</div>"
-    bodies = [furniture % n + b"<p>Other page %d</p>" % n for n in range(1, 6)]
+    bodies = [furniture % n + b"<p>Other page %d</p>" % n for n in range(1, 13)]
     bodies[2] = furniture % 3 + b"<p>provides multiple independent options to shareholders so</p>"
     bodies[3] = (
         furniture % 4 + b"<p>that the retail voting program does not inordinately advantage</p>"
@@ -269,7 +269,7 @@ def test_page_number_followed_by_running_navigation_is_dropped() -> None:
     html = _pages(
         [
             b"<p>Body %d</p>" % n + b"<p>More %d</p>" % n * 4 + b"<div>%d</div>" % (60 + n) + nav
-            for n in range(1, 6)
+            for n in range(1, 13)
         ]
     )
 
@@ -277,3 +277,26 @@ def test_page_number_followed_by_running_navigation_is_dropped() -> None:
 
     assert "Governance" not in text
     assert not any(line.isdigit() for line in text.splitlines())
+
+
+def test_short_document_keeps_lines_repeated_across_pages() -> None:
+    # Review finding: in a short document every line sits at a page edge, so a
+    # line repeated on 3 pages was dropped everywhere. Below 10 pages nothing is
+    # treated as furniture.
+    bodies = [b"<div>Vote by May 1</div><p>Notice %d</p>" % n for n in range(1, 8)]
+
+    text = to_text(_pages(bodies))
+
+    assert text.count("Vote by May 1") == 7
+    assert "Notice 7" in text
+
+
+def test_boeing_supplement_keeps_its_notice_text() -> None:
+    # Boeing's 2026 DEFA14A (0001193125-26-096842): three versions of one notice
+    # on 7 pages. The old rule dropped 21 lines, its voting instructions among them.
+    html = (FILINGS / "boeing-2026-defa14a.htm").read_bytes()
+
+    text = to_text(html)
+
+    assert "Please note that if you own shares of The Boeing Company stock in mult" in text
+    assert len(text.splitlines()) > 50

@@ -25,3 +25,9 @@ Apple 2024 has 8 (table of contents and each proposal's section), Microsoft 2023
 (4 management and 9 shareholder proposals), Alphabet 2026 has 14 (4 management and 10
 shareholder proposals). `tests/fixtures/regex/*.expected.json` holds the
 regex pass's expected candidates for each.
+
+`boeing-2026-defa14a.htm` (added 2026-11-27) is the raw primary document of Boeing's 2026 DEFA14A,
+accession 0001193125-26-096842 (https://www.sec.gov/Archives/edgar/data/12927/000119312526096842/),
+copied from the local cache; sha256 `6118ec944ec03a88462159f48855adfe02912cf20a900cfcef5e05e6317938f3`.
+It holds three versions of one voting notice on 7 pages. Page-furniture removal used to treat its
+repeated lines as running headers and drop all 21 of them (backend review, 2026-11-27).

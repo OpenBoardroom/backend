@@ -47,6 +47,11 @@ _PAGE_BREAK_STYLE = re.compile(
 # ("Required Vote", a vote-standard sentence) stays at or below 23%.
 _EDGE_LINES = 12
 _MIN_PAGES = 3
+# In a short document every line sits near a page edge, so content repeated on
+# a few pages looked like furniture and was dropped everywhere (Boeing's 2026
+# DEFA14A lost 21 lines). Measured on the 2026 cache: every document that lost
+# content had 8 pages or fewer; real running headers appear from 19 pages up.
+_MIN_FURNITURE_PAGES = 10
 _MIN_PAGE_SHARE = 0.4
 _PAGE_NUMBER = re.compile(r"\d+|[ivxlc]+")
 # Page numbers sit at the very edge of a page (measured: 0-2 lines in). Bare
@@ -147,8 +152,8 @@ def _drop_furniture(lines: list[str]) -> list[str]:
     furniture gone, a bare number within ``_PAGE_NUMBER_EDGE`` lines of a page's
     edge is a page number when pages carry one that often; measuring after the
     first pass finds page numbers that a running menu follows (Apple). Lines away
-    from page edges are never dropped, and a document without page breaks loses
-    nothing.
+    from page edges are never dropped. A document without page breaks, or with
+    fewer than ``_MIN_FURNITURE_PAGES`` pages, loses nothing.
 
     Args:
         lines: Text lines, with ``_PAGE_BREAK`` lines between pages.
@@ -162,8 +167,9 @@ def _drop_furniture(lines: list[str]) -> list[str]:
             pages.append([])
         else:
             pages[-1].append(line)
-    pages = _drop_repeated(pages, _text_key)
-    pages = _drop_repeated(pages, _page_number_key)
+    if len(pages) >= _MIN_FURNITURE_PAGES:
+        pages = _drop_repeated(pages, _text_key)
+        pages = _drop_repeated(pages, _page_number_key)
     return [line for page in pages for line in page]
 
 
